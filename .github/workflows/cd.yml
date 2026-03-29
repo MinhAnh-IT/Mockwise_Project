@@ -90,7 +90,7 @@ jobs:
 
             # Pull new code version
             cd /opt/mockwise
-            git pull origin main
+            git pull https://x-access-token:${{ secrets.GHCR_TOKEN }}@github.com/${{ github.repository }}.git main
 
             # Login GHCR to pull private images
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io \
