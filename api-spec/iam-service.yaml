@@ -9,14 +9,21 @@ info:
     All requests go through the API Gateway: **`http://localhost:8888`**
     Direct service port: `8081` (context-path: `/api/v1/iam`)
 
-    ### Public routes (no token required)
-    - `POST /api/v1/iam/users/register`
-    - `POST /api/v1/iam/auth/sign-in`
-    - `POST /api/v1/iam/auth/logout`
-    - `POST /api/v1/iam/auth/token/renew`
-    - `POST /api/v1/iam/auth/token/introspect`
-    - `POST /api/v1/iam/auth/verify-account/**`
-    - `POST /api/v1/iam/auth/forgot-password/**`
+    ### Authentication
+    Requires `Authorization: Bearer <accessToken>` except for public endpoints.
+
+    ### Role-based access
+    | Endpoint group | Required role |
+    |----------------|---------------|
+    | `POST /api/v1/iam/users/register` | Public |
+    | `POST /api/v1/iam/auth/sign-in` | Public |
+    | `POST /api/v1/iam/auth/logout` | Public |
+    | `POST /api/v1/iam/auth/token/renew` | Public |
+    | `POST /api/v1/iam/auth/token/introspect` | Public |
+    | `POST /api/v1/iam/auth/verify-account/**` | Public |
+    | `POST /api/v1/iam/auth/forgot-password/**` | Public |
+    | `GET /api/v1/iam/users/{userId}` | USER, ADMIN, SERVICE |
+    | `POST /api/v1/iam/auth/logout-all` | USER, ADMIN |
 
 servers:
   - url: http://localhost:8888
