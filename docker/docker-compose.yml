@@ -121,6 +121,17 @@ services:
       - internal-net
     # No ports — served via nginx
 
+  # ─── Swagger UI (internal only) ────────────────────────────────
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    environment:
+      BASE_URL: /docs
+      URLS: >-
+        [{"url":"/api-spec/iam-service.yaml","name":"IAM Service"},
+         {"url":"/api-spec/user-profile-service.yaml","name":"User Profile Service"}]
+    networks:
+      - internal-net
+
   # ─── Nginx (only public entry point) ───────────────────────────
   nginx:
     image: nginx:1.25-alpine
@@ -131,6 +142,7 @@ services:
       - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ../nginx/conf.d:/etc/nginx/conf.d:ro
       - nginx_ssl:/etc/nginx/ssl
+      - ../api-spec:/etc/nginx/api-spec:ro
     networks:
       - public-net
       - internal-net   # ← can reach frontend and ai-evaluation
@@ -138,6 +150,7 @@ services:
       - api-gateway
       - ai-evaluation
       - frontend
+      - swagger-ui
 
 volumes:
   nginx_ssl:

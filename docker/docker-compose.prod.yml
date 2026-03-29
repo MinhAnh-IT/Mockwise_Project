@@ -87,6 +87,17 @@ services:
     restart: unless-stopped
     networks: [internal-net]
 
+  # ─── Swagger UI (internal only) ────────────────────────────────
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    restart: unless-stopped
+    environment:
+      BASE_URL: /docs
+      URLS: >-
+        [{"url":"/api-spec/iam-service.yaml","name":"IAM Service"},
+         {"url":"/api-spec/user-profile-service.yaml","name":"User Profile Service"}]
+    networks: [internal-net]
+
   # ─── Nginx (duy nhất exposed ra internet) ──────────────────────
   nginx:
     image: nginx:1.25-alpine
@@ -98,8 +109,9 @@ services:
       - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ../nginx/conf.d:/etc/nginx/conf.d:ro
       - nginx-ssl:/etc/nginx/ssl
+      - ../api-spec:/etc/nginx/api-spec:ro
     networks: [public-net, internal-net]
-    depends_on: [api-gateway, frontend]
+    depends_on: [api-gateway, frontend, swagger-ui]
 
 networks:
   public-net:
