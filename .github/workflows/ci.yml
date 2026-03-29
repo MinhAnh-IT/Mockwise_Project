@@ -58,14 +58,14 @@ jobs:
           cache: 'maven'
           server-id: github
           server-username: GITHUB_ACTOR
-          server-password: GITHUB_TOKEN
+          server-password: PACKAGES_TOKEN
       - name: Build & test
         run: mvn -B -pl api-gateway clean package -DskipTests
         working-directory: services
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       - name: Build Docker image
-        run: docker build -f services/api-gateway/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.GITHUB_TOKEN }} -t mockwise/api-gateway:${{ github.sha }} services
+        run: docker build -f services/api-gateway/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/api-gateway:${{ github.sha }} services
 
   build-iam-service:
     needs: detect-changes
@@ -83,14 +83,14 @@ jobs:
           cache: 'maven'
           server-id: github
           server-username: GITHUB_ACTOR
-          server-password: GITHUB_TOKEN
+          server-password: PACKAGES_TOKEN
       - name: Build & test
         run: mvn -B -pl iam-service clean package -DskipTests
         working-directory: services
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       - name: Build Docker image
-        run: docker build -f services/iam-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.GITHUB_TOKEN }} -t mockwise/iam-service:${{ github.sha }} services
+        run: docker build -f services/iam-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/iam-service:${{ github.sha }} services
 
   build-user-profile-service:
     needs: detect-changes
@@ -108,14 +108,14 @@ jobs:
           cache: 'maven'
           server-id: github
           server-username: GITHUB_ACTOR
-          server-password: GITHUB_TOKEN
+          server-password: PACKAGES_TOKEN
       - name: Build & test
         run: mvn -B -pl user-profile-service clean package -DskipTests
         working-directory: services
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       - name: Build Docker image
-        run: docker build -f services/user-profile-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.GITHUB_TOKEN }} -t mockwise/user-profile-service:${{ github.sha }} services
+        run: docker build -f services/user-profile-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/user-profile-service:${{ github.sha }} services
 
   build-mail-service:
     needs: detect-changes
@@ -133,14 +133,14 @@ jobs:
           cache: 'maven'
           server-id: github
           server-username: GITHUB_ACTOR
-          server-password: GITHUB_TOKEN
+          server-password: PACKAGES_TOKEN
       - name: Build & test
         run: mvn -B -pl mail-service clean package -DskipTests
         working-directory: services
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       - name: Build Docker image
-        run: docker build -f services/mail-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.GITHUB_TOKEN }} -t mockwise/mail-service:${{ github.sha }} services
+        run: docker build -f services/mail-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/mail-service:${{ github.sha }} services
 
   build-ai-evaluation:
     needs: detect-changes
