@@ -21,17 +21,23 @@ jobs:
       matrix:
         service:
           - name: api-gateway
-            path: services/api-gateway
+            context: services
+            dockerfile: services/api-gateway/Dockerfile
           - name: iam-service
-            path: services/iam-service
+            context: services
+            dockerfile: services/iam-service/Dockerfile
           - name: user-profile-service
-            path: services/user-profile-service
+            context: services
+            dockerfile: services/user-profile-service/Dockerfile
           - name: mail-service
-            path: services/mail-service
+            context: services
+            dockerfile: services/mail-service/Dockerfile
           - name: ai-evaluation
-            path: AI/AI-Evaluation
+            context: AI/AI-Evaluation
+            dockerfile: AI/AI-Evaluation/Dockerfile
           - name: frontend
-            path: frontend
+            context: frontend
+            dockerfile: frontend/Dockerfile
 
     steps:
       - name: Checkout
@@ -54,7 +60,8 @@ jobs:
       - name: Build & push ${{ matrix.service.name }}
         uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.service.path }}
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.dockerfile }}
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}:latest
