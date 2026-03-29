@@ -53,7 +53,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # GHCR yêu cầu lowercase — convert owner name
+      # GHCR requires lowercase — convert owner name
       - name: Set lowercase image prefix
         run: echo "IMAGE_PREFIX=${GITHUB_REPOSITORY_OWNER,,}/mockwise_project" >> $GITHUB_ENV
 
