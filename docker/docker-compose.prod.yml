@@ -82,10 +82,10 @@ services:
       retries: 3
 
   # ─── Frontend (internal, served qua nginx) ─────────────────────
-  # frontend:
-  #   image: ghcr.io/minhanh-it/mockwise_project/frontend:${IMAGE_TAG:-latest}
-  #   restart: unless-stopped
-  #   networks: [internal-net]
+  frontend:
+    image: ghcr.io/minhanh-it/mockwise_project/frontend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    networks: [internal-net]
 
   # ─── Swagger UI (internal only) ────────────────────────────────
   swagger-ui:
