@@ -88,12 +88,13 @@ jobs:
           script: |
             set -e
 
-            # Pull new code version
+            # Sync code to latest main (force reset to avoid diverge issues)
             cd /opt/mockwise
-            git pull https://x-access-token:${{ secrets.GHCR_TOKEN }}@github.com/${{ github.repository }}.git main
+            git fetch https://x-access-token:${{ secrets.GIT_TOKEN }}@github.com/${{ github.repository }}.git main
+            git reset --hard FETCH_HEAD
 
             # Login GHCR to pull private images
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io \
+            echo "${{ secrets.GIT_TOKEN }}" | docker login ghcr.io \
               -u ${{ github.repository_owner }} --password-stdin
 
             # Pull images and restart
