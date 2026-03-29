@@ -1,0 +1,32 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://31.220.84.140:3306/user_profile}
+    username: ${MYSQL_USER:mockwise}
+    password: ${MYSQL_PASSWORD:mockwise_db_password2026}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      pool-name: UFHikariPool
+      idle-timeout: 30000
+      max-lifetime: 600000
+      connection-timeout: 20000
+
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MySQLDialect
+
+server:
+  port: 8082
+  servlet:
+    context-path: /api/v1
+
+mockwise:
+  iam:
+    base-url: ${IAM_BASE_URL:http://localhost:8081/api/v1/iam}
+
+api:
+  response:
+    enabled: false

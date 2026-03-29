@@ -1,0 +1,143 @@
+name: mockwise
+
+# All infrastructure runs externally on VPS (docker-compose.infra.yml).
+# App services connect via env vars — no local DB containers needed.
+#
+# Network topology:
+#   public-net  : nginx ↔ api-gateway  (internet-facing)
+#   internal-net: api-gateway ↔ all backend services  (no external access)
+#
+# Only nginx (80/443) and api-gateway (8888) are reachable from outside.
+# iam-service, user-profile-service, mail-service, ai-evaluation are
+# strictly internal — no ports exposed to the host.
+
+networks:
+  public-net:
+    driver: bridge
+  internal-net:
+    driver: bridge
+    # No 'internal: true' — services still need outbound access to VPS (MySQL, Redis, Kafka).
+    # Isolation is enforced by NOT exposing ports on host, not by blocking internet.
+
+services:
+  # ─── Spring Services (internal only) ───────────────────────────
+  iam-service:
+    build:
+      context: ../services
+      dockerfile: iam-service/Dockerfile
+    env_file: ../.env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT:-3306}/iam
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST}
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      JWT_COOKIE_SECURE: ${JWT_COOKIE_SECURE:-false}
+    networks:
+      - internal-net
+    # No ports — only reachable via api-gateway on internal-net
+
+  user-profile-service:
+    build:
+      context: ../services
+      dockerfile: user-profile-service/Dockerfile
+    env_file: ../.env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT:-3306}/user_profile
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      IAM_BASE_URL: http://iam-service:8081/api/v1/iam
+    networks:
+      - internal-net
+    depends_on:
+      - iam-service
+    # No ports — only reachable via api-gateway on internal-net
+
+  mail-service:
+    build:
+      context: ../services
+      dockerfile: mail-service/Dockerfile
+    env_file: ../.env
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+    networks:
+      - internal-net
+    # No ports — event-driven via Kafka, no direct HTTP access needed
+
+  # ─── API Gateway (bridge between public and internal) ──────────
+  api-gateway:
+    build:
+      context: ../services
+      dockerfile: api-gateway/Dockerfile
+    env_file: ../.env
+    ports:
+      - "8888:8888"
+    environment:
+      - PORT=8888
+      - IAM_SERVICE_URL=http://iam-service:8081
+      - USER_PROFILE_SERVICE_URL=http://user-profile-service:8082
+      - AI_EVALUATION_URL=http://ai-evaluation:8000
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    networks:
+      - public-net
+      - internal-net   # ← can reach all internal services
+    depends_on:
+      - iam-service
+      - user-profile-service
+
+  # ─── AI Evaluation (internal only) ─────────────────────────────
+  ai-evaluation:
+    build: ../AI/AI-Evaluation
+    env_file: ../.env
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - MODEL_NAME=${MODEL_NAME:-gemini-flash-latest}
+      - MAX_RETRIES=${MAX_RETRIES:-2}
+      - MODEL_VERSION=${MODEL_VERSION:-evaluator-v1.0}
+      - PORT=8000
+    networks:
+      - internal-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+    # No ports — only reachable via api-gateway on internal-net
+
+  # ─── Frontend (internal only) ───────────────────────────────────
+  frontend:
+    build: ../frontend
+    env_file: ../.env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+    networks:
+      - internal-net
+    # No ports — served via nginx
+
+  # ─── Nginx (only public entry point) ───────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/conf.d:/etc/nginx/conf.d:ro
+      - nginx_ssl:/etc/nginx/ssl
+    networks:
+      - public-net
+      - internal-net   # ← can reach frontend and ai-evaluation
+    depends_on:
+      - api-gateway
+      - ai-evaluation
+      - frontend
+
+volumes:
+  nginx_ssl:

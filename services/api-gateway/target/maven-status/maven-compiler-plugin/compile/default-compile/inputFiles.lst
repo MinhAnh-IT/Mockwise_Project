@@ -1,0 +1,5 @@
+/Users/huynhminhanh/Documents/Final-Project/services/api-gateway/src/main/java/com/mockwise/gateway/GatewayApplication.java
+/Users/huynhminhanh/Documents/Final-Project/services/api-gateway/src/main/java/com/mockwise/gateway/config/WebClientConfig.java
+/Users/huynhminhanh/Documents/Final-Project/services/api-gateway/src/main/java/com/mockwise/gateway/filter/AuthGatewayFilter.java
+/Users/huynhminhanh/Documents/Final-Project/services/api-gateway/src/main/java/com/mockwise/gateway/filter/model/IntrospectData.java
+/Users/huynhminhanh/Documents/Final-Project/services/api-gateway/src/main/java/com/mockwise/gateway/filter/model/IntrospectResponse.java

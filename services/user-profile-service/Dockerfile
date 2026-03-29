@@ -1,0 +1,12 @@
+FROM maven:3.9.8-eclipse-temurin-21 AS build
+WORKDIR /app
+COPY pom.xml .
+COPY user-profile-service/pom.xml user-profile-service/pom.xml
+COPY user-profile-service/src user-profile-service/src
+RUN mvn -B -pl user-profile-service clean package -DskipTests
+
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY --from=build /app/user-profile-service/target/*.jar app.jar
+EXPOSE 8082
+ENTRYPOINT ["java","-jar","/app/app.jar"]

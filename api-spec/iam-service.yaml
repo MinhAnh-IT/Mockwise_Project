@@ -1,0 +1,457 @@
+openapi: 3.0.3
+
+info:
+  title: MockWise — IAM Service
+  version: 1.0.0
+  description: |
+    Authentication & user management APIs.
+
+    All requests go through the API Gateway: **`http://localhost:8888`**
+    Direct service port: `8081` (context-path: `/api/v1/iam`)
+
+    ### Public routes (no token required)
+    - `POST /api/v1/iam/users/register`
+    - `POST /api/v1/iam/auth/sign-in`
+    - `POST /api/v1/iam/auth/logout`
+    - `POST /api/v1/iam/auth/token/renew`
+    - `POST /api/v1/iam/auth/token/introspect`
+    - `POST /api/v1/iam/auth/verify-account/**`
+    - `POST /api/v1/iam/auth/forgot-password/**`
+
+servers:
+  - url: http://localhost:8888
+    description: Local via API Gateway
+  - url: http://localhost:8081
+    description: Direct (dev only)
+
+tags:
+  - name: Auth
+    description: Authentication & token management
+  - name: User
+    description: Registration & user lookup
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ── Requests ──────────────────────────────────────────────────────
+    AccountRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          description: "Min 8 chars, must include uppercase, lowercase, and special character"
+          example: "P@ssword1"
+
+    RegisterRequest:
+      type: object
+      required: [account, profile]
+      properties:
+        account:
+          $ref: '#/components/schemas/AccountRequest'
+        profile:
+          $ref: '#/components/schemas/ProfileDraftRequest'
+
+    ProfileDraftRequest:
+      type: object
+      required: [fullName, trackId, levelId, city, experience]
+      properties:
+        fullName:   { type: string, example: "Nguyen Van A" }
+        trackId:    { type: string, example: "track-uuid" }
+        levelId:    { type: string, example: "level-uuid" }
+        city:       { type: string, example: "Ho Chi Minh" }
+        experience: { type: integer, minimum: 0, example: 2 }
+
+    VerifyEmailRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email, example: user@example.com }
+
+    VerifyAccountOtpRequest:
+      type: object
+      required: [email, otp]
+      properties:
+        email: { type: string, format: email, example: user@example.com }
+        otp:   { type: string, example: "482910" }
+
+    ForgotEmailRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email, example: user@example.com }
+
+    VerifyResetPasswordOtp:
+      type: object
+      required: [email, otp, newPassword]
+      properties:
+        email:       { type: string, format: email, example: user@example.com }
+        otp:         { type: string, example: "482910" }
+        newPassword: { type: string, example: "NewP@ss1" }
+
+    IntrospectRequest:
+      type: object
+      required: [bearerToken]
+      properties:
+        bearerToken:
+          type: string
+          example: "Bearer eyJhbGci..."
+
+    # ── Responses ──────────────────────────────────────────────────────
+    LoginResponse:
+      type: object
+      properties:
+        code:    { type: integer, example: 200 }
+        message: { type: string,  example: Success }
+        data:
+          type: object
+          properties:
+            accessToken: { type: string, example: "eyJhbGci..." }
+
+    RegisterResponse:
+      type: object
+      properties:
+        code:    { type: integer, example: 201 }
+        message: { type: string,  example: Success }
+        data:
+          type: object
+          properties:
+            user:    { $ref: '#/components/schemas/UserResponse' }
+            profile: { $ref: '#/components/schemas/UserProfileSnapshot' }
+
+    UserResponse:
+      type: object
+      properties:
+        userId:     { type: string,  example: "uuid-1234" }
+        email:      { type: string,  example: user@example.com }
+        role:       { type: string,  enum: [USER, ADMIN], example: USER }
+        isVerified: { type: boolean, example: false }
+
+    UserProfileSnapshot:
+      description: Profile summary returned after registration
+      type: object
+      properties:
+        userId:     { type: string }
+        fullName:   { type: string }
+        city:       { type: string }
+        experience: { type: integer }
+
+    TokenIntrospectResponse:
+      type: object
+      properties:
+        code:    { type: integer, example: 200 }
+        message: { type: string,  example: Success }
+        data:
+          type: object
+          properties:
+            active:   { type: boolean, example: true }
+            userId:   { type: string,  example: "uuid-1234" }
+            username: { type: string,  example: user@example.com, description: "User email" }
+            role:     { type: string,  example: USER }
+            exp:      { type: integer, example: 1712000000 }
+
+    ApiResponseBoolean:
+      type: object
+      properties:
+        code:    { type: integer, example: 200 }
+        message: { type: string,  example: Success }
+        data:    { type: boolean, example: true }
+
+    ApiResponseVoid:
+      type: object
+      properties:
+        code:    { type: integer, example: 200 }
+        message: { type: string,  example: Success }
+        data:    { nullable: true }
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:    { type: integer, example: 401 }
+        message: { type: string,  example: "Unauthorized" }
+
+  responses:
+    Unauthorized:
+      description: Unauthorized — missing or invalid token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+paths:
+
+  # ════════════════════════════════════════════════════════════════════
+  # AUTH
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/v1/iam/auth/sign-in:
+    post:
+      tags: [Auth]
+      summary: Sign in
+      description: |
+        Authenticate with email & password.
+        Returns an `accessToken`. A `refreshToken` HttpOnly cookie is also set automatically.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AccountRequest' }
+            example:
+              email: user@example.com
+              password: "P@ssword1"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401':
+          description: Invalid email or password
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '403':
+          description: Account not verified yet
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /api/v1/iam/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      description: Blacklists the current access token and clears the `refreshToken` cookie.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logged out successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponseVoid' }
+
+  /api/v1/iam/auth/logout-all:
+    post:
+      tags: [Auth]
+      summary: Logout all devices
+      description: Increments token version — invalidates all active sessions on all devices.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All sessions revoked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponseVoid' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/v1/iam/auth/token/renew:
+    post:
+      tags: [Auth]
+      summary: Renew access token
+      description: Uses the `refreshToken` HttpOnly cookie to issue a new access token. No request body needed.
+      responses:
+        '200':
+          description: New access token issued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401':
+          description: Refresh token missing, invalid, or expired
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /api/v1/iam/auth/token/introspect:
+    post:
+      tags: [Auth]
+      summary: Introspect access token
+      description: Validates a Bearer token and returns its claims. Primarily used by the API Gateway.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/IntrospectRequest' }
+            example:
+              bearerToken: "Bearer eyJhbGci..."
+      responses:
+        '200':
+          description: Introspect result (`active: false` means expired/invalid)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenIntrospectResponse' }
+
+  /api/v1/iam/auth/verify-account/send:
+    post:
+      tags: [Auth]
+      summary: Send account verification OTP
+      description: Sends a 6-digit OTP to the given email. OTP expires in **5 minutes**.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VerifyEmailRequest' }
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponseBoolean' }
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '429':
+          description: OTP already sent and still valid — wait before requesting again
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /api/v1/iam/auth/verify-account/confirm:
+    post:
+      tags: [Auth]
+      summary: Confirm account verification OTP
+      description: Verifies the OTP and marks the account as verified. The OTP is deleted after successful verification.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VerifyAccountOtpRequest' }
+      responses:
+        '200':
+          description: Account verified successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponseBoolean' }
+        '400':
+          description: Invalid or expired OTP
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /api/v1/iam/auth/forgot-password/send:
+    post:
+      tags: [Auth]
+      summary: Send forgot-password OTP
+      description: Sends a password reset OTP to the given email. OTP expires in **5 minutes**.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ForgotEmailRequest' }
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponseBoolean' }
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '429':
+          description: OTP already sent and still valid
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /api/v1/iam/auth/forgot-password/confirm:
+    post:
+      tags: [Auth]
+      summary: Reset password via OTP
+      description: Verifies the OTP and replaces the user's password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VerifyResetPasswordOtp' }
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponseBoolean' }
+        '400':
+          description: Invalid or expired OTP
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  # ════════════════════════════════════════════════════════════════════
+  # USER
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/v1/iam/users/register:
+    post:
+      tags: [User]
+      summary: Register new account
+      description: |
+        Creates a user account and an initial profile in one request.
+        The account must be verified via OTP (`/auth/verify-account/send`) before login is allowed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+            example:
+              account:
+                email: user@example.com
+                password: "P@ssword1"
+              profile:
+                fullName: "Nguyen Van A"
+                trackId: "track-uuid"
+                levelId: "level-uuid"
+                city: "Ho Chi Minh"
+                experience: 2
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RegisterResponse' }
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /api/v1/iam/users/{userId}:
+    get:
+      tags: [User]
+      summary: Get user by ID
+      description: Returns basic user info. Intended for internal service-to-service calls.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+          example: "uuid-1234"
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:    { type: integer, example: 200 }
+                  message: { type: string,  example: Success }
+                  data:    { $ref: '#/components/schemas/UserResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }

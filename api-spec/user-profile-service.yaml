@@ -1,0 +1,740 @@
+openapi: 3.0.3
+
+info:
+  title: MockWise — User Profile Service
+  version: 1.0.0
+  description: |
+    User profile, position track, and position level management APIs.
+
+    All requests go through the API Gateway: **`http://localhost:8888`**
+    Direct service port: `8082` (context-path: `/api/v1`)
+
+    ### Authentication
+    Requires `Authorization: Bearer <accessToken>` except for public endpoints.
+
+    ### Role-based access
+    | Endpoint group | Required role |
+    |----------------|---------------|
+    | `GET /api/v1/position-tracks` | Public |
+    | `GET /api/v1/position-levels` | Public |
+    | `POST /api/v1/profiles/{userId}` | SERVICE |
+    | `GET /api/v1/profiles/**` | USER, ADMIN, SERVICE |
+    | `PATCH/PUT /api/v1/profiles/{userId}` | USER (owner only) |
+    | `/api/v1/admin/**` | ADMIN |
+
+servers:
+  - url: http://localhost:8888
+    description: Local via API Gateway
+  - url: http://localhost:8082
+    description: Direct (dev only)
+
+tags:
+  - name: Profile
+    description: User profile management
+  - name: Position Track
+    description: Public position track listing
+  - name: Position Level
+    description: Public position level listing
+  - name: Admin — Profiles
+    description: Admin user profile management
+  - name: Admin — Position Tracks
+    description: Admin CRUD for position tracks
+  - name: Admin — Position Levels
+    description: Admin CRUD for position levels
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ── Shared ────────────────────────────────────────────────────────
+    PositionResponse:
+      type: object
+      properties:
+        positionId: { type: string }
+        trackId:    { type: string }
+        trackName:  { type: string, example: "Backend" }
+        levelId:    { type: string }
+        levelName:  { type: string, example: "Junior" }
+
+    ApiResponseVoid:
+      type: object
+      properties:
+        code:    { type: integer, example: 200 }
+        message: { type: string,  example: Success }
+        data:    { nullable: true }
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:    { type: integer, example: 403 }
+        message: { type: string,  example: "Forbidden" }
+
+    # ── Profile requests ──────────────────────────────────────────────
+    UserProfileRequest:
+      type: object
+      required: [fullName, trackId, levelId, city, experience]
+      properties:
+        fullName:   { type: string, example: "Nguyen Van A" }
+        trackId:    { type: string, example: "track-uuid" }
+        levelId:    { type: string, example: "level-uuid" }
+        city:       { type: string, example: "Ho Chi Minh" }
+        experience: { type: integer, minimum: 0, example: 2 }
+
+    UserProfileUpdateRequest:
+      type: object
+      description: All fields are optional — only provided fields will be updated.
+      properties:
+        fullName:   { type: string, example: "Nguyen Van B" }
+        trackId:    { type: string, example: "track-uuid" }
+        levelId:    { type: string, example: "level-uuid" }
+        city:       { type: string, example: "Ha Noi" }
+        experience: { type: integer, minimum: 0, example: 3 }
+
+    # ── Profile responses ──────────────────────────────────────────────
+    UserProfileResponse:
+      type: object
+      properties:
+        userId:     { type: string, example: "uuid-1234" }
+        fullName:   { type: string, example: "Nguyen Van A" }
+        position:   { $ref: '#/components/schemas/PositionResponse' }
+        city:       { type: string, example: "Ho Chi Minh" }
+        experience: { type: integer, example: 2 }
+
+    UserProfileWrapped:
+      type: object
+      properties:
+        code:    { type: integer, example: 200 }
+        message: { type: string,  example: Success }
+        data:    { $ref: '#/components/schemas/UserProfileResponse' }
+
+    AdminUserProfileResponse:
+      type: object
+      properties:
+        userId:     { type: string }
+        fullName:   { type: string }
+        email:      { type: string }
+        isVerified: { type: boolean }
+        position:   { $ref: '#/components/schemas/PositionResponse' }
+        city:       { type: string }
+        experience: { type: integer }
+
+    ProfileListResponse:
+      type: object
+      properties:
+        code:    { type: integer, example: 200 }
+        message: { type: string,  example: Success }
+        data:
+          type: object
+          properties:
+            content:
+              type: array
+              items: { $ref: '#/components/schemas/AdminUserProfileResponse' }
+            page:          { type: integer, example: 0 }
+            size:          { type: integer, example: 10 }
+            totalElements: { type: integer, example: 100 }
+            totalPages:    { type: integer, example: 10 }
+
+    ProfileStatsResponse:
+      type: object
+      properties:
+        code:    { type: integer, example: 200 }
+        message: { type: string,  example: Success }
+        data:
+          type: object
+          properties:
+            totalProfiles: { type: integer, example: 120 }
+
+    # ── Position Track ─────────────────────────────────────────────────
+    PositionTrackCreateRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, maxLength: 100, example: "Backend" }
+
+    PositionTrackUpdateRequest:
+      type: object
+      properties:
+        name:   { type: string, maxLength: 100, example: "Backend" }
+        active: { type: boolean, example: true }
+
+    PositionTrackResponse:
+      type: object
+      properties:
+        id:     { type: string }
+        name:   { type: string, example: "Backend" }
+        active: { type: boolean, example: true }
+
+    PositionTrackWrapped:
+      type: object
+      properties:
+        code:    { type: integer, example: 200 }
+        message: { type: string,  example: Success }
+        data:    { $ref: '#/components/schemas/PositionTrackResponse' }
+
+    PositionTrackListWrapped:
+      type: object
+      properties:
+        code:    { type: integer, example: 200 }
+        message: { type: string,  example: Success }
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/PositionTrackResponse' }
+
+    # ── Position Level ──────────────────────────────────────────────────
+    PositionLevelCreateRequest:
+      type: object
+      required: [positionRole]
+      properties:
+        positionRole: { type: string, maxLength: 64, example: "Junior" }
+
+    PositionLevelUpdateRequest:
+      type: object
+      properties:
+        positionRole: { type: string, maxLength: 64, example: "Senior" }
+        active:       { type: boolean, example: true }
+
+    PositionLevelResponse:
+      type: object
+      properties:
+        id:           { type: string }
+        positionRole: { type: string, example: "Junior" }
+        active:       { type: boolean, example: true }
+
+    PositionLevelWrapped:
+      type: object
+      properties:
+        code:    { type: integer, example: 200 }
+        message: { type: string,  example: Success }
+        data:    { $ref: '#/components/schemas/PositionLevelResponse' }
+
+    PositionLevelListWrapped:
+      type: object
+      properties:
+        code:    { type: integer, example: 200 }
+        message: { type: string,  example: Success }
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/PositionLevelResponse' }
+
+  responses:
+    Unauthorized:
+      description: Unauthorized — missing or invalid token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Forbidden:
+      description: Forbidden — insufficient role
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+paths:
+
+  # ════════════════════════════════════════════════════════════════════
+  # PUBLIC — POSITION TRACKS
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/v1/position-tracks:
+    get:
+      tags: [Position Track]
+      summary: List active position tracks
+      description: Returns all active tracks. No authentication required.
+      responses:
+        '200':
+          description: List of active tracks
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PositionTrackListWrapped' }
+
+  # ════════════════════════════════════════════════════════════════════
+  # PUBLIC — POSITION LEVELS
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/v1/position-levels:
+    get:
+      tags: [Position Level]
+      summary: List active position levels
+      description: Returns all active levels. No authentication required.
+      responses:
+        '200':
+          description: List of active levels
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PositionLevelListWrapped' }
+
+  # ════════════════════════════════════════════════════════════════════
+  # USER PROFILE
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/v1/profiles:
+    get:
+      tags: [Profile]
+      summary: Get my profile
+      description: Returns the profile of the currently authenticated user.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserProfileWrapped' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/v1/profiles/{userId}:
+    get:
+      tags: [Profile]
+      summary: Get profile by user ID
+      description: Returns a specific user's profile. Accessible by USER, ADMIN, or SERVICE roles.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Profile found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserProfileWrapped' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    post:
+      tags: [Profile]
+      summary: Create profile for user
+      description: Creates a profile for a given userId. Requires `ROLE_SERVICE` — called internally by IAM after registration.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserProfileRequest' }
+      responses:
+        '201':
+          description: Profile created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserProfileWrapped' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+    patch:
+      tags: [Profile]
+      summary: Update my profile (partial)
+      description: Partial update of the authenticated user's profile. Only the profile owner can update.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserProfileUpdateRequest' }
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserProfileWrapped' }
+        '403':
+          description: Forbidden — attempting to update another user's profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+    put:
+      tags: [Profile]
+      summary: Update my profile (full)
+      description: Full replacement update of the authenticated user's profile.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserProfileUpdateRequest' }
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserProfileWrapped' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ════════════════════════════════════════════════════════════════════
+  # ADMIN — USER PROFILES
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/v1/admin/profiles:
+    get:
+      tags: [Admin — Profiles]
+      summary: List all user profiles (paginated)
+      description: Search and paginate user profiles. Requires `ROLE_ADMIN`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 0, example: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, default: 10, example: 10 }
+        - name: trackId
+          in: query
+          schema: { type: string }
+        - name: levelId
+          in: query
+          schema: { type: string }
+        - name: keyword
+          in: query
+          description: Search by full name or email
+          schema: { type: string }
+      responses:
+        '200':
+          description: Paginated profile list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProfileListResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/admin/profiles/stats/overview:
+    get:
+      tags: [Admin — Profiles]
+      summary: Profile statistics overview
+      description: Returns total number of registered user profiles. Requires `ROLE_ADMIN`.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Stats
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProfileStatsResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/admin/profiles/{userId}:
+    get:
+      tags: [Admin — Profiles]
+      summary: Get profile by user ID (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Profile found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserProfileWrapped' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    patch:
+      tags: [Admin — Profiles]
+      summary: Update profile as admin
+      description: Admin can update any user's profile without ownership restriction.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserProfileUpdateRequest' }
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserProfileWrapped' }
+
+  # ════════════════════════════════════════════════════════════════════
+  # ADMIN — POSITION TRACKS
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/v1/admin/position-tracks:
+    get:
+      tags: [Admin — Position Tracks]
+      summary: List all tracks (including inactive)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Full track list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PositionTrackListWrapped' }
+
+    post:
+      tags: [Admin — Position Tracks]
+      summary: Create position track
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PositionTrackCreateRequest' }
+      responses:
+        '201':
+          description: Track created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PositionTrackWrapped' }
+
+  /api/v1/admin/position-tracks/{id}:
+    get:
+      tags: [Admin — Position Tracks]
+      summary: Get track by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Track found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PositionTrackWrapped' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    put:
+      tags: [Admin — Position Tracks]
+      summary: Update track
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PositionTrackUpdateRequest' }
+      responses:
+        '200':
+          description: Track updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PositionTrackWrapped' }
+
+    delete:
+      tags: [Admin — Position Tracks]
+      summary: Delete track
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '204':
+          description: Deleted successfully
+
+  /api/v1/admin/position-tracks/{id}/toggle:
+    patch:
+      tags: [Admin — Position Tracks]
+      summary: Toggle active status
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Status toggled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PositionTrackWrapped' }
+
+  /api/v1/admin/position-tracks/{id}/enable:
+    patch:
+      tags: [Admin — Position Tracks]
+      summary: Enable track
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Track enabled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PositionTrackWrapped' }
+
+  /api/v1/admin/position-tracks/{id}/disable:
+    patch:
+      tags: [Admin — Position Tracks]
+      summary: Disable track
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Track disabled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PositionTrackWrapped' }
+
+  # ════════════════════════════════════════════════════════════════════
+  # ADMIN — POSITION LEVELS
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/v1/admin/position-levels:
+    get:
+      tags: [Admin — Position Levels]
+      summary: List all levels (including inactive)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Full level list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PositionLevelListWrapped' }
+
+    post:
+      tags: [Admin — Position Levels]
+      summary: Create position level
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PositionLevelCreateRequest' }
+      responses:
+        '201':
+          description: Level created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PositionLevelWrapped' }
+
+  /api/v1/admin/position-levels/{id}:
+    get:
+      tags: [Admin — Position Levels]
+      summary: Get level by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Level found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PositionLevelWrapped' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    put:
+      tags: [Admin — Position Levels]
+      summary: Update level
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PositionLevelUpdateRequest' }
+      responses:
+        '200':
+          description: Level updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PositionLevelWrapped' }
+
+    delete:
+      tags: [Admin — Position Levels]
+      summary: Delete level
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '204':
+          description: Deleted successfully
+
+  /api/v1/admin/position-levels/{id}/toggle:
+    patch:
+      tags: [Admin — Position Levels]
+      summary: Toggle active status
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Status toggled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PositionLevelWrapped' }
+
+  /api/v1/admin/position-levels/{id}/enable:
+    patch:
+      tags: [Admin — Position Levels]
+      summary: Enable level
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Level enabled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PositionLevelWrapped' }
+
+  /api/v1/admin/position-levels/{id}/disable:
+    patch:
+      tags: [Admin — Position Levels]
+      summary: Disable level
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Level disabled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PositionLevelWrapped' }

@@ -1,0 +1,6 @@
+com/mockwise/gateway/filter/AuthGatewayFilter$PublicRoute.class
+com/mockwise/gateway/config/WebClientConfig.class
+com/mockwise/gateway/filter/AuthGatewayFilter.class
+com/mockwise/gateway/GatewayApplication.class
+com/mockwise/gateway/filter/model/IntrospectData.class
+com/mockwise/gateway/filter/model/IntrospectResponse.class

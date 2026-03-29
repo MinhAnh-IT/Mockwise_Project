@@ -1,0 +1,139 @@
+package com.mockwise.gateway.filter;
+
+import com.mockwise.gateway.filter.model.IntrospectData;
+import com.mockwise.gateway.filter.model.IntrospectResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class AuthGatewayFilter implements GlobalFilter, Ordered {
+
+    private final WebClient webClient;
+
+    @Value("${app.iam.url}")
+    private String iamUrl;
+
+    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
+
+    private record PublicRoute(HttpMethod method, String pattern) {}
+
+    private static final List<PublicRoute> PUBLIC_ROUTES = List.of(
+            new PublicRoute(HttpMethod.POST, "/api/v1/iam/users/register"),
+            new PublicRoute(HttpMethod.POST, "/api/v1/iam/auth/sign-in"),
+            new PublicRoute(HttpMethod.POST, "/api/v1/iam/auth/logout"),
+            new PublicRoute(HttpMethod.POST, "/api/v1/iam/auth/token/renew"),
+            new PublicRoute(HttpMethod.POST, "/api/v1/iam/auth/token/introspect"),
+            new PublicRoute(HttpMethod.POST, "/api/v1/iam/auth/verify-account/send"),
+            new PublicRoute(HttpMethod.POST, "/api/v1/iam/auth/verify-account/confirm"),
+            new PublicRoute(HttpMethod.POST, "/api/v1/iam/auth/forgot-password/send"),
+            new PublicRoute(HttpMethod.POST, "/api/v1/iam/auth/forgot-password/confirm"),
+            new PublicRoute(HttpMethod.GET,  "/api/v1/position-tracks/**"),
+            new PublicRoute(HttpMethod.GET,  "/api/v1/position-levels/**"),
+            new PublicRoute(HttpMethod.GET,  "/api/v1/iam/auth/health"),
+            new PublicRoute(HttpMethod.GET,  "/api/ai/health")
+    );
+
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        // Strip user-context headers from incoming request to prevent header injection
+        ServerHttpRequest sanitized = exchange.getRequest().mutate()
+                .headers(h -> {
+                    h.remove("X-User-Id");
+                    h.remove("X-User-Role");
+                    h.remove("X-User-Email");
+                })
+                .build();
+
+        ServerWebExchange sanitizedExchange = exchange.mutate().request(sanitized).build();
+
+        if (isPublicRoute(sanitized.getMethod(), sanitized.getPath().value())) {
+            return chain.filter(sanitizedExchange);
+        }
+
+        String authHeader = sanitized.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return writeError(exchange, HttpStatus.UNAUTHORIZED, "Missing or invalid Authorization header");
+        }
+
+        String path = sanitized.getPath().value();
+
+        return webClient.post()
+                .uri(iamUrl + "/api/v1/iam/auth/token/introspect")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(Map.of("bearerToken", authHeader))
+                .retrieve()
+                .bodyToMono(IntrospectResponse.class)
+                .flatMap(resp -> {
+                    IntrospectData data = resp.getData();
+                    if (data == null || !data.isActive()) {
+                        return writeError(exchange, HttpStatus.UNAUTHORIZED, "Token is inactive or expired");
+                    }
+
+                    // Admin-only path check — any path containing /admin/ requires ROLE_ADMIN
+                    if (isAdminPath(path) && !"ADMIN".equalsIgnoreCase(data.getRole())) {
+                        return writeError(exchange, HttpStatus.FORBIDDEN, "Access denied: admin only");
+                    }
+
+                    log.debug("Authenticated: userId={}, role={}, path={}", data.getUserId(), data.getRole(), path);
+
+                    ServerHttpRequest mutated = sanitized.mutate()
+                            .header("X-User-Id",    data.getUserId())
+                            .header("X-User-Role",  data.getRole())
+                            .header("X-User-Email", data.getUsername())
+                            .build();
+
+                    return chain.filter(sanitizedExchange.mutate().request(mutated).build());
+                })
+                .onErrorResume(e -> {
+                    log.error("Auth introspect error: {}", e.getMessage());
+                    return writeError(exchange, HttpStatus.BAD_GATEWAY, "Auth service unavailable");
+                });
+    }
+
+    private boolean isPublicRoute(HttpMethod method, String path) {
+        return PUBLIC_ROUTES.stream()
+                .anyMatch(r -> r.method().equals(method) && PATH_MATCHER.match(r.pattern(), path));
+    }
+
+    // Rule: any path segment named "admin" requires ROLE_ADMIN
+    // e.g. /api/v1/admin/profiles, /api/v1/admin/position-tracks, etc.
+    private boolean isAdminPath(String path) {
+        return PATH_MATCHER.match("/**/admin/**", path) || path.contains("/admin/");
+    }
+
+    private Mono<Void> writeError(ServerWebExchange exchange, HttpStatus status, String message) {
+        ServerHttpResponse response = exchange.getResponse();
+        response.setStatusCode(status);
+        response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        String body = String.format("{\"code\":%d,\"message\":\"%s\"}", status.value(), message);
+        DataBuffer buffer = response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
+        return response.writeWith(Mono.just(buffer));
+    }
+
+    @Override
+    public int getOrder() {
+        return -1; // Run before other filters
+    }
+}

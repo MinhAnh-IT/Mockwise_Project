@@ -1,0 +1,35 @@
+name: mockwise-dev
+
+# Extends base compose with hot-reload volumes for local development
+# Usage: docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up
+
+services:
+  api-gateway:
+    command: npm run dev
+    volumes:
+      - ../services/api-gateway/src:/app/src:ro
+    ports:
+      - "3000:3000"
+
+  ai-evaluation:
+    command: uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ../AI/AI-Evaluation/agent:/app/agent:ro
+      - ../AI/AI-Evaluation/models:/app/models:ro
+      - ../AI/AI-Evaluation/api.py:/app/api.py:ro
+      - ../AI/AI-Evaluation/main.py:/app/main.py:ro
+      - ../AI/AI-Evaluation/config.py:/app/config.py:ro
+    ports:
+      - "8000:8000"
+
+  frontend:
+    command: npm run dev
+    volumes:
+      - ../frontend/src:/app/src:ro
+      - ../frontend/public:/app/public:ro
+    ports:
+      - "5173:5173"
+
+  nginx:
+    ports:
+      - "80:80"

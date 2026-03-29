@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="body">
+    <h2>Verify your email</h2>
+    <div class="card">
+        <p>Use this one-time code to verify your account:</p>
+        <div class="otp" th:text="${content}">123456</div>
+    </div>
+</th:block>
+</html>

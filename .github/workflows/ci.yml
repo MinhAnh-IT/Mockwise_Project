@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api-gateway: ${{ steps.filter.outputs.api-gateway }}
+      ai-evaluation: ${{ steps.filter.outputs.ai-evaluation }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api-gateway:
+              - 'services/api-gateway/**'
+            ai-evaluation:
+              - 'AI/AI-Evaluation/**'
+            frontend:
+              - 'frontend/**'
+
+  build-api-gateway:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.api-gateway == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: services/api-gateway/package-lock.json
+      - run: npm ci
+        working-directory: services/api-gateway
+      - run: npm run lint
+        working-directory: services/api-gateway
+      - run: npm test
+        working-directory: services/api-gateway
+      - name: Build Docker image
+        run: docker build -t mockwise/api-gateway:${{ github.sha }} services/api-gateway
+
+  build-ai-evaluation:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.ai-evaluation == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+        working-directory: AI/AI-Evaluation
+      - name: Build Docker image
+        run: docker build -t mockwise/ai-evaluation:${{ github.sha }} AI/AI-Evaluation
+
+  build-frontend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run lint
+        working-directory: frontend
+      - run: npm test -- --watchAll=false
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend

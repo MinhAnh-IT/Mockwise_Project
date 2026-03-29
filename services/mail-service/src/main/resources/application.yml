@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: mail-service
+
+  kafka:
+    bootstrap-servers: 31.220.84.140:9092
+    consumer:
+      group-id: mail-service-group-v4
+      auto-offset-reset: earliest
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.mail_service.dto.EmailEvent
+
+  mail:
+    # SMTP configuration is externalized to environment variables so we can use
+    # real email providers (e.g., Gmail with App Password) without hard-coding secrets.
+    host: smtp.gmail.com
+    port: 587
+    username: testproject610@gmail.com
+    password: tbvsoaiuvlakcwps
+    from-name: MockWise
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  port: 8087
+
+logging:
+  level:
+    org.springframework.kafka: INFO
+    org.apache.kafka.clients.consumer: INFO
+    org.apache.kafka.clients.NetworkClient: WARN
+
