@@ -6,8 +6,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  # ghcr.io/<owner>/mockwise_project/<service>
-  REPO_OWNER: ${{ github.repository_owner }}
 
 jobs:
   # ─── Build & Push all services to GHCR ─────────────────────
@@ -49,14 +47,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # GHCR yêu cầu lowercase — convert owner name
+      - name: Set lowercase image prefix
+        run: echo "IMAGE_PREFIX=${GITHUB_REPOSITORY_OWNER,,}/mockwise_project" >> $GITHUB_ENV
+
       - name: Build & push ${{ matrix.service.name }}
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.service.path }}
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/mockwise_project/${{ matrix.service.name }}:latest
-            ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/mockwise_project/${{ matrix.service.name }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}:${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.service.name }}
           cache-to:   type=gha,scope=${{ matrix.service.name }},mode=max
 

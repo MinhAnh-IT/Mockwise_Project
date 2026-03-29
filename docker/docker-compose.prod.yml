@@ -10,7 +10,7 @@ services:
 
   # ─── Spring Services (internal only, no ports exposed) ─────────
   iam-service:
-    image: ghcr.io/${REPO_OWNER}/mockwise_project/iam-service:${IMAGE_TAG:-latest}
+    image: ghcr.io/minhanh-it/mockwise_project/iam-service:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: ../.env
     environment:
@@ -25,7 +25,7 @@ services:
     networks: [internal-net]
 
   user-profile-service:
-    image: ghcr.io/${REPO_OWNER}/mockwise_project/user-profile-service:${IMAGE_TAG:-latest}
+    image: ghcr.io/minhanh-it/mockwise_project/user-profile-service:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: ../.env
     environment:
@@ -37,7 +37,7 @@ services:
     depends_on: [iam-service]
 
   mail-service:
-    image: ghcr.io/${REPO_OWNER}/mockwise_project/mail-service:${IMAGE_TAG:-latest}
+    image: ghcr.io/minhanh-it/mockwise_project/mail-service:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: ../.env
     environment:
@@ -50,7 +50,7 @@ services:
 
   # ─── API Gateway (bridge: public ↔ internal) ───────────────────
   api-gateway:
-    image: ghcr.io/${REPO_OWNER}/mockwise_project/api-gateway:${IMAGE_TAG:-latest}
+    image: ghcr.io/minhanh-it/mockwise_project/api-gateway:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: ../.env
     environment:
@@ -64,7 +64,7 @@ services:
 
   # ─── AI Evaluation (internal only) ─────────────────────────────
   ai-evaluation:
-    image: ghcr.io/${REPO_OWNER}/mockwise_project/ai-evaluation:${IMAGE_TAG:-latest}
+    image: ghcr.io/minhanh-it/mockwise_project/ai-evaluation:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: ../.env
     environment:
@@ -83,7 +83,7 @@ services:
 
   # ─── Frontend (internal, served qua nginx) ─────────────────────
   frontend:
-    image: ghcr.io/${REPO_OWNER}/mockwise_project/frontend:${IMAGE_TAG:-latest}
+    image: ghcr.io/minhanh-it/mockwise_project/frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     networks: [internal-net]
 
