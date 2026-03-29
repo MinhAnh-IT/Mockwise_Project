@@ -53,25 +53,17 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Configure Maven credentials for GitHub Packages
-        run: |
-          mkdir -p ~/.m2
-          cat > ~/.m2/settings.xml <<EOF
-          <settings>
-            <servers>
-              <server>
-                <id>github</id>
-                <username>${{ github.actor }}</username>
-                <password>${{ secrets.PACKAGES_TOKEN }}</password>
-              </server>
-            </servers>
-          </settings>
-          EOF
+          server-id: github
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
       - name: Build & test
         run: mvn -B -pl api-gateway clean package -DskipTests
         working-directory: services
+        env:
+          MAVEN_USERNAME: ${{ github.actor }}
+          MAVEN_PASSWORD: ${{ secrets.PACKAGES_TOKEN }}
       - name: Build Docker image
-        run: docker build -f services/api-gateway/Dockerfile -t mockwise/api-gateway:${{ github.sha }} services
+        run: docker build -f services/api-gateway/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/api-gateway:${{ github.sha }} services
 
   build-iam-service:
     needs: detect-changes
@@ -84,25 +76,17 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Configure Maven credentials for GitHub Packages
-        run: |
-          mkdir -p ~/.m2
-          cat > ~/.m2/settings.xml <<EOF
-          <settings>
-            <servers>
-              <server>
-                <id>github</id>
-                <username>${{ github.actor }}</username>
-                <password>${{ secrets.PACKAGES_TOKEN }}</password>
-              </server>
-            </servers>
-          </settings>
-          EOF
+          server-id: github
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
       - name: Build & test
         run: mvn -B -pl iam-service clean package -DskipTests
         working-directory: services
+        env:
+          MAVEN_USERNAME: ${{ github.actor }}
+          MAVEN_PASSWORD: ${{ secrets.PACKAGES_TOKEN }}
       - name: Build Docker image
-        run: docker build -f services/iam-service/Dockerfile -t mockwise/iam-service:${{ github.sha }} services
+        run: docker build -f services/iam-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/iam-service:${{ github.sha }} services
 
   build-user-profile-service:
     needs: detect-changes
@@ -115,25 +99,17 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Configure Maven credentials for GitHub Packages
-        run: |
-          mkdir -p ~/.m2
-          cat > ~/.m2/settings.xml <<EOF
-          <settings>
-            <servers>
-              <server>
-                <id>github</id>
-                <username>${{ github.actor }}</username>
-                <password>${{ secrets.PACKAGES_TOKEN }}</password>
-              </server>
-            </servers>
-          </settings>
-          EOF
+          server-id: github
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
       - name: Build & test
         run: mvn -B -pl user-profile-service clean package -DskipTests
         working-directory: services
+        env:
+          MAVEN_USERNAME: ${{ github.actor }}
+          MAVEN_PASSWORD: ${{ secrets.PACKAGES_TOKEN }}
       - name: Build Docker image
-        run: docker build -f services/user-profile-service/Dockerfile -t mockwise/user-profile-service:${{ github.sha }} services
+        run: docker build -f services/user-profile-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/user-profile-service:${{ github.sha }} services
 
   build-mail-service:
     needs: detect-changes
@@ -146,25 +122,17 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Configure Maven credentials for GitHub Packages
-        run: |
-          mkdir -p ~/.m2
-          cat > ~/.m2/settings.xml <<EOF
-          <settings>
-            <servers>
-              <server>
-                <id>github</id>
-                <username>${{ github.actor }}</username>
-                <password>${{ secrets.PACKAGES_TOKEN }}</password>
-              </server>
-            </servers>
-          </settings>
-          EOF
+          server-id: github
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
       - name: Build & test
         run: mvn -B -pl mail-service clean package -DskipTests
         working-directory: services
+        env:
+          MAVEN_USERNAME: ${{ github.actor }}
+          MAVEN_PASSWORD: ${{ secrets.PACKAGES_TOKEN }}
       - name: Build Docker image
-        run: docker build -f services/mail-service/Dockerfile -t mockwise/mail-service:${{ github.sha }} services
+        run: docker build -f services/mail-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/mail-service:${{ github.sha }} services
 
   build-ai-evaluation:
     needs: detect-changes
