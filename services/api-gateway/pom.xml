@@ -35,7 +35,7 @@
         <dependency>
             <groupId>com.core</groupId>
             <artifactId>api-response-spring</artifactId>
-            <version>1.1.4</version>
+            <version>1.1.6</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.springframework.boot</groupId>

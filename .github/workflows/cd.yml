@@ -35,9 +35,9 @@ jobs:
           - name: ai-evaluation
             context: AI/AI-Evaluation
             dockerfile: AI/AI-Evaluation/Dockerfile
-          - name: frontend
-            context: frontend
-            dockerfile: frontend/Dockerfile
+          # - name: frontend
+          #   context: frontend
+          #   dockerfile: frontend/Dockerfile
 
     steps:
       - name: Checkout
@@ -63,6 +63,8 @@ jobs:
           context: ${{ matrix.service.context }}
           file: ${{ matrix.service.dockerfile }}
           push: true
+          build-args: |
+            PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}:${{ github.sha }}
