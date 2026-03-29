@@ -9,10 +9,16 @@ on:
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       api-gateway: ${{ steps.filter.outputs.api-gateway }}
       ai-evaluation: ${{ steps.filter.outputs.ai-evaluation }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      iam-service: ${{ steps.filter.outputs.iam-service }}
+      user-profile-service: ${{ steps.filter.outputs.user-profile-service }}
+      mail-service: ${{ steps.filter.outputs.mail-service }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -21,6 +27,12 @@ jobs:
           filters: |
             api-gateway:
               - 'services/api-gateway/**'
+            iam-service:
+              - 'services/iam-service/**'
+            user-profile-service:
+              - 'services/user-profile-service/**'
+            mail-service:
+              - 'services/mail-service/**'
             ai-evaluation:
               - 'AI/AI-Evaluation/**'
             frontend:
