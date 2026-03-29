@@ -1,7 +1,7 @@
 name: mockwise
 
-# Production compose — dùng pre-built images từ GHCR.
-# Infrastructure (MySQL, Redis, Kafka, MinIO) chạy riêng qua Mockwise_db.
+# Production compose — uses pre-built images from GHCR.
+# Infrastructure (MySQL, Redis, Kafka, MinIO) runs separately via Mockwise_db.
 #
 # Deploy:
 #   docker compose -f docker/docker-compose.prod.yml --env-file .env up -d
@@ -21,7 +21,7 @@ services:
       SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
-      JWT_COOKIE_SECURE: "true"
+      JWT_COOKIE_SECURE: "false"
     networks: [internal-net]
 
   user-profile-service:
@@ -81,31 +81,38 @@ services:
       start_period: 15s
       retries: 3
 
-  # ─── Frontend (internal, served qua nginx) ─────────────────────
-  # frontend:
-  #   image: ghcr.io/minhanh-it/mockwise_project/frontend:${IMAGE_TAG:-latest}
-  #   restart: unless-stopped
-  #   networks: [internal-net]
+  # ─── Frontend (internal, served via nginx) ─────────────────────
+  frontend:
+    image: ghcr.io/minhanh-it/mockwise_project/frontend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    networks: [internal-net]
 
-  # ─── Nginx (duy nhất exposed ra internet) ──────────────────────
+  # ─── Swagger UI (internal only) ────────────────────────────────
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    restart: unless-stopped
+    environment:
+      BASE_URL: /docs
+      URLS: >-
+        [{"url":"/api-spec/iam-service.yaml","name":"IAM Service"},
+         {"url":"/api-spec/user-profile-service.yaml","name":"User Profile Service"}]
+    networks: [internal-net]
+
+  # ─── Nginx (only service exposed to the internet) ─────────────
   nginx:
     image: nginx:1.25-alpine
     restart: unless-stopped
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ../nginx/conf.d:/etc/nginx/conf.d:ro
-      - nginx-ssl:/etc/nginx/ssl
+      - ../api-spec:/etc/nginx/api-spec:ro
     networks: [public-net, internal-net]
-    depends_on: [api-gateway]
+    depends_on: [api-gateway, frontend, swagger-ui]
 
 networks:
   public-net:
     driver: bridge
   internal-net:
     driver: bridge
-
-volumes:
-  nginx-ssl:

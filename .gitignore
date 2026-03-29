@@ -9,6 +9,19 @@ build/
 .next/
 out/
 
+# Maven build artifacts
+target/
+*.jar
+*.war
+*.class
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
 # Environment files
 .env
 .env.local

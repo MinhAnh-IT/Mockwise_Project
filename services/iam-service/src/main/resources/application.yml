@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://31.220.84.140:3306/iam}
-    username: ${MYSQL_USER:mockwise}
-    password: ${MYSQL_PASSWORD:mockwise_db_password2026}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 10
@@ -13,9 +13,9 @@ spring:
       connection-timeout: 20000
   data:
     redis:
-      host: ${SPRING_DATA_REDIS_HOST:31.220.84.140}
+      host: ${SPRING_DATA_REDIS_HOST}
       port: ${SPRING_DATA_REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:mockwise_redis_password2026}
+      password: ${REDIS_PASSWORD}
       timeout: 6000
   jpa:
     show-sql: false
@@ -23,7 +23,7 @@ spring:
       ddl-auto: update
     database-platform: org.hibernate.dialect.MySQLDialect
   kafka:
-    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:31.220.84.140:9092}
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
 
 
 server:
@@ -43,7 +43,7 @@ app:
     access-ttl-seconds: 600
     refresh-ttl-seconds: 1209600
     active-kid: rsa-key-2025-10
-    JWT_HMAC_SECRET: mockwise-secret-key-32bytes-abcdef123456
+    JWT_HMAC_SECRET: ${JWT_HMAC_SECRET}
     max-refresh-sessions: 5
     cookie-secure: ${JWT_COOKIE_SECURE:false}
 
