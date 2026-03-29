@@ -1,45 +1,111 @@
-name: mockwise-prod
+name: mockwise
 
-# Production overrides — use pre-built registry images
-# Usage: docker compose -f docker/docker-compose.prod.yml up -d
+# Production compose — dùng pre-built images từ GHCR.
+# Infrastructure (MySQL, Redis, Kafka, MinIO) chạy riêng qua Mockwise_db.
+#
+# Deploy:
+#   docker compose -f docker/docker-compose.prod.yml --env-file .env up -d
 
 services:
+
+  # ─── Spring Services (internal only, no ports exposed) ─────────
+  iam-service:
+    image: ghcr.io/${REPO_OWNER}/mockwise_project/iam-service:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT:-3306}/iam
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST}
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      JWT_COOKIE_SECURE: "true"
+    networks: [internal-net]
+
+  user-profile-service:
+    image: ghcr.io/${REPO_OWNER}/mockwise_project/user-profile-service:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT:-3306}/user_profile
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      IAM_BASE_URL: http://iam-service:8081/api/v1/iam
+    networks: [internal-net]
+    depends_on: [iam-service]
+
+  mail-service:
+    image: ghcr.io/${REPO_OWNER}/mockwise_project/mail-service:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+    networks: [internal-net]
+
+  # ─── API Gateway (bridge: public ↔ internal) ───────────────────
   api-gateway:
-    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-mockwise}/api-gateway:${IMAGE_TAG:-latest}
+    image: ghcr.io/${REPO_OWNER}/mockwise_project/api-gateway:${IMAGE_TAG:-latest}
     restart: unless-stopped
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          cpus: '0.50'
-          memory: 512M
+    env_file: ../.env
+    environment:
+      PORT: 8888
+      IAM_SERVICE_URL: http://iam-service:8081
+      USER_PROFILE_SERVICE_URL: http://user-profile-service:8082
+      AI_EVALUATION_URL: http://ai-evaluation:8000
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    networks: [public-net, internal-net]
+    depends_on: [iam-service, user-profile-service]
 
+  # ─── AI Evaluation (internal only) ─────────────────────────────
   ai-evaluation:
-    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-mockwise}/ai-evaluation:${IMAGE_TAG:-latest}
+    image: ghcr.io/${REPO_OWNER}/mockwise_project/ai-evaluation:${IMAGE_TAG:-latest}
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'
-          memory: 512M
+    env_file: ../.env
+    environment:
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      MODEL_NAME: ${MODEL_NAME:-gemini-flash-latest}
+      MAX_RETRIES: ${MAX_RETRIES:-2}
+      MODEL_VERSION: ${MODEL_VERSION:-evaluator-v1.0}
+      PORT: 8000
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
 
+  # ─── Frontend (internal, served qua nginx) ─────────────────────
   frontend:
-    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-mockwise}/frontend:${IMAGE_TAG:-latest}
+    image: ghcr.io/${REPO_OWNER}/mockwise_project/frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
+    networks: [internal-net]
 
-  mysql:
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '1.00'
-          memory: 1G
-
-  redis:
-    restart: unless-stopped
-
+  # ─── Nginx (duy nhất exposed ra internet) ──────────────────────
   nginx:
+    image: nginx:1.25-alpine
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/conf.d:/etc/nginx/conf.d:ro
+      - nginx-ssl:/etc/nginx/ssl
+    networks: [public-net, internal-net]
+    depends_on: [api-gateway, frontend]
+
+networks:
+  public-net:
+    driver: bridge
+  internal-net:
+    driver: bridge
+
+volumes:
+  nginx-ssl:
