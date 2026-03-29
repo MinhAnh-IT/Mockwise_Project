@@ -35,9 +35,9 @@ jobs:
           - name: ai-evaluation
             context: AI/AI-Evaluation
             dockerfile: AI/AI-Evaluation/Dockerfile
-          # - name: frontend
-          #   context: frontend
-          #   dockerfile: frontend/Dockerfile
+          - name: frontend
+            context: frontend
+            dockerfile: frontend/Dockerfile
 
     steps:
       - name: Checkout
