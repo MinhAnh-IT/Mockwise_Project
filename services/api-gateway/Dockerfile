@@ -1,5 +1,12 @@
 FROM maven:3.9.8-eclipse-temurin-21 AS build
+ARG PACKAGES_TOKEN
 WORKDIR /app
+
+# Configure Maven credentials for GitHub Packages
+RUN mkdir -p /root/.m2 && \
+    printf '<settings><servers><server><id>github</id><username>x-token</username><password>%s</password></server></servers></settings>' "$PACKAGES_TOKEN" \
+    > /root/.m2/settings.xml
+
 COPY pom.xml .
 COPY iam-service/pom.xml iam-service/pom.xml
 COPY mail-service/pom.xml mail-service/pom.xml

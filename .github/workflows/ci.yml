@@ -53,6 +53,20 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+      - name: Configure Maven credentials for GitHub Packages
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <settings>
+            <servers>
+              <server>
+                <id>github</id>
+                <username>${{ github.actor }}</username>
+                <password>${{ secrets.PACKAGES_TOKEN }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
       - name: Build & test
         run: mvn -B -pl api-gateway clean package -DskipTests
         working-directory: services
@@ -70,6 +84,20 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+      - name: Configure Maven credentials for GitHub Packages
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <settings>
+            <servers>
+              <server>
+                <id>github</id>
+                <username>${{ github.actor }}</username>
+                <password>${{ secrets.PACKAGES_TOKEN }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
       - name: Build & test
         run: mvn -B -pl iam-service clean package -DskipTests
         working-directory: services
@@ -87,6 +115,20 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+      - name: Configure Maven credentials for GitHub Packages
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <settings>
+            <servers>
+              <server>
+                <id>github</id>
+                <username>${{ github.actor }}</username>
+                <password>${{ secrets.PACKAGES_TOKEN }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
       - name: Build & test
         run: mvn -B -pl user-profile-service clean package -DskipTests
         working-directory: services
@@ -104,6 +146,20 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+      - name: Configure Maven credentials for GitHub Packages
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <settings>
+            <servers>
+              <server>
+                <id>github</id>
+                <username>${{ github.actor }}</username>
+                <password>${{ secrets.PACKAGES_TOKEN }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
       - name: Build & test
         run: mvn -B -pl mail-service clean package -DskipTests
         working-directory: services
