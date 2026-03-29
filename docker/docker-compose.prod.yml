@@ -82,10 +82,10 @@ services:
       retries: 3
 
   # ─── Frontend (internal, served qua nginx) ─────────────────────
-  frontend:
-    image: ghcr.io/minhanh-it/mockwise_project/frontend:${IMAGE_TAG:-latest}
-    restart: unless-stopped
-    networks: [internal-net]
+  # frontend:
+  #   image: ghcr.io/minhanh-it/mockwise_project/frontend:${IMAGE_TAG:-latest}
+  #   restart: unless-stopped
+  #   networks: [internal-net]
 
   # ─── Nginx (duy nhất exposed ra internet) ──────────────────────
   nginx:
@@ -99,7 +99,7 @@ services:
       - ../nginx/conf.d:/etc/nginx/conf.d:ro
       - nginx-ssl:/etc/nginx/ssl
     networks: [public-net, internal-net]
-    depends_on: [api-gateway, frontend]
+    depends_on: [api-gateway]
 
 networks:
   public-net:
