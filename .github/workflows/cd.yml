@@ -94,7 +94,7 @@ jobs:
             git reset --hard FETCH_HEAD
 
             # Login GHCR to pull private images
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io \
+            echo "${{ secrets.GIT_TOKEN }}" | docker login ghcr.io \
               -u ${{ github.repository_owner }} --password-stdin
 
             # Pull images and restart
