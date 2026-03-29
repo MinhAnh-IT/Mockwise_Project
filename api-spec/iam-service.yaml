@@ -289,7 +289,7 @@ paths:
               bearerToken: "Bearer eyJhbGci..."
       responses:
         '200':
-          description: Introspect result (`active: false` means expired/invalid)
+          description: 'Introspect result (`active: false` means expired/invalid)'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TokenIntrospectResponse' }
