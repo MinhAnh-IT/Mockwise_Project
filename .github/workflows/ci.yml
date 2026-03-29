@@ -14,11 +14,11 @@ jobs:
       pull-requests: read
     outputs:
       api-gateway: ${{ steps.filter.outputs.api-gateway }}
-      ai-evaluation: ${{ steps.filter.outputs.ai-evaluation }}
-      frontend: ${{ steps.filter.outputs.frontend }}
       iam-service: ${{ steps.filter.outputs.iam-service }}
       user-profile-service: ${{ steps.filter.outputs.user-profile-service }}
       mail-service: ${{ steps.filter.outputs.mail-service }}
+      ai-evaluation: ${{ steps.filter.outputs.ai-evaluation }}
+      frontend: ${{ steps.filter.outputs.frontend }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -27,12 +27,16 @@ jobs:
           filters: |
             api-gateway:
               - 'services/api-gateway/**'
+              - 'services/pom.xml'
             iam-service:
               - 'services/iam-service/**'
+              - 'services/pom.xml'
             user-profile-service:
               - 'services/user-profile-service/**'
+              - 'services/pom.xml'
             mail-service:
               - 'services/mail-service/**'
+              - 'services/pom.xml'
             ai-evaluation:
               - 'AI/AI-Evaluation/**'
             frontend:
@@ -44,19 +48,67 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-java@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: services/api-gateway/package-lock.json
-      - run: npm ci
-        working-directory: services/api-gateway
-      - run: npm run lint
-        working-directory: services/api-gateway
-      - run: npm test
-        working-directory: services/api-gateway
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+      - name: Build & test
+        run: mvn -B -pl api-gateway clean package -DskipTests
+        working-directory: services
       - name: Build Docker image
-        run: docker build -t mockwise/api-gateway:${{ github.sha }} services/api-gateway
+        run: docker build -f services/api-gateway/Dockerfile -t mockwise/api-gateway:${{ github.sha }} services
+
+  build-iam-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.iam-service == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+      - name: Build & test
+        run: mvn -B -pl iam-service clean package -DskipTests
+        working-directory: services
+      - name: Build Docker image
+        run: docker build -f services/iam-service/Dockerfile -t mockwise/iam-service:${{ github.sha }} services
+
+  build-user-profile-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.user-profile-service == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+      - name: Build & test
+        run: mvn -B -pl user-profile-service clean package -DskipTests
+        working-directory: services
+      - name: Build Docker image
+        run: docker build -f services/user-profile-service/Dockerfile -t mockwise/user-profile-service:${{ github.sha }} services
+
+  build-mail-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.mail-service == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+      - name: Build & test
+        run: mvn -B -pl mail-service clean package -DskipTests
+        working-directory: services
+      - name: Build Docker image
+        run: docker build -f services/mail-service/Dockerfile -t mockwise/mail-service:${{ github.sha }} services
 
   build-ai-evaluation:
     needs: detect-changes
@@ -72,22 +124,22 @@ jobs:
       - name: Build Docker image
         run: docker build -t mockwise/ai-evaluation:${{ github.sha }} AI/AI-Evaluation
 
-  build-frontend:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.frontend == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-        working-directory: frontend
-      - run: npm run lint
-        working-directory: frontend
-      - run: npm test -- --watchAll=false
-        working-directory: frontend
-      - run: npm run build
-        working-directory: frontend
+  # build-frontend:
+  #   needs: detect-changes
+  #   if: needs.detect-changes.outputs.frontend == 'true'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20'
+  #         cache: 'npm'
+  #         cache-dependency-path: frontend/package-lock.json
+  #     - run: npm ci
+  #       working-directory: frontend
+  #     - run: npm run lint
+  #       working-directory: frontend
+  #     - run: npm test -- --watchAll=false
+  #       working-directory: frontend
+  #     - run: npm run build
+  #       working-directory: frontend
