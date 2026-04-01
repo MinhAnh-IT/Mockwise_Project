@@ -32,6 +32,9 @@ jobs:
           - name: mail-service
             context: services
             dockerfile: services/mail-service/Dockerfile
+          - name: judge-service
+            context: services/judge-service
+            dockerfile: services/judge-service/Dockerfile
           - name: ai-evaluation
             context: AI/AI-Evaluation
             dockerfile: AI/AI-Evaluation/Dockerfile

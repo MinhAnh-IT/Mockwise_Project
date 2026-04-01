@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: judge-service
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:judge}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${DB_USERNAME:mockwise}
+    password: ${DB_PASSWORD:mockwise_db_password2026}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: judge-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.interview.judge.*"
+        spring.json.value.default.type: com.interview.judge.dto.SubmissionEvent
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+judge0:
+  base-url: ${JUDGE0_BASE_URL:http://localhost:2358}
+  auth-token: ${JUDGE0_AUTH_TOKEN:}
+
+judge:
+  # host.docker.internal → resolves to host machine from inside Docker containers
+  # Judge0 uses this URL to POST results back to /api/callback/{taskId}
+  callback-base-url: ${JUDGE_CALLBACK_BASE_URL:http://host.docker.internal:8081}
+
+server:
+  port: ${PORT:8083}

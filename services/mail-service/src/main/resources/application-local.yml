@@ -1,0 +1,7 @@
+spring:
+  kafka:
+    bootstrap-servers: 31.220.84.140:9092
+
+  mail:
+    username: testproject610@gmail.com
+    password: "tbvs oaiu vlak cwps"
