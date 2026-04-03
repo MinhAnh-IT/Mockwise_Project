@@ -114,7 +114,8 @@ services:
       BASE_URL: /docs
       URLS: >-
         [{"url":"/api-spec/iam-service.yaml","name":"IAM Service"},
-         {"url":"/api-spec/user-profile-service.yaml","name":"User Profile Service"}]
+         {"url":"/api-spec/user-profile-service.yaml","name":"User Profile Service"},
+         {"url":"/api-spec/judge-service.yaml","name":"Judge Service"}]
     networks: [internal-net]
 
   # ─── Nginx (only service exposed to the internet) ─────────────
