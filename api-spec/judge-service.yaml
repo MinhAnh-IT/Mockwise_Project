@@ -1,0 +1,744 @@
+openapi: 3.0.3
+
+info:
+  title: MockWise — Judge Service
+  version: 1.0.0
+  description: |
+    Code submission & evaluation APIs.
+
+    All client requests go through the **API Gateway: `http://localhost:8888`**
+    Direct service port (dev only): `8083`
+
+    ### Routing
+    | Layer | Submission & Status | Callback |
+    |-------|--------------------|-|
+    | **API Gateway** `localhost:8888` | `POST /api/v1/judge/submit` `GET /api/v1/judge/status/{id}` | Not routed — Judge0 calls service directly |
+    | **Judge Service** `localhost:8083` | same paths (gateway passes through unchanged) | `POST /api/v1/judge/callback/{taskId}` |
+
+    > The callback endpoint is called directly by **Judge0**, not through the gateway.
+    > Its base URL is configured via `JUDGE_CALLBACK_BASE_URL` (default: `http://host.docker.internal:8083`).
+
+    ### How it works
+    Submissions are normally consumed from Kafka (`SubmissionEvent`). These REST endpoints
+    bypass Kafka for direct testing — useful in development without a running broker.
+
+    ### Pipeline
+    ```
+    Client
+      │
+      ▼
+    API Gateway :8888
+      │  POST /api/v1/judge/submit
+      │  GET  /api/v1/judge/status/{submissionId}
+      ▼
+    Judge Service :8083  ──→  Judge0 (async execution)
+                                    │
+                                    │ POST /api/v1/judge/callback/{taskId}
+                                    ▼
+                              Judge Service :8083  (direct, no gateway)
+    ```
+
+    ### Supported languages
+    Only `"java"` is supported.
+
+    ### Supported parameter / return types
+    | Category | Type strings |
+    |----------|--------------|
+    | Primitive | `int`, `long`, `double`, `boolean` |
+    | Boxed (auto-normalized) | `Integer`, `Long`, `Double`, `Boolean` |
+    | Character | `char`, `Character` |
+    | String | `String`, `string` |
+    | 1-D array | `int[]`, `long[]`, `double[]`, `String[]`, `string[]` |
+    | 2-D array | `int[][]`, `char[][]`, `String[][]` |
+    | List | `List<Integer>`, `List<String>`, `List<List<Integer>>`, `List<List<String>>` |
+    | Tree | `TreeNode` |
+    | Linked list | `ListNode` |
+
+servers:
+  - url: http://localhost:8888
+    description: Via API Gateway (recommended)
+  - url: http://localhost:8083
+    description: Direct — dev only (bypasses gateway auth)
+
+tags:
+  - name: Submission
+    description: Submit code and poll results
+  - name: Callback
+    description: Judge0 execution result webhook (internal use)
+
+components:
+  schemas:
+
+    # ── Request schemas ────────────────────────────────────────────────
+
+    ParamMeta:
+      type: object
+      required: [name, type]
+      properties:
+        name:
+          type: string
+          description: Exact key name used in `inputData`
+          example: nums
+        type:
+          type: string
+          description: Type string — see supported types in the description
+          example: int[]
+
+    FunctionMeta:
+      type: object
+      required: [fn, params, return, orderMatters, inPlace]
+      properties:
+        fn:
+          type: string
+          description: Exact method name in the `Solution` class (case-sensitive)
+          example: twoSum
+        params:
+          type: array
+          description: Ordered list of parameters — must match the Java method signature
+          items:
+            $ref: '#/components/schemas/ParamMeta'
+        return:
+          type: string
+          description: Return type string. Use `"void"` for in-place mutations (`inPlace: true`)
+          example: int[]
+        orderMatters:
+          type: boolean
+          description: |
+            Controls array output comparison.
+            - `true` — exact element order required
+            - `false` — both arrays are sorted before comparison (use for twoSum, groupAnagrams, etc.)
+          example: false
+        inPlace:
+          type: boolean
+          description: |
+            If `true`, the first argument is used as output instead of the return value.
+            Use for void methods that mutate their input (sortColors, reverseString, etc.).
+          example: false
+
+    TestCaseDto:
+      type: object
+      required: [id, inputData, expectedOutput]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique ID for this test case
+          example: 00000000-0000-0000-0000-000000000001
+        inputData:
+          type: object
+          description: |
+            Keys are param names from `functionMeta.params`. Values match the declared types.
+            Arrays are JSON arrays; primitives are JSON numbers/booleans.
+          additionalProperties: true
+          example:
+            nums: [2, 7, 11, 15]
+            target: 9
+        expectedOutput:
+          type: object
+          description: |
+            Must be a JSON object with exactly **one** field. The comparator reads the first field
+            regardless of key name. Conventionally use `"result"` as the key.
+          additionalProperties: true
+          example:
+            result: [0, 1]
+
+    SubmissionRequest:
+      type: object
+      required: [submissionId, language, code, functionMeta, testCases]
+      properties:
+        submissionId:
+          type: string
+          format: uuid
+          description: Unique ID for this submission. A random UUID is generated if omitted.
+          example: 123e4567-e89b-12d3-a456-426614174000
+        language:
+          type: string
+          enum: [java]
+          description: Programming language. Only `"java"` is supported.
+          example: java
+        code:
+          type: string
+          description: |
+            Full solution body. Must contain a class named `Solution`.
+            Do **not** include a `public` modifier on the class — the driver wraps it.
+          example: |
+            class Solution {
+                public int[] twoSum(int[] nums, int target) {
+                    java.util.Map<Integer, Integer> map = new java.util.HashMap<>();
+                    for (int i = 0; i < nums.length; i++) {
+                        int complement = target - nums[i];
+                        if (map.containsKey(complement)) return new int[]{map.get(complement), i};
+                        map.put(nums[i], i);
+                    }
+                    return new int[]{};
+                }
+            }
+        functionMeta:
+          $ref: '#/components/schemas/FunctionMeta'
+        testCases:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/TestCaseDto'
+
+    # ── Response schemas ───────────────────────────────────────────────
+
+    SubmitResponse:
+      type: object
+      properties:
+        submissionId:
+          type: string
+          format: uuid
+          description: Use this to poll `/status/{submissionId}`
+          example: 123e4567-e89b-12d3-a456-426614174000
+        message:
+          type: string
+          example: "Submission accepted. Poll /api/v1/judge/status/{submissionId} for results."
+
+    TaskResultView:
+      type: object
+      properties:
+        testCaseId:
+          type: string
+          format: uuid
+          example: 00000000-0000-0000-0000-000000000001
+        orderIndex:
+          type: integer
+          description: 0-based index of this test case in the original submission
+          example: 0
+        status:
+          type: string
+          enum: [PENDING, AC, WA, TLE, MLE, RE, CE]
+          description: |
+            | Status | Meaning |
+            |--------|---------|
+            | `PENDING` | Not yet processed |
+            | `AC` | Accepted — output matched expected |
+            | `WA` | Wrong Answer — output did not match |
+            | `TLE` | Time Limit Exceeded |
+            | `MLE` | Memory Limit Exceeded |
+            | `RE` | Runtime Error — uncaught exception |
+            | `CE` | Compilation Error |
+          example: AC
+        stdout:
+          type: string
+          nullable: true
+          description: Raw stdout from the program (trimmed)
+          example: "[0,1]"
+        stderr:
+          type: string
+          nullable: true
+          description: Stderr output, or compiler error message for CE
+          example: null
+        runtimeMs:
+          type: integer
+          nullable: true
+          description: Execution time in milliseconds
+          example: 120
+        memoryKb:
+          type: integer
+          nullable: true
+          description: Memory used in KB
+          example: 4096
+
+    JobStatusResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+          format: uuid
+          example: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+        submissionId:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174000
+        status:
+          type: string
+          enum: [PENDING, RUNNING, DONE, FAILED]
+          description: |
+            | Status | Meaning |
+            |--------|---------|
+            | `PENDING` | Job created, not yet submitted to Judge0 |
+            | `RUNNING` | At least one test case is still executing |
+            | `DONE` | All test cases finished — check `verdict` for the result |
+            | `FAILED` | Unexpected internal error |
+          example: DONE
+        verdict:
+          type: string
+          nullable: true
+          description: |
+            Overall result across all test cases.
+            Priority (worst wins): `CE` > `RE` > `TLE` > `MLE` > `WA` > `AC`
+          enum: [AC, WA, TLE, MLE, RE, CE]
+          example: AC
+        doneCases:
+          type: integer
+          description: Number of test cases that have finished (any status)
+          example: 3
+        totalCases:
+          type: integer
+          description: Total number of test cases in this submission
+          example: 3
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-04-03T10:00:00"
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-04-03T10:00:02"
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskResultView'
+
+    # ── Callback schemas ───────────────────────────────────────────────
+
+    Judge0StatusInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: |
+            Judge0 status ID.
+            | ID | Meaning |
+            |----|---------|
+            | 3  | Accepted |
+            | 5  | Time Limit Exceeded |
+            | 6  | Compilation Error |
+            | 7–14 | Runtime Error variants |
+          example: 3
+        description:
+          type: string
+          example: Accepted
+
+    Judge0CallbackPayload:
+      type: object
+      description: |
+        Payload POSTed by Judge0 when code execution finishes.
+        `stdout`, `stderr`, and `compile_output` are **base64-encoded**.
+      properties:
+        token:
+          type: string
+          description: Judge0 submission token
+          example: "abc123token"
+        stdout:
+          type: string
+          format: byte
+          nullable: true
+          description: Base64-encoded program output
+          example: "WzAsMV0K"
+        stderr:
+          type: string
+          format: byte
+          nullable: true
+          description: Base64-encoded stderr
+          example: null
+        compile_output:
+          type: string
+          format: byte
+          nullable: true
+          description: Base64-encoded compiler error (populated when `status.id == 6`)
+          example: null
+        status:
+          $ref: '#/components/schemas/Judge0StatusInfo'
+        time:
+          type: string
+          nullable: true
+          description: Execution time in seconds
+          example: "0.120"
+        memory:
+          type: integer
+          nullable: true
+          description: Memory used in KB
+          example: 4096
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 404
+        message:
+          type: string
+          example: "Submission not found"
+
+paths:
+
+  # ════════════════════════════════════════════════════════════════════
+  # SUBMISSION
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/v1/judge/submit:
+    post:
+      tags: [Submission]
+      summary: Submit code for evaluation
+      description: |
+        Accepts a code submission, builds the full source (driver + solution), and submits
+        each test case to Judge0 asynchronously.
+
+        Returns `202 Accepted` immediately. Use `GET /api/v1/judge/status/{submissionId}`
+        to poll for results.
+
+        **Note:** If `submissionId` is omitted, a random UUID is generated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmissionRequest'
+            examples:
+              twoSum:
+                summary: Two Sum — int[] param, int param, int[] return (orderMatters false)
+                value:
+                  submissionId: "123e4567-e89b-12d3-a456-426614174000"
+                  language: java
+                  code: |
+                    class Solution {
+                        public int[] twoSum(int[] nums, int target) {
+                            java.util.Map<Integer, Integer> map = new java.util.HashMap<>();
+                            for (int i = 0; i < nums.length; i++) {
+                                int complement = target - nums[i];
+                                if (map.containsKey(complement)) return new int[]{map.get(complement), i};
+                                map.put(nums[i], i);
+                            }
+                            return new int[]{};
+                        }
+                    }
+                  functionMeta:
+                    fn: twoSum
+                    params:
+                      - { name: nums,   type: "int[]" }
+                      - { name: target, type: int }
+                    return: "int[]"
+                    orderMatters: false
+                    inPlace: false
+                  testCases:
+                    - id: "00000000-0000-0000-0000-000000000001"
+                      inputData:    { nums: [2, 7, 11, 15], target: 9 }
+                      expectedOutput: { result: [0, 1] }
+                    - id: "00000000-0000-0000-0000-000000000002"
+                      inputData:    { nums: [3, 2, 4], target: 6 }
+                      expectedOutput: { result: [1, 2] }
+              sortColors:
+                summary: Sort Colors — void inPlace mutation
+                value:
+                  submissionId: "223e4567-e89b-12d3-a456-426614174000"
+                  language: java
+                  code: |
+                    class Solution {
+                        public void sortColors(int[] nums) {
+                            int lo = 0, mid = 0, hi = nums.length - 1;
+                            while (mid <= hi) {
+                                if (nums[mid] == 0) { int t = nums[lo]; nums[lo++] = nums[mid]; nums[mid++] = t; }
+                                else if (nums[mid] == 1) { mid++; }
+                                else { int t = nums[mid]; nums[mid] = nums[hi]; nums[hi--] = t; }
+                            }
+                        }
+                    }
+                  functionMeta:
+                    fn: sortColors
+                    params:
+                      - { name: nums, type: "int[]" }
+                    return: void
+                    orderMatters: true
+                    inPlace: true
+                  testCases:
+                    - id: "00000000-0000-0000-0000-000000000003"
+                      inputData:    { nums: [2, 0, 2, 1, 1, 0] }
+                      expectedOutput: { result: [0, 0, 1, 1, 2, 2] }
+              groupAnagrams:
+                summary: Group Anagrams — String[] param, List<List<String>> return (orderMatters false)
+                value:
+                  submissionId: "323e4567-e89b-12d3-a456-426614174000"
+                  language: java
+                  code: |
+                    class Solution {
+                        public java.util.List<java.util.List<String>> groupAnagrams(String[] strs) {
+                            java.util.Map<String, java.util.List<String>> map = new java.util.HashMap<>();
+                            for (String s : strs) {
+                                char[] ca = s.toCharArray(); java.util.Arrays.sort(ca);
+                                String key = new String(ca);
+                                map.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(s);
+                            }
+                            return new java.util.ArrayList<>(map.values());
+                        }
+                    }
+                  functionMeta:
+                    fn: groupAnagrams
+                    params:
+                      - { name: strs, type: "String[]" }
+                    return: "List<List<String>>"
+                    orderMatters: false
+                    inPlace: false
+                  testCases:
+                    - id: "00000000-0000-0000-0000-000000000004"
+                      inputData:    { strs: ["eat", "tea", "tan", "ate", "nat", "bat"] }
+                      expectedOutput: { result: [["bat"], ["nat", "tan"], ["ate", "eat", "tea"]] }
+      responses:
+        '202':
+          description: Submission accepted — poll `/status/{submissionId}` for results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitResponse'
+              example:
+                submissionId: "123e4567-e89b-12d3-a456-426614174000"
+                message: "Submission accepted. Poll /api/v1/judge/status/{submissionId} for results."
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/judge/status/{submissionId}:
+    get:
+      tags: [Submission]
+      summary: Poll job status
+      description: |
+        Returns the current status of a submission and all its per-test-case results.
+
+        Poll until `status` is `DONE` or `FAILED`. While `status` is `RUNNING`, `doneCases`
+        increments as individual test cases finish.
+
+        **Recommended polling interval:** 500ms–1s.
+      parameters:
+        - name: submissionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The UUID returned by `POST /api/v1/judge/submit`
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Job found — inspect `status` and `verdict`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStatusResponse'
+              examples:
+                running:
+                  summary: Job still in progress
+                  value:
+                    jobId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+                    submissionId: "123e4567-e89b-12d3-a456-426614174000"
+                    status: RUNNING
+                    verdict: null
+                    doneCases: 1
+                    totalCases: 3
+                    createdAt: "2026-04-03T10:00:00"
+                    finishedAt: null
+                    results:
+                      - testCaseId: "00000000-0000-0000-0000-000000000001"
+                        orderIndex: 0
+                        status: AC
+                        stdout: "[0,1]"
+                        stderr: null
+                        runtimeMs: 120
+                        memoryKb: 4096
+                      - testCaseId: "00000000-0000-0000-0000-000000000002"
+                        orderIndex: 1
+                        status: PENDING
+                        stdout: null
+                        stderr: null
+                        runtimeMs: null
+                        memoryKb: null
+                done_ac:
+                  summary: All test cases accepted
+                  value:
+                    jobId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+                    submissionId: "123e4567-e89b-12d3-a456-426614174000"
+                    status: DONE
+                    verdict: AC
+                    doneCases: 2
+                    totalCases: 2
+                    createdAt: "2026-04-03T10:00:00"
+                    finishedAt: "2026-04-03T10:00:02"
+                    results:
+                      - testCaseId: "00000000-0000-0000-0000-000000000001"
+                        orderIndex: 0
+                        status: AC
+                        stdout: "[0,1]"
+                        stderr: null
+                        runtimeMs: 120
+                        memoryKb: 4096
+                      - testCaseId: "00000000-0000-0000-0000-000000000002"
+                        orderIndex: 1
+                        status: AC
+                        stdout: "[1,2]"
+                        stderr: null
+                        runtimeMs: 98
+                        memoryKb: 3800
+                done_wa:
+                  summary: Wrong Answer on one test case
+                  value:
+                    jobId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+                    submissionId: "123e4567-e89b-12d3-a456-426614174001"
+                    status: DONE
+                    verdict: WA
+                    doneCases: 2
+                    totalCases: 2
+                    createdAt: "2026-04-03T10:00:00"
+                    finishedAt: "2026-04-03T10:00:02"
+                    results:
+                      - testCaseId: "00000000-0000-0000-0000-000000000001"
+                        orderIndex: 0
+                        status: AC
+                        stdout: "[0,1]"
+                        stderr: null
+                        runtimeMs: 120
+                        memoryKb: 4096
+                      - testCaseId: "00000000-0000-0000-0000-000000000002"
+                        orderIndex: 1
+                        status: WA
+                        stdout: "[0,2]"
+                        stderr: null
+                        runtimeMs: 105
+                        memoryKb: 3900
+                done_ce:
+                  summary: Compilation Error
+                  value:
+                    jobId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+                    submissionId: "123e4567-e89b-12d3-a456-426614174002"
+                    status: DONE
+                    verdict: CE
+                    doneCases: 1
+                    totalCases: 1
+                    createdAt: "2026-04-03T10:00:00"
+                    finishedAt: "2026-04-03T10:00:01"
+                    results:
+                      - testCaseId: "00000000-0000-0000-0000-000000000001"
+                        orderIndex: 0
+                        status: CE
+                        stdout: null
+                        stderr: "Solution.java:2: error: ';' expected\n    return a + b\n                ^\n1 error\n"
+                        runtimeMs: null
+                        memoryKb: null
+        '404':
+          description: No submission found with the given ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 404
+                message: "Submission not found"
+
+  # ════════════════════════════════════════════════════════════════════
+  # CALLBACK (internal — called by Judge0, not by the frontend)
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/v1/judge/callback/{taskId}:
+    post:
+      tags: [Callback]
+      summary: Judge0 execution result webhook
+      description: |
+        **Internal endpoint — called directly by Judge0, NOT routed through the API Gateway.**
+
+        Base URL: `http://host.docker.internal:8083` (configurable via `JUDGE_CALLBACK_BASE_URL`)
+        Full URL Judge0 calls: `{JUDGE_CALLBACK_BASE_URL}/api/v1/judge/callback/{taskId}`
+
+        Judge0 POSTs to this URL when code execution finishes.
+        `stdout`, `stderr`, and `compile_output` fields are **base64-encoded** by Judge0.
+
+        Judge0 may also send a PUT request for the same event — both are accepted.
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: UUID of the `JudgeTaskResult` entity this callback belongs to
+          example: "bbbbbbbb-cccc-dddd-eeee-ffffffffffff"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Judge0CallbackPayload'
+            examples:
+              accepted:
+                summary: Accepted execution result
+                value:
+                  token: "abc123"
+                  stdout: "WzAsMV0K"
+                  stderr: null
+                  compile_output: null
+                  status: { id: 3, description: "Accepted" }
+                  time: "0.120"
+                  memory: 4096
+              compilation_error:
+                summary: Compilation error
+                value:
+                  token: "def456"
+                  stdout: null
+                  stderr: null
+                  compile_output: "U29sdXRpb24uamF2YToyOiBl..."
+                  status: { id: 6, description: "Compilation Error" }
+                  time: null
+                  memory: null
+              tle:
+                summary: Time limit exceeded
+                value:
+                  token: "ghi789"
+                  stdout: null
+                  stderr: null
+                  compile_output: null
+                  status: { id: 5, description: "Time Limit Exceeded" }
+                  time: "5.000"
+                  memory: 8192
+      responses:
+        '200':
+          description: Callback processed successfully
+        '404':
+          description: Task ID not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error while processing the callback
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [Callback]
+      summary: Judge0 execution result webhook (PUT variant)
+      description: |
+        Identical to `POST /api/v1/judge/callback/{taskId}`.
+        Judge0 may use either POST or PUT — both are accepted.
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "bbbbbbbb-cccc-dddd-eeee-ffffffffffff"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Judge0CallbackPayload'
+      responses:
+        '200':
+          description: Callback processed successfully
+        '404':
+          description: Task ID not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error while processing the callback
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

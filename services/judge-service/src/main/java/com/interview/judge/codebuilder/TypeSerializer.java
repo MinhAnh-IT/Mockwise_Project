@@ -42,11 +42,16 @@ public class TypeSerializer {
 
         return switch (type) {
             case "int", "long", "double", "boolean" -> String.valueOf(value);
-            case "string"  -> String.valueOf(value);  // no quotes — driver strips them if present
+            case "string", "String"                 -> String.valueOf(value);
+            // char: sent as raw character — driver reads charAt(0)
+            case "char", "Character"                -> String.valueOf(value);
             // Arrays, matrices, and tree/list structures: Jackson already holds them as List/Map
             // which re-serializes to the same JSON format the driver expects.
-            case "int[]", "long[]", "double[]", "string[]",
-                 "int[][]", "char[][]", "TreeNode", "ListNode" ->
+            case "int[]", "long[]", "double[]", "string[]", "String[]",
+                 "int[][]", "char[][]", "String[][]",
+                 "List<Integer>", "List<String>",
+                 "List<List<Integer>>", "List<List<String>>",
+                 "TreeNode", "ListNode" ->
                     objectMapper.writeValueAsString(value);
             default -> objectMapper.writeValueAsString(value);
         };

@@ -99,7 +99,7 @@ public class JudgeOrchestrator {
         }
 
         // 3c. Submit to Judge0 async
-        String callbackUrl = callbackBaseUrl + "/api/callback/" + task.getId();
+        String callbackUrl = callbackBaseUrl + "/api/v1/judge/callback/" + task.getId();
         try {
             String judge0Token = judge0Client.submitAsync(fullSource, stdin, callbackUrl, event.getLanguage());
             task.setJudge0Token(judge0Token);
@@ -198,10 +198,10 @@ public class JudgeOrchestrator {
                 log.debug("Output comparison: correct={}", correct);
                 yield correct ? TaskStatus.AC : TaskStatus.WA;
             }
+            case 5  -> TaskStatus.TLE;
             case 6  -> TaskStatus.CE;
-            case 11 -> TaskStatus.TLE;
-            case 12 -> TaskStatus.MLE;
-            case 13, 14, 15 -> TaskStatus.RE;
+            case 7, 8, 9, 10, 11, 12 -> TaskStatus.RE;
+            case 13, 14 -> TaskStatus.RE;
             default -> {
                 log.warn("Unknown Judge0 status id: {} — treating as RE", judge0StatusId);
                 yield TaskStatus.RE;

@@ -11,5 +11,6 @@ judge0:
 judge:
   callback-base-url: https://overzealous-preoffensive-sanora.ngrok-free.dev
 
-spring.kafka:
-  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:31.220.84.140:9092}
+spring:
+  kafka:
+    bootstrap-servers: 31.220.84.140:9092

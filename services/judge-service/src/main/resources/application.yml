@@ -37,8 +37,8 @@ judge0:
 
 judge:
   # host.docker.internal → resolves to host machine from inside Docker containers
-  # Judge0 uses this URL to POST results back to /api/callback/{taskId}
-  callback-base-url: ${JUDGE_CALLBACK_BASE_URL:http://host.docker.internal:8081}
+  # Judge0 uses this URL to POST results back to /api/v1/judge/callback/{taskId}
+  callback-base-url: ${JUDGE_CALLBACK_BASE_URL:http://host.docker.internal:8083}
 
 server:
   port: ${PORT:8083}

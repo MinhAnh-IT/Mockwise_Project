@@ -35,19 +35,26 @@ public class OutputComparator {
      * @return {@code true} if the output is correct
      */
     public boolean compare(String stdout, String expectedOutputJson, boolean orderMatters) {
-        if (stdout == null || stdout.isBlank()) {
-            log.debug("stdout is null/blank — WA");
+        if (stdout == null) {
+            log.debug("stdout is null — WA");
             return false;
         }
 
         try {
             JsonNode actual  = objectMapper.readTree(stdout.trim());
             JsonNode wrapper = objectMapper.readTree(expectedOutputJson);
-            JsonNode expected = wrapper.get("value");
+            JsonNode expected = wrapper.isObject() && wrapper.fields().hasNext()
+                    ? wrapper.fields().next().getValue()
+                    : null;
 
             if (expected == null) {
-                log.warn("expectedOutput JSON has no 'value' field: {}", expectedOutputJson);
+                log.warn("expectedOutput JSON has no extractable field: {}", expectedOutputJson);
                 return false;
+            }
+
+            // readTree("") may return null, NullNode, or MissingNode — no meaningful JSON output
+            if (actual == null || actual.isNull() || actual.isMissingNode()) {
+                return fallbackStringCompare(stdout, expectedOutputJson);
             }
 
             if (!orderMatters && actual.isArray() && expected.isArray()) {
@@ -75,7 +82,9 @@ public class OutputComparator {
     private boolean fallbackStringCompare(String stdout, String expectedOutputJson) {
         try {
             JsonNode wrapper  = objectMapper.readTree(expectedOutputJson);
-            JsonNode expected = wrapper.get("value");
+            JsonNode expected = wrapper.isObject() && wrapper.fields().hasNext()
+                    ? wrapper.fields().next().getValue()
+                    : null;
             if (expected == null) return false;
 
             String expectedStr = expected.isTextual() ? expected.asText() : expected.toString();

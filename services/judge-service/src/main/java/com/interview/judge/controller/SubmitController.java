@@ -1,7 +1,6 @@
 package com.interview.judge.controller;
 
 import com.interview.judge.dto.SubmissionEvent;
-import com.interview.judge.entity.JudgeJob;
 import com.interview.judge.entity.JudgeTaskResult;
 import com.interview.judge.repository.JudgeJobRepository;
 import com.interview.judge.repository.JudgeTaskResultRepository;
@@ -30,15 +29,15 @@ import java.util.stream.Collectors;
  *
  * <p><b>Endpoints:</b>
  * <ul>
- *   <li>{@code POST /api/test/submit}         — submit a job</li>
- *   <li>{@code GET  /api/test/status/{submissionId}} — poll job status</li>
+ *   <li>{@code POST /api/v1/judge/submit}         — submit a job</li>
+ *   <li>{@code GET  /api/v1/judge/status/{submissionId}} — poll job status</li>
  * </ul>
  */
 @RestController
-@RequestMapping("/api/test")
+@RequestMapping("/api/v1/judge")
 @Slf4j
 @RequiredArgsConstructor
-public class TestSubmitController {
+public class SubmitController {
 
     private final JudgeOrchestrator judgeOrchestrator;
     private final JudgeJobRepository judgeJobRepository;
@@ -68,7 +67,7 @@ public class TestSubmitController {
         return ResponseEntity.accepted().body(
                 SubmitResponse.builder()
                         .submissionId(event.getSubmissionId())
-                        .message("Submission accepted. Poll /api/test/status/{submissionId} for results.")
+                        .message("Submission accepted. Poll /api/v1/judge/status/{submissionId} for results.")
                         .build()
         );
     }
@@ -78,7 +77,7 @@ public class TestSubmitController {
      *
      * <p>Poll this endpoint until {@code status} is {@code DONE} or {@code FAILED}.
      *
-     * @param submissionId the UUID returned by {@code POST /api/test/submit}
+     * @param submissionId the UUID returned by {@code POST /api/v1/judge/submit}
      * @return {@code 200} with job details, or {@code 404} if not found
      */
     @GetMapping("/status/{submissionId}")

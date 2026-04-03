@@ -1,15 +1,16 @@
 import java.util.*;
 import java.util.regex.*;
 
-public class UniversalDriver {
+public class Main {
 
     public static void main(String[] args) throws Exception {
         Scanner sc = new Scanner(System.in);
 
         String metaJson = sc.nextLine().trim();
 
-        String fn       = jsonGetString(metaJson, "fn");
-        boolean inPlace = "true".equals(jsonGetBoolean(metaJson, "inPlace"));
+        String fn         = jsonGetString(metaJson, "fn");
+        String returnType = jsonGetString(metaJson, "return");
+        boolean inPlace   = "true".equals(jsonGetBoolean(metaJson, "inPlace"));
         List<String[]> params = jsonGetParams(metaJson); // [name, type]
 
         Object[]   callArgs   = new Object[params.size()];
@@ -29,7 +30,11 @@ public class UniversalDriver {
         if (inPlace) {
             System.out.println(toJson(callArgs[0]));
         } else {
-            System.out.println(toJson(result));
+            if (result == null && ("ListNode".equals(returnType) || "TreeNode".equals(returnType))) {
+                System.out.println("[]");
+            } else {
+                System.out.println(toJson(result));
+            }
         }
     }
 
@@ -85,7 +90,23 @@ public class UniversalDriver {
 
     // ── PARSE ────────────────────────────────────────────────────────────
 
+    static String normalizeType(String type) {
+        if (type == null) return "";
+        switch (type) {
+            case "String":    return "string";
+            case "String[]":  return "string[]";
+            case "String[][]":return "string[][]";
+            case "Boolean":   return "boolean";
+            case "Integer":   return "int";
+            case "Long":      return "long";
+            case "Double":    return "double";
+            case "Character": return "char";
+            default:          return type;
+        }
+    }
+
     static Object parseValue(String raw, String type) throws Exception {
+        type = normalizeType(type);
         if ("int".equals(type))      return Integer.parseInt(raw);
         if ("long".equals(type))     return Long.parseLong(raw);
         if ("double".equals(type))   return Double.parseDouble(raw);
@@ -97,12 +118,19 @@ public class UniversalDriver {
         if ("string[]".equals(type)) return parseStringArray(raw);
         if ("int[][]".equals(type))  return parseIntMatrix(raw);
         if ("char[][]".equals(type)) return parseCharMatrix(raw);
-        if ("TreeNode".equals(type)) return buildTree(parseNullableIntArray(raw));
-        if ("ListNode".equals(type)) return buildLinkedList(parseIntArray(raw));
+        if ("TreeNode".equals(type))              return buildTree(parseNullableIntArray(raw));
+        if ("ListNode".equals(type))              return buildLinkedList(parseIntArray(raw));
+        if ("char".equals(type))                  return raw.charAt(0);
+        if ("string[][]".equals(type))            return parseStringMatrix(raw);
+        if ("List<Integer>".equals(type))         return parseIntegerList(raw);
+        if ("List<String>".equals(type))          return parseStringList(raw);
+        if ("List<List<Integer>>".equals(type))   return parseIntegerListList(raw);
+        if ("List<List<String>>".equals(type))    return parseStringListList(raw);
         return raw;
     }
 
     static Class<?> getJavaType(String type) {
+        type = normalizeType(type);
         if ("int".equals(type))      return int.class;
         if ("long".equals(type))     return long.class;
         if ("double".equals(type))   return double.class;
@@ -114,8 +142,11 @@ public class UniversalDriver {
         if ("string[]".equals(type)) return String[].class;
         if ("int[][]".equals(type))  return int[][].class;
         if ("char[][]".equals(type)) return char[][].class;
-        if ("TreeNode".equals(type)) return TreeNode.class;
-        if ("ListNode".equals(type)) return ListNode.class;
+        if ("TreeNode".equals(type))   return TreeNode.class;
+        if ("ListNode".equals(type))   return ListNode.class;
+        if ("char".equals(type))       return char.class;
+        if ("string[][]".equals(type)) return String[][].class;
+        if (type.startsWith("List"))   return List.class;
         return Object.class;
     }
 
@@ -209,6 +240,52 @@ public class UniversalDriver {
         return rows.toArray(new char[0][]);
     }
 
+    static String[][] parseStringMatrix(String s) {
+        s = s.trim();
+        if ("[]".equals(s)) return new String[][]{};
+        s = s.substring(1, s.length() - 1).trim();
+        List<String[]> rows = new ArrayList<>();
+        int depth = 0, start = -1;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '[') { if (depth == 0) start = i; depth++; }
+            else if (c == ']') {
+                depth--;
+                if (depth == 0 && start >= 0) { rows.add(parseStringArray(s.substring(start, i + 1))); start = -1; }
+            }
+        }
+        return rows.toArray(new String[0][]);
+    }
+
+    static List<Integer> parseIntegerList(String s) {
+        int[] arr = parseIntArray(s);
+        List<Integer> list = new ArrayList<>(arr.length);
+        for (int v : arr) list.add(v);
+        return list;
+    }
+
+    static List<String> parseStringList(String s) {
+        return new ArrayList<>(Arrays.asList(parseStringArray(s)));
+    }
+
+    static List<List<Integer>> parseIntegerListList(String s) {
+        int[][] matrix = parseIntMatrix(s);
+        List<List<Integer>> result = new ArrayList<>(matrix.length);
+        for (int[] row : matrix) {
+            List<Integer> rowList = new ArrayList<>(row.length);
+            for (int v : row) rowList.add(v);
+            result.add(rowList);
+        }
+        return result;
+    }
+
+    static List<List<String>> parseStringListList(String s) {
+        String[][] matrix = parseStringMatrix(s);
+        List<List<String>> result = new ArrayList<>(matrix.length);
+        for (String[] row : matrix) result.add(new ArrayList<>(Arrays.asList(row)));
+        return result;
+    }
+
     // ── SERIALIZATION ────────────────────────────────────────────────────
 
     static String toJson(Object val) throws Exception {
@@ -259,10 +336,25 @@ public class UniversalDriver {
         }
         if (val instanceof TreeNode) return serializeTree((TreeNode) val);
         if (val instanceof ListNode) return serializeLinkedList((ListNode) val);
+        if (val instanceof String[][]) {
+            String[][] m = (String[][]) val;
+            StringBuilder sb = new StringBuilder("[");
+            for (int i = 0; i < m.length; i++) { if (i > 0) sb.append(","); sb.append(toJson(m[i])); }
+            return sb.append("]").toString();
+        }
         if (val instanceof List) {
             List<?> list = (List<?>) val;
             StringBuilder sb = new StringBuilder("[");
-            for (int i = 0; i < list.size(); i++) { if (i > 0) sb.append(","); sb.append(toJson(list.get(i))); }
+            for (int i = 0; i < list.size(); i++) {
+                if (i > 0) sb.append(",");
+                Object elem = list.get(i);
+                // String and Character elements inside a collection must be quoted
+                if (elem instanceof String || elem instanceof Character) {
+                    sb.append("\"").append(elem).append("\"");
+                } else {
+                    sb.append(toJson(elem));
+                }
+            }
             return sb.append("]").toString();
         }
         return String.valueOf(val);

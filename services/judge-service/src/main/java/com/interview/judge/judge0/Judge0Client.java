@@ -23,8 +23,8 @@ public class Judge0Client {
     static final int LANG_CPP        = 54;  // C++ (GCC 9.2.0)
     static final int LANG_PYTHON     = 71;  // Python (3.8.1)
 
-    static final double CPU_TIME_LIMIT = 5.0;
-    static final int MEMORY_LIMIT = 256000;
+    static final double CPU_TIME_LIMIT = 15.0;
+    static final int MEMORY_LIMIT = 512000;
 
     final WebClient webClient;
 

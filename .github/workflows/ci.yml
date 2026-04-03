@@ -17,6 +17,7 @@ jobs:
       iam-service: ${{ steps.filter.outputs.iam-service }}
       user-profile-service: ${{ steps.filter.outputs.user-profile-service }}
       mail-service: ${{ steps.filter.outputs.mail-service }}
+      judge-service: ${{ steps.filter.outputs.judge-service }}
       ai-evaluation: ${{ steps.filter.outputs.ai-evaluation }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
@@ -37,6 +38,8 @@ jobs:
             mail-service:
               - 'services/mail-service/**'
               - 'services/pom.xml'
+            judge-service:
+              - 'services/judge-service/**'
             ai-evaluation:
               - 'AI/AI-Evaluation/**'
             frontend:
@@ -141,6 +144,23 @@ jobs:
           PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       - name: Build Docker image
         run: docker build -f services/mail-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/mail-service:${{ github.sha }} services
+
+  build-judge-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.judge-service == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+      - name: Build & test
+        run: mvn -B clean package
+        working-directory: services/judge-service
+      - name: Build Docker image
+        run: docker build -f services/judge-service/Dockerfile -t mockwise/judge-service:${{ github.sha }} services/judge-service
 
   build-ai-evaluation:
     needs: detect-changes

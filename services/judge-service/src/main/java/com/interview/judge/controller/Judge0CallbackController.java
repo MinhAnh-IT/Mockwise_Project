@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/callback")
+@RequestMapping("/api/v1/judge/callback")
 @Slf4j
 @RequiredArgsConstructor
 public class Judge0CallbackController {

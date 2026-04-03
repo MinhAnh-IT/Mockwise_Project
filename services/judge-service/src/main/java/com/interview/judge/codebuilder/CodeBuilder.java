@@ -51,6 +51,11 @@ public class CodeBuilder {
             return userCode;
         }
 
+        // Java allows only one public class per file (filename must match).
+        // The driver's main class is UniversalDriver, so Solution must NOT be public.
+        String normalizedUserCode = userCode.replaceAll(
+                "(?m)^(\\s*)public\\s+(class\\s+Solution\\b)", "$1$2");
+
         // Split driver into import section and class body section.
         // Imports must come before all class declarations in Java.
         String[] lines = driverCode.split("\n");
@@ -70,7 +75,7 @@ public class CodeBuilder {
 
         return imports
                 + "\n"
-                + userCode
+                + normalizedUserCode
                 + "\n\n"
                 + body;
     }
