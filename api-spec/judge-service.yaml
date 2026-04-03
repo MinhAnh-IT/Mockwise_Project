@@ -99,7 +99,8 @@ components:
             $ref: '#/components/schemas/ParamMeta'
         return:
           type: string
-          description: Return type string. Use `"void"` for in-place mutations (`inPlace: true`)
+          description: >-
+            Return type string. Use "void" for in-place mutations (inPlace: true).
           example: int[]
         orderMatters:
           type: boolean
