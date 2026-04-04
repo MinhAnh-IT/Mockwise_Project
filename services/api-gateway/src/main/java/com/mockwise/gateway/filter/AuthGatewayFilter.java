@@ -52,7 +52,9 @@ public class AuthGatewayFilter implements GlobalFilter, Ordered {
             new PublicRoute(HttpMethod.GET,  "/api/v1/position-tracks/**"),
             new PublicRoute(HttpMethod.GET,  "/api/v1/position-levels/**"),
             new PublicRoute(HttpMethod.GET,  "/api/v1/iam/auth/health"),
-            new PublicRoute(HttpMethod.GET,  "/api/ai/health")
+            new PublicRoute(HttpMethod.GET,  "/api/ai/health"),
+            new PublicRoute(HttpMethod.POST, "/api/v1/judge/callback/**"),
+            new PublicRoute(HttpMethod.PUT,  "/api/v1/judge/callback/**")
     );
 
     @Override
