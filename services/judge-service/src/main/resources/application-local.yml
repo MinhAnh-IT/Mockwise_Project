@@ -3,6 +3,8 @@ spring:
     url: jdbc:mysql://31.220.84.140:3306/judge?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: mockwise
     password: mockwise_db_password2026
+  kafka:
+    bootstrap-servers: 31.220.84.140:9092
 
 judge0:
   base-url: http://31.220.84.140:2358
@@ -10,7 +12,3 @@ judge0:
 
 judge:
   callback-base-url: https://overzealous-preoffensive-sanora.ngrok-free.dev
-
-spring:
-  kafka:
-    bootstrap-servers: 31.220.84.140:9092
