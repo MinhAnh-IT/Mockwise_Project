@@ -64,7 +64,7 @@ services:
       JUDGE0_BASE_URL: ${JUDGE0_BASE_URL}
       JUDGE0_AUTH_TOKEN: ${JUDGE0_AUTH_TOKEN}
       JUDGE_CALLBACK_BASE_URL: ${JUDGE_CALLBACK_BASE_URL}
-    networks: [internal-net]
+    networks: [internal-net, mockwise-judge-net]
 
   # ─── API Gateway (bridge: public ↔ internal) ───────────────────
   api-gateway:
@@ -136,3 +136,5 @@ networks:
     driver: bridge
   internal-net:
     driver: bridge
+  mockwise-judge-net:
+    external: true

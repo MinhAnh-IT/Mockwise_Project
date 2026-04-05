@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -81,6 +82,7 @@ public class SubmitController {
      * @return {@code 200} with job details, or {@code 404} if not found
      */
     @GetMapping("/status/{submissionId}")
+    @Transactional(readOnly = true)
     public ResponseEntity<JobStatusResponse> getStatus(@PathVariable UUID submissionId) {
         return judgeJobRepository.findBySubmissionId(submissionId)
                 .map(job -> {
