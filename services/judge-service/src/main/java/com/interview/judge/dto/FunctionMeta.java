@@ -12,6 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 @Getter
 @Setter
+@EqualsAndHashCode
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class FunctionMeta implements Serializable {
 

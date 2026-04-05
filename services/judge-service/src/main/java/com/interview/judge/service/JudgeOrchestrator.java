@@ -1,6 +1,7 @@
 package com.interview.judge.service;
 
 import com.interview.judge.codebuilder.CodeBuilder;
+import com.interview.judge.dto.FunctionMeta;
 import com.interview.judge.codebuilder.OutputComparator;
 import com.interview.judge.codebuilder.StdinBuilder;
 import com.interview.judge.dto.SubmissionEvent;
@@ -19,6 +20,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +49,7 @@ public class JudgeOrchestrator {
     final OutputComparator outputComparator;
     final JudgeMapper judgeMapper;
     final TransactionTemplate transactionTemplate;
+    final EntityManager entityManager;
 
     @Value("${judge.callback-base-url}")
     String callbackBaseUrl;
@@ -177,9 +180,13 @@ public class JudgeOrchestrator {
 
         UUID jobId = task.getJob().getId();
 
-        // Load job to read FunctionMeta (needed for verdict logic) — no locking needed
+        // Load job to read FunctionMeta, then detach to prevent Hibernate from
+        // flushing it with stale doneCases before incrementDoneCases runs.
+        // (JSON column functionMeta fails dirty-check due to object identity)
         JudgeJob job = judgeJobRepository.findById(jobId)
                 .orElseThrow(() -> new IllegalStateException("JudgeJob not found: " + jobId));
+        FunctionMeta functionMeta = job.getFunctionMeta();
+        entityManager.detach(job);
 
         // Decode base64 fields
         String stdout        = decodeBase64(payload.getStdout());
@@ -191,7 +198,7 @@ public class JudgeOrchestrator {
 
         // Determine task status
         int judge0StatusId = payload.getStatus() != null ? payload.getStatus().getId() : -1;
-        boolean orderMatters = job.getFunctionMeta().isOrderMatters();
+        boolean orderMatters = functionMeta.isOrderMatters();
         TaskStatus taskStatus = resolveTaskStatus(
                 judge0StatusId, stdout, task.getExpectedOutput(), orderMatters);
 

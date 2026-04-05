@@ -9,6 +9,7 @@ import java.io.Serializable;
 @AllArgsConstructor
 @Getter
 @Setter
+@EqualsAndHashCode
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ParamMeta implements Serializable {
     String name;
