@@ -22,9 +22,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
@@ -44,6 +46,7 @@ public class JudgeOrchestrator {
     final JudgeResultProducer judgeResultProducer;
     final OutputComparator outputComparator;
     final JudgeMapper judgeMapper;
+    final TransactionTemplate transactionTemplate;
 
     @Value("${judge.callback-base-url}")
     String callbackBaseUrl;
@@ -51,64 +54,100 @@ public class JudgeOrchestrator {
     /**
      * Entry point called by {@link com.interview.judge.kafka.SubmissionConsumer}.
      * Creates the JudgeJob, builds source code, and submits each test case to Judge0.
+     *
+     * <p>Phase 1 (transactional): persist JudgeJob + all JudgeTaskResult rows and commit.
+     * Phase 2 (no outer transaction): submit each task to Judge0.
+     * This ordering guarantees the DB rows exist before any Judge0 callback arrives.
      */
-    @Transactional
     public void handle(SubmissionEvent event) {
         log.info("Handling submission: submissionId={}, language={}, testCases={}",
                 event.getSubmissionId(), event.getLanguage(), event.getTestCases().size());
 
-        // 1. Create JudgeJob via mapper
-        JudgeJob job = judgeMapper.toJudgeJob(event);
-        judgeJobRepository.save(job);
-        log.info("JudgeJob created: id={}", job.getId());
+        // Phase 1: persist job + task shells — commit BEFORE any Judge0 HTTP call
+        List<JudgeTaskResult> tasks = new ArrayList<>();
+        JudgeJob job = transactionTemplate.execute(status -> {
+            JudgeJob j = judgeMapper.toJudgeJob(event);
+            judgeJobRepository.save(j);
+            log.info("JudgeJob created: id={}", j.getId());
 
-        // 2. Build full source (user code + UniversalDriver)
+            List<TestCaseDto> testCases = event.getTestCases();
+            for (int i = 0; i < testCases.size(); i++) {
+                JudgeTaskResult task = judgeMapper.toJudgeTaskResult(j, testCases.get(i), i);
+                judgeTaskResultRepository.save(task);
+                tasks.add(task);
+                log.debug("JudgeTaskResult created: id={}, testCaseId={}, orderIndex={}",
+                        task.getId(), testCases.get(i).getId(), i);
+            }
+            return j;
+        });
+        // Transaction committed — DB rows are now visible to callback handler
+
+        // Phase 2: build source and submit to Judge0 (outside transaction)
         String fullSource = codeBuilder.buildFullSource(event.getCode(), event.getLanguage());
         log.info("full code: " + fullSource);
-        // 3. Submit each test case to Judge0
+
+        int localFailures = 0;
         List<TestCaseDto> testCases = event.getTestCases();
-        for (int i = 0; i < testCases.size(); i++) {
-            TestCaseDto tc = testCases.get(i);
-            processTestCase(job, tc, i, fullSource, event);
+        for (int i = 0; i < tasks.size(); i++) {
+            boolean failed = submitTaskToJudge0(job, tasks.get(i), testCases.get(i), fullSource, event);
+            if (failed) localFailures++;
         }
 
-        // If all tasks failed locally (no Judge0 submissions), finalize now
-        judgeJobRepository.save(job);
-        if (job.getDoneCases() >= job.getTotalCases() && job.getTotalCases() > 0) {
-            log.info("All tasks failed locally — finalizing job immediately: jobId={}", job.getId());
-            finalizeJob(job);
+        // If all tasks failed locally (Judge0 never called), finalize now
+        if (localFailures > 0) {
+            job = judgeJobRepository.findById(job.getId()).orElse(job);
+            if (job.getDoneCases() >= job.getTotalCases() && job.getTotalCases() > 0) {
+                log.info("All tasks failed locally — finalizing job immediately: jobId={}", job.getId());
+                finalizeJob(job);
+            }
         }
     }
 
-    private void processTestCase(JudgeJob job, TestCaseDto tc, int index,
-                                 String fullSource, SubmissionEvent event) {
-        // 3a. Create JudgeTaskResult via mapper
-        JudgeTaskResult task = judgeMapper.toJudgeTaskResult(job, tc, index);
-        judgeTaskResultRepository.save(task);
-        log.debug("JudgeTaskResult created: id={}, testCaseId={}, orderIndex={}", task.getId(), tc.getId(), index);
-
-        // 3b. Build stdin
+    /**
+     * Builds stdin, submits to Judge0, and persists the token.
+     *
+     * @return true if the task failed locally (no Judge0 submission was made)
+     */
+    private boolean submitTaskToJudge0(JudgeJob job, JudgeTaskResult task, TestCaseDto tc,
+                                       String fullSource, SubmissionEvent event) {
+        // Build stdin
         String stdin;
         try {
             stdin = stdinBuilder.build(event.getFunctionMeta(), tc.getInputData());
         } catch (Exception e) {
             log.error("Failed to build stdin for testCase {}: {}", tc.getId(), e.getMessage());
-            markTaskFailed(task, "Failed to build stdin: " + e.getMessage());
-            job.setDoneCases(job.getDoneCases() + 1);
-            return;
+            UUID taskId = task.getId();
+            transactionTemplate.execute(status -> {
+                JudgeTaskResult freshTask = judgeTaskResultRepository.findById(taskId).orElseThrow();
+                markTaskFailed(freshTask, "Failed to build stdin: " + e.getMessage());
+                judgeJobRepository.incrementDoneCases(job.getId());
+                return null;
+            });
+            return true;
         }
 
-        // 3c. Submit to Judge0 async
-        String callbackUrl = callbackBaseUrl + "/api/v1/judge/callback/" + task.getId();
+        // Submit to Judge0 async
+        UUID taskId = task.getId();
+        String callbackUrl = callbackBaseUrl + "/api/v1/judge/callback/" + taskId;
         try {
             String judge0Token = judge0Client.submitAsync(fullSource, stdin, callbackUrl, event.getLanguage());
-            task.setJudge0Token(judge0Token);
-            judgeTaskResultRepository.save(task);
-            log.info("Submitted to Judge0: taskId={}, token={}", task.getId(), judge0Token);
+            transactionTemplate.execute(status -> {
+                JudgeTaskResult freshTask = judgeTaskResultRepository.findById(taskId).orElseThrow();
+                freshTask.setJudge0Token(judge0Token);
+                judgeTaskResultRepository.save(freshTask);
+                return null;
+            });
+            log.info("Submitted to Judge0: taskId={}, token={}", taskId, judge0Token);
+            return false;
         } catch (Exception e) {
-            log.error("Failed to submit to Judge0 for taskId={}: {}", task.getId(), e.getMessage());
-            markTaskFailed(task, "Failed to submit to Judge0: " + e.getMessage());
-            job.setDoneCases(job.getDoneCases() + 1);
+            log.error("Failed to submit to Judge0 for taskId={}: {}", taskId, e.getMessage());
+            transactionTemplate.execute(status -> {
+                JudgeTaskResult freshTask = judgeTaskResultRepository.findById(taskId).orElseThrow();
+                markTaskFailed(freshTask, "Failed to submit to Judge0: " + e.getMessage());
+                judgeJobRepository.incrementDoneCases(job.getId());
+                return null;
+            });
+            return true;
         }
     }
 
@@ -122,6 +161,11 @@ public class JudgeOrchestrator {
     /**
      * Called by {@link com.interview.judge.controller.Judge0CallbackController}
      * when Judge0 POSTs the execution result back.
+     *
+     * <p>Uses an atomic SQL increment for {@code doneCases} to avoid the lost-update
+     * problem that occurs with read-modify-write under concurrent callbacks.
+     * Finalization is guarded by a conditional status transition so only one callback
+     * can finalize the job even if multiple complete simultaneously.
      */
     @Transactional
     public void handleCallback(UUID taskId, Judge0CallbackPayload payload) {
@@ -133,8 +177,8 @@ public class JudgeOrchestrator {
 
         UUID jobId = task.getJob().getId();
 
-        // Acquire pessimistic lock on job to safely update doneCases
-        JudgeJob job = judgeJobRepository.findByIdForUpdate(jobId)
+        // Load job to read FunctionMeta (needed for verdict logic) — no locking needed
+        JudgeJob job = judgeJobRepository.findById(jobId)
                 .orElseThrow(() -> new IllegalStateException("JudgeJob not found: " + jobId));
 
         // Decode base64 fields
@@ -153,7 +197,6 @@ public class JudgeOrchestrator {
 
         // Update task result
         task.setStdout(stdout != null ? stdout.trim() : null);
-        // For CE, the error is in compile_output; otherwise stderr
         task.setStderr(judge0StatusId == 6 ? compileOutput : stderr);
         task.setStatus(taskStatus);
         task.setRuntimeMs(runtimeMs);
@@ -163,31 +206,41 @@ public class JudgeOrchestrator {
 
         log.info("JudgeTaskResult updated: taskId={}, status={}", taskId, taskStatus);
 
-        // Increment doneCases (safe due to pessimistic lock)
-        job.setDoneCases(job.getDoneCases() + 1);
-        judgeJobRepository.save(job);
+        // Atomic increment — avoids lost-update when multiple callbacks commit concurrently
+        judgeJobRepository.incrementDoneCases(jobId);
 
-        log.info("Job progress: jobId={}, done={}/{}", job.getId(), job.getDoneCases(), job.getTotalCases());
+        // Re-read to get the authoritative doneCases after our increment
+        JudgeJob updated = judgeJobRepository.findById(jobId)
+                .orElseThrow(() -> new IllegalStateException("JudgeJob not found after increment: " + jobId));
 
-        if (job.getDoneCases() >= job.getTotalCases()) {
-            finalizeJob(job);
+        log.info("Job progress: jobId={}, done={}/{}", jobId, updated.getDoneCases(), updated.getTotalCases());
+
+        if (updated.getDoneCases() >= updated.getTotalCases()) {
+            // Guard: only finalize if status is still RUNNING (prevents double-finalization)
+            int won = judgeJobRepository.markDoneIfRunning(jobId, JobStatus.RUNNING, JobStatus.DONE);
+            if (won > 0) {
+                finalizeJob(updated);
+            }
         }
     }
 
     private void finalizeJob(JudgeJob job) {
         log.info("Finalizing job: jobId={}", job.getId());
 
-        List<JudgeTaskResult> results = judgeTaskResultRepository.findByJobOrderByOrderIndex(job);
+        // Re-read fresh from DB — the entity may be detached after clearAutomatically
+        JudgeJob freshJob = judgeJobRepository.findById(job.getId())
+                .orElseThrow(() -> new IllegalStateException("JudgeJob not found during finalization: " + job.getId()));
+
+        List<JudgeTaskResult> results = judgeTaskResultRepository.findByJobOrderByOrderIndex(freshJob);
         String verdict = verdictAggregator.aggregate(results);
 
-        job.setVerdict(verdict);
-        job.setStatus(JobStatus.DONE);
-        job.setFinishedAt(LocalDateTime.now());
-        judgeJobRepository.save(job);
+        freshJob.setVerdict(verdict);
+        freshJob.setFinishedAt(LocalDateTime.now());
+        judgeJobRepository.save(freshJob);
 
-        log.info("Job finalized: jobId={}, verdict={}", job.getId(), verdict);
+        log.info("Job finalized: jobId={}, verdict={}", freshJob.getId(), verdict);
 
-        judgeResultProducer.publish(judgeMapper.toJudgeResultEvent(job, results));
+        judgeResultProducer.publish(judgeMapper.toJudgeResultEvent(freshJob, results));
     }
 
     private TaskStatus resolveTaskStatus(int judge0StatusId, String stdout,
