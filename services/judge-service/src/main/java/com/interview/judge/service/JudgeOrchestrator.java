@@ -209,8 +209,9 @@ public class JudgeOrchestrator {
         // Atomic increment — avoids lost-update when multiple callbacks commit concurrently
         judgeJobRepository.incrementDoneCases(jobId);
 
-        // Re-read to get the authoritative doneCases after our increment
-        JudgeJob updated = judgeJobRepository.findById(jobId)
+        // Re-read with SELECT FOR UPDATE (locking read) to bypass REPEATABLE READ snapshot
+        // A plain findById would return stale doneCases from the transaction's snapshot
+        JudgeJob updated = judgeJobRepository.findByIdForUpdate(jobId)
                 .orElseThrow(() -> new IllegalStateException("JudgeJob not found after increment: " + jobId));
 
         log.info("Job progress: jobId={}, done={}/{}", jobId, updated.getDoneCases(), updated.getTotalCases());
