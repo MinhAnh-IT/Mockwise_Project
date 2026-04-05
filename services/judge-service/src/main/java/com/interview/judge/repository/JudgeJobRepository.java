@@ -26,7 +26,7 @@ public interface JudgeJobRepository extends JpaRepository<JudgeJob, UUID> {
      * Atomically increments doneCases by 1.
      * Returns the number of rows updated (1 on success).
      */
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("UPDATE JudgeJob j SET j.doneCases = j.doneCases + 1 WHERE j.id = :id")
     int incrementDoneCases(@Param("id") UUID id);
 
@@ -34,7 +34,7 @@ public interface JudgeJobRepository extends JpaRepository<JudgeJob, UUID> {
      * Transitions job to DONE only if it is currently RUNNING.
      * Returns 1 if the transition succeeded (this caller "wins" finalization), 0 if already DONE.
      */
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("UPDATE JudgeJob j SET j.status = :done WHERE j.id = :id AND j.status = :running")
     int markDoneIfRunning(@Param("id") UUID id,
                           @Param("running") JobStatus running,
