@@ -54,7 +54,15 @@ public class AuthGatewayFilter implements GlobalFilter, Ordered {
             new PublicRoute(HttpMethod.GET,  "/api/v1/iam/auth/health"),
             new PublicRoute(HttpMethod.GET,  "/api/ai/health"),
             new PublicRoute(HttpMethod.POST, "/api/v1/judge/callback/**"),
-            new PublicRoute(HttpMethod.PUT,  "/api/v1/judge/callback/**")
+            new PublicRoute(HttpMethod.PUT,  "/api/v1/judge/callback/**"),
+
+            // Question Bank — service-to-service read endpoints (used by Interview/AI Service)
+            // Lists and test cases are admin-only; users access questions only through Interview Service
+            new PublicRoute(HttpMethod.GET,  "/api/v1/question-bank/questions/health"),
+            new PublicRoute(HttpMethod.GET,  "/api/v1/question-bank/questions/*"),
+            new PublicRoute(HttpMethod.GET,  "/api/v1/question-bank/questions/*/for-ai"),
+            new PublicRoute(HttpMethod.GET,  "/api/v1/question-bank/questions/*/snapshot"),
+            new PublicRoute(HttpMethod.GET,  "/api/v1/question-bank/questions/*/audio-key")
     );
 
     @Override

@@ -1,10 +1,16 @@
-from fastapi import FastAPI, HTTPException, Security
+from fastapi import FastAPI, HTTPException, Query, Security
 from fastapi.responses import JSONResponse
 from fastapi.security.api_key import APIKeyHeader
 import os
 import time
-from main import evaluate, get_graph
+from main import evaluate, get_graph, generate_testcases, get_generator_graph
 from config import GOOGLE_API_KEY, MODEL_NAME, MODEL_VERSION
+from generator.leetcode_fetcher import (
+    fetch_leetcode_problem,
+    LeetCodeNotFoundError,
+    LeetCodePremiumError,
+    LeetCodeFetchError,
+)
 
 app = FastAPI(title="AI-Evaluation Service", version="1.0.0")
 
@@ -39,6 +45,13 @@ def health():
         checks["agent_graph"] = f"error: {e}"
         overall = "unhealthy"
 
+    try:
+        get_generator_graph()
+        checks["generator_graph"] = "ok"
+    except Exception as e:
+        checks["generator_graph"] = f"error: {e}"
+        overall = "unhealthy"
+
     body = {
         "status": overall,
         "uptime_seconds": round(time.time() - _start_time, 1),
@@ -58,3 +71,42 @@ def evaluate_interview(payload: dict, _: None = Security(_require_api_key)):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/generate-testcases")
+def generate_testcases_endpoint(payload: dict, _: None = Security(_require_api_key)):
+    try:
+        result = generate_testcases(payload)
+        if "error" in result:
+            raise HTTPException(status_code=422, detail=result)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/leetcode/fetch")
+def leetcode_fetch(
+    url: str = Query(..., description="LeetCode problem URL or bare slug"),
+    session_cookie: str | None = Query(
+        None, description="Optional LEETCODE_SESSION cookie for premium problems"
+    ),
+):
+    """Fetch a LeetCode problem's structured data from its public GraphQL endpoint.
+
+    Example:
+        GET /leetcode/fetch?url=https://leetcode.com/problems/two-sum/
+        GET /leetcode/fetch?url=two-sum
+    """
+    try:
+        problem = fetch_leetcode_problem(url, session_cookie=session_cookie)
+        return problem.model_dump()
+    except LeetCodeNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except LeetCodePremiumError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except LeetCodeFetchError as e:
+        raise HTTPException(status_code=502, detail=str(e))

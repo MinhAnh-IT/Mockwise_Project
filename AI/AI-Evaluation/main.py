@@ -1,6 +1,8 @@
 from agent.graph import build_graph
+from generator.graph import build_generator_graph
 
 _graph = None
+_generator_graph = None
 
 
 def get_graph():
@@ -8,6 +10,39 @@ def get_graph():
     if _graph is None:
         _graph = build_graph()
     return _graph
+
+
+def get_generator_graph():
+    global _generator_graph
+    if _generator_graph is None:
+        _generator_graph = build_generator_graph()
+    return _generator_graph
+
+
+def generate_testcases(input_json: dict) -> dict:
+    """
+    Main entry point for the Testcase Generator Agent.
+
+    Args:
+        input_json: dict matching GenerateTestcasesRequest schema
+
+    Returns:
+        dict matching GenerateTestcasesResponse, or error dict
+    """
+    graph = get_generator_graph()
+    result = graph.invoke({
+        "raw_input": input_json,
+        "validated_input": None,
+        "leetcode_problem": None,
+        "problem_analysis": None,
+        "raw_testcases": None,
+        "final_output": None,
+        "retry_count": 0,
+        "needs_retry": False,
+        "generation_error": None,
+        "generation_start_ms": None,
+    })
+    return result.get("final_output", {"error": "generation_failed", "detail": "No output produced"})
 
 
 def evaluate(input_json: dict) -> dict:

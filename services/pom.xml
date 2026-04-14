@@ -22,6 +22,7 @@
         <module>mail-service</module>
         <module>user-profile-service</module>
         <module>api-gateway</module>
+        <module>question-bank-service</module>
     </modules>
 
     <properties>

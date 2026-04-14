@@ -40,7 +40,7 @@ app:
   jwt:
     issuer: mockwise-iam
     audience: mockwise-api
-    access-ttl-seconds: 600
+    access-ttl-seconds: 6000
     refresh-ttl-seconds: 1209600
     active-kid: rsa-key-2025-10
     JWT_HMAC_SECRET: ${JWT_HMAC_SECRET}

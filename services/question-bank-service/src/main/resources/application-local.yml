@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://31.220.84.140:5432/question_bank
+    username: mockwise
+    password: mockwise_pg_password2026
+
+  jpa:
+    show-sql: true
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
