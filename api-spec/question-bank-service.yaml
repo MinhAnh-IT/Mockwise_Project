@@ -1,0 +1,1186 @@
+openapi: 3.0.3
+
+info:
+  title: MockWise — Question Bank Service
+  version: 1.0.0
+  description: |
+    APIs for managing interview questions: behavioral, core conceptual, and live coding.
+
+    All requests go through the API Gateway: **`http://localhost:8888`**
+    Direct service port: `8084` (context-path: `/api/v1/question-bank`)
+
+    ### Authentication
+    Requires `Authorization: Bearer <accessToken>` except for public read endpoints.
+
+    ### Role-based access
+    | Endpoint group | Required role | Notes |
+    |----------------|---------------|-------|
+    | `GET /api/v1/question-bank/questions/health` | Public | |
+    | `GET /api/v1/question-bank/questions/{id}` | Public (service-to-service) | Called by Interview Service |
+    | `GET /api/v1/question-bank/questions/{id}/for-ai` | Public (service-to-service) | Called by AI Service via Interview Service |
+    | `GET /api/v1/question-bank/questions/{id}/snapshot` | Public (service-to-service) | Called by Interview Service |
+    | `GET /api/v1/question-bank/questions/{id}/audio-key` | Public (service-to-service) | |
+    | `GET /api/v1/question-bank/admin/questions/**` | ADMIN | List + test cases — users go through Interview Service |
+    | `POST /api/v1/question-bank/admin/questions/**` | ADMIN | |
+    | `PUT /api/v1/question-bank/admin/questions/**` | ADMIN | |
+    | `PATCH /api/v1/question-bank/admin/questions/**` | ADMIN | |
+    | `DELETE /api/v1/question-bank/admin/questions/**` | ADMIN | |
+
+servers:
+  - url: http://localhost:8888
+    description: Local via API Gateway
+  - url: http://localhost:8084
+    description: Direct (dev only)
+
+tags:
+  - name: Public
+    description: Read-only endpoints — no authentication required
+  - name: Admin
+    description: Write endpoints — requires ADMIN role
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ── Enums ──────────────────────────────────────────────────────────────────
+
+    Difficulty:
+      type: string
+      enum: [EASY, MEDIUM, HARD]
+
+    QuestionStatus:
+      type: string
+      enum: [DRAFT, ACTIVE, INACTIVE]
+
+    QuestionType:
+      type: string
+      enum: [BEHAVIORAL, CORE_CONCEPTUAL, LIVE_CODING]
+
+    Competency:
+      type: string
+      enum:
+        - CONFLICT_RESOLUTION
+        - LEADERSHIP
+        - OWNERSHIP
+        - TEAMWORK
+        - FAILURE
+        - GROWTH
+        - COMMUNICATION
+        - PRIORITIZATION
+
+    Domain:
+      type: string
+      enum:
+        - OS
+        - NETWORKING
+        - DATABASE
+        - SYSTEM_DESIGN
+        - LANGUAGE_SPECIFIC
+        - FRAMEWORK
+        - SECURITY
+
+    TargetRole:
+      type: string
+      enum: [BACKEND, FRONTEND, FULLSTACK, AI, DEVOPS, MOBILE]
+
+    # ── Shared sub-objects ────────────────────────────────────────────────────
+
+    ParamMeta:
+      type: object
+      required: [name, type]
+      properties:
+        name:
+          type: string
+          example: nums
+        type:
+          type: string
+          example: int[]
+
+    FunctionMeta:
+      type: object
+      required: [fn, params, return]
+      properties:
+        fn:
+          type: string
+          example: twoSum
+        params:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParamMeta'
+        return:
+          type: string
+          example: int[]
+        orderMatters:
+          type: boolean
+          default: true
+        inPlace:
+          type: boolean
+          default: false
+
+    TestCase:
+      type: object
+      required: [id, inputData, expectedOutput]
+      properties:
+        id:
+          type: string
+          example: tc-001
+        inputData:
+          type: object
+          additionalProperties: true
+          example:
+            nums: [2, 7, 11, 15]
+            target: 9
+        expectedOutput:
+          type: object
+          additionalProperties: true
+          example:
+            result: [0, 1]
+        is_hidden:
+          type: boolean
+          default: false
+
+    # ── Requests ──────────────────────────────────────────────────────────────
+
+    BehavioralQuestionRequest:
+      type: object
+      required: [difficulty, text, competency, expectedSignals]
+      properties:
+        difficulty:
+          $ref: '#/components/schemas/Difficulty'
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["leadership", "conflict"]
+        text:
+          type: string
+          example: "Tell me about a time you disagreed with your manager. How did you handle it?"
+        competency:
+          $ref: '#/components/schemas/Competency'
+        expectedSignals:
+          type: array
+          items:
+            type: string
+          example: ["shows_autonomy", "respectful_disagreement", "outcome_oriented"]
+
+    CoreQuestionRequest:
+      type: object
+      required: [difficulty, text, targetRoles, domain, keyConcepts, depthExpected]
+      properties:
+        difficulty:
+          $ref: '#/components/schemas/Difficulty'
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["os", "concurrency"]
+        text:
+          type: string
+          example: "Explain the difference between process and thread."
+        targetRoles:
+          type: array
+          items:
+            $ref: '#/components/schemas/TargetRole'
+          example: ["BACKEND", "AI"]
+        domain:
+          $ref: '#/components/schemas/Domain'
+        keyConcepts:
+          type: array
+          items:
+            type: string
+          example: ["memory_isolation", "context_switching", "GIL"]
+        depthExpected:
+          type: string
+          example: "trade-offs, real-world use cases, Python GIL implications"
+
+    CodingQuestionRequest:
+      type: object
+      required: [difficulty, title, description, optimalTimeComplexity, optimalSpaceComplexity, functionMeta, testCases]
+      properties:
+        difficulty:
+          $ref: '#/components/schemas/Difficulty'
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["array", "hash-table"]
+        title:
+          type: string
+          example: Two Sum
+        description:
+          type: string
+          example: "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target."
+        timeLimitMinutes:
+          type: integer
+          minimum: 1
+          default: 30
+          example: 20
+        optimalTimeComplexity:
+          type: string
+          example: "O(n)"
+        optimalSpaceComplexity:
+          type: string
+          example: "O(n)"
+        functionMeta:
+          $ref: '#/components/schemas/FunctionMeta'
+        starterCode:
+          type: string
+          example: "public class Solution {\n    public int[] twoSum(int[] nums, int target) {\n    }\n}"
+        testCases:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestCase'
+
+    StatusUpdateRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/QuestionStatus'
+
+    AudioKeyRequest:
+      type: object
+      required: [audioKey]
+      properties:
+        audioKey:
+          type: string
+          example: "s3://mockwise-audio/behavioral/q-12345.mp3"
+
+    # ── Responses ─────────────────────────────────────────────────────────────
+
+    BehavioralQuestionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/QuestionType'
+        difficulty:
+          $ref: '#/components/schemas/Difficulty'
+        status:
+          $ref: '#/components/schemas/QuestionStatus'
+        tags:
+          type: array
+          items:
+            type: string
+        text:
+          type: string
+        competency:
+          type: string
+        expectedSignals:
+          type: array
+          items:
+            type: string
+        audioKey:
+          type: string
+          nullable: true
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CoreQuestionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/QuestionType'
+        difficulty:
+          $ref: '#/components/schemas/Difficulty'
+        status:
+          $ref: '#/components/schemas/QuestionStatus'
+        tags:
+          type: array
+          items:
+            type: string
+        text:
+          type: string
+        targetRoles:
+          type: array
+          items:
+            type: string
+        domain:
+          type: string
+        keyConcepts:
+          type: array
+          items:
+            type: string
+        depthExpected:
+          type: string
+        audioKey:
+          type: string
+          nullable: true
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CodingQuestionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/QuestionType'
+        difficulty:
+          $ref: '#/components/schemas/Difficulty'
+        status:
+          $ref: '#/components/schemas/QuestionStatus'
+        tags:
+          type: array
+          items:
+            type: string
+        title:
+          type: string
+        description:
+          type: string
+        timeLimitMinutes:
+          type: integer
+        optimalTimeComplexity:
+          type: string
+        optimalSpaceComplexity:
+          type: string
+        functionMeta:
+          $ref: '#/components/schemas/FunctionMeta'
+        starterCode:
+          type: string
+          nullable: true
+        testCases:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestCase'
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    QuestionSnapshotResponse:
+      type: object
+      description: |
+        Immutable snapshot of a question at the time of the API call.
+        Only fields relevant to the question type are included (null fields omitted).
+      properties:
+        snapshotAt:
+          type: string
+          format: date-time
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/QuestionType'
+        difficulty:
+          $ref: '#/components/schemas/Difficulty'
+        tags:
+          type: array
+          items:
+            type: string
+        # BEHAVIORAL + CORE_CONCEPTUAL
+        text:
+          type: string
+          nullable: true
+        audioKey:
+          type: string
+          nullable: true
+        # BEHAVIORAL only
+        competency:
+          type: string
+          nullable: true
+        expectedSignals:
+          type: array
+          items:
+            type: string
+          nullable: true
+        # CORE_CONCEPTUAL only
+        targetRoles:
+          type: array
+          items:
+            type: string
+          nullable: true
+        domain:
+          type: string
+          nullable: true
+        keyConcepts:
+          type: array
+          items:
+            type: string
+          nullable: true
+        depthExpected:
+          type: string
+          nullable: true
+        # LIVE_CODING only
+        title:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        timeLimitMinutes:
+          type: integer
+          nullable: true
+        optimalTimeComplexity:
+          type: string
+          nullable: true
+        optimalSpaceComplexity:
+          type: string
+          nullable: true
+        functionMeta:
+          $ref: '#/components/schemas/FunctionMeta'
+          nullable: true
+        starterCode:
+          type: string
+          nullable: true
+        testCases:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestCase'
+          nullable: true
+
+    ForAiResponse:
+      type: object
+      description: Payload consumed by AI Service to evaluate a candidate's answer.
+      properties:
+        interview_type:
+          type: string
+          enum: [behavioral, core_conceptual, live_coding]
+        question:
+          type: object
+          additionalProperties: true
+          description: |
+            Shape varies by interview_type:
+            - **behavioral**: id, text, competency, expected_signals
+            - **core_conceptual**: id, text, domain, key_concepts, depth_expected
+            - **live_coding**: id, title, description, difficulty, tags, time_limit_minutes, optimal_complexity
+
+    ForJudgeResponse:
+      type: object
+      description: Payload consumed by Judge Service to run test cases against candidate code.
+      properties:
+        language:
+          type: string
+          example: java
+        functionMeta:
+          $ref: '#/components/schemas/FunctionMeta'
+        testCases:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              inputData:
+                type: object
+                additionalProperties: true
+              expectedOutput:
+                type: object
+                additionalProperties: true
+
+    # ── Paginated wrapper ─────────────────────────────────────────────────────
+
+    PageMetadata:
+      type: object
+      properties:
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    # ── Api-Response wrapper ──────────────────────────────────────────────────
+
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          nullable: true
+
+# ── Paths ─────────────────────────────────────────────────────────────────────
+
+paths:
+
+  # ─────────────────────────────── PUBLIC ────────────────────────────────────
+
+  /api/v1/question-bank/questions/health:
+    get:
+      tags: [Public]
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      data:
+                        nullable: true
+
+  /api/v1/question-bank/questions/{id}:
+    get:
+      tags: [Public]
+      summary: Get question by ID
+      description: Returns the full question object. The response shape depends on the question type.
+      operationId: getQuestionById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Question found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      data:
+                        oneOf:
+                          - $ref: '#/components/schemas/BehavioralQuestionResponse'
+                          - $ref: '#/components/schemas/CoreQuestionResponse'
+                          - $ref: '#/components/schemas/CodingQuestionResponse'
+        '404':
+          description: Question not found
+
+  /api/v1/question-bank/questions/{id}/for-ai:
+    get:
+      tags: [Public]
+      summary: Get AI Service payload
+      description: Returns a structured payload for the AI Service to evaluate the candidate's answer.
+      operationId: getForAi
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: AI payload
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/ForAiResponse'
+        '404':
+          description: Question not found
+
+  /api/v1/question-bank/questions/{id}/snapshot:
+    get:
+      tags: [Public]
+      summary: Get question snapshot
+      description: |
+        Returns an immutable snapshot of the question at the current point in time.
+        Used by Interview Service to store question history alongside each interview session.
+        Fields not applicable to the question type are omitted from the JSON response.
+      operationId: getSnapshot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Question snapshot
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/QuestionSnapshotResponse'
+        '404':
+          description: Question not found
+
+  /api/v1/question-bank/questions/{id}/audio-key:
+    get:
+      tags: [Public]
+      summary: Get audio key
+      description: Returns the S3 key of the pre-generated audio for behavioral or core conceptual questions.
+      operationId: getAudioKey
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Audio key string
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      data:
+                        type: string
+                        example: "s3://mockwise-audio/behavioral/q-12345.mp3"
+        '400':
+          description: Audio not supported for LIVE_CODING questions
+        '404':
+          description: Audio key not set for this question
+
+  # ─────────────────────────────── ADMIN ─────────────────────────────────────
+
+  /api/v1/question-bank/admin/questions/behavioral:
+    get:
+      tags: [Admin]
+      summary: List behavioral questions
+      description: Lists all behavioral questions. Users must go through Interview Service instead.
+      operationId: listBehavioralQuestions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: competency
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Competency'
+        - name: difficulty
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Difficulty'
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/QuestionStatus'
+          description: Defaults to ACTIVE
+        - name: tags
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of behavioral questions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/PageMetadata'
+                          - properties:
+                              content:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/BehavioralQuestionResponse'
+        '403':
+          description: Forbidden — ADMIN role required
+    post:
+      tags: [Admin]
+      summary: Create behavioral question
+      operationId: createBehavioralQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: X-User-Id
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Injected by API Gateway from the JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BehavioralQuestionRequest'
+      responses:
+        '201':
+          description: Behavioral question created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/BehavioralQuestionResponse'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — ADMIN role required
+
+  /api/v1/question-bank/admin/questions/core:
+    get:
+      tags: [Admin]
+      summary: List core conceptual questions
+      description: Lists all core conceptual questions. Users must go through Interview Service instead.
+      operationId: listCoreQuestions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: domain
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Domain'
+        - name: targetRole
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/TargetRole'
+        - name: difficulty
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Difficulty'
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/QuestionStatus'
+          description: Defaults to ACTIVE
+        - name: tags
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of core conceptual questions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/PageMetadata'
+                          - properties:
+                              content:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/CoreQuestionResponse'
+        '403':
+          description: Forbidden — ADMIN role required
+    post:
+      tags: [Admin]
+      summary: Create core conceptual question
+      operationId: createCoreQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: X-User-Id
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CoreQuestionRequest'
+      responses:
+        '201':
+          description: Core question created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/CoreQuestionResponse'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — ADMIN role required
+
+  /api/v1/question-bank/admin/questions/coding:
+    get:
+      tags: [Admin]
+      summary: List live coding questions
+      description: Lists all live coding questions. Users must go through Interview Service instead.
+      operationId: listCodingQuestions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: difficulty
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Difficulty'
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/QuestionStatus'
+          description: Defaults to ACTIVE
+        - name: tags
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of live coding questions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/PageMetadata'
+                          - properties:
+                              content:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/CodingQuestionResponse'
+        '403':
+          description: Forbidden — ADMIN role required
+    post:
+      tags: [Admin]
+      summary: Create live coding question
+      operationId: createCodingQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: X-User-Id
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CodingQuestionRequest'
+      responses:
+        '201':
+          description: Coding question created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/CodingQuestionResponse'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — ADMIN role required
+
+  /api/v1/question-bank/admin/questions/behavioral/{id}:
+    put:
+      tags: [Admin]
+      summary: Update behavioral question
+      operationId: updateBehavioralQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BehavioralQuestionRequest'
+      responses:
+        '200':
+          description: Updated behavioral question
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/BehavioralQuestionResponse'
+        '400':
+          description: Validation error or type mismatch
+        '404':
+          description: Question not found
+
+  /api/v1/question-bank/admin/questions/core/{id}:
+    put:
+      tags: [Admin]
+      summary: Update core conceptual question
+      operationId: updateCoreQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CoreQuestionRequest'
+      responses:
+        '200':
+          description: Updated core question
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/CoreQuestionResponse'
+        '400':
+          description: Validation error or type mismatch
+        '404':
+          description: Question not found
+
+  /api/v1/question-bank/admin/questions/coding/{id}:
+    put:
+      tags: [Admin]
+      summary: Update live coding question
+      operationId: updateCodingQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CodingQuestionRequest'
+      responses:
+        '200':
+          description: Updated coding question
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/CodingQuestionResponse'
+        '400':
+          description: Validation error or type mismatch
+        '404':
+          description: Question not found
+
+  /api/v1/question-bank/admin/questions/{id}/for-judge:
+    get:
+      tags: [Admin]
+      summary: Get Judge Service payload
+      description: |
+        Returns function meta and test cases for the Judge Service.
+        Only supported for LIVE_CODING questions.
+        Restricted to ADMIN because it exposes hidden test cases.
+      operationId: getForJudge
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Judge payload
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/ForJudgeResponse'
+        '400':
+          description: Question is not a LIVE_CODING type
+        '403':
+          description: Forbidden — ADMIN role required
+        '404':
+          description: Question not found
+
+  /api/v1/question-bank/admin/questions/{id}/status:
+    patch:
+      tags: [Admin]
+      summary: Update question status
+      operationId: updateQuestionStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatusUpdateRequest'
+      responses:
+        '200':
+          description: Status updated
+        '404':
+          description: Question not found
+
+  /api/v1/question-bank/admin/questions/{id}/audio:
+    patch:
+      tags: [Admin]
+      summary: Set audio key
+      description: |
+        Attaches an S3 audio key to a BEHAVIORAL or CORE_CONCEPTUAL question.
+        Audio is not supported for LIVE_CODING questions.
+        The audio key is automatically cleared when the question text is updated.
+      operationId: updateAudioKey
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AudioKeyRequest'
+      responses:
+        '200':
+          description: Audio key set
+        '400':
+          description: Audio not supported for this question type
+        '404':
+          description: Question not found
+
+  /api/v1/question-bank/admin/questions/{id}:
+    delete:
+      tags: [Admin]
+      summary: Delete question
+      operationId: deleteQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Question deleted
+        '404':
+          description: Question not found

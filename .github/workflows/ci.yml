@@ -18,6 +18,7 @@ jobs:
       user-profile-service: ${{ steps.filter.outputs.user-profile-service }}
       mail-service: ${{ steps.filter.outputs.mail-service }}
       judge-service: ${{ steps.filter.outputs.judge-service }}
+      question-bank-service: ${{ steps.filter.outputs.question-bank-service }}
       ai-evaluation: ${{ steps.filter.outputs.ai-evaluation }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
@@ -40,6 +41,9 @@ jobs:
               - 'services/pom.xml'
             judge-service:
               - 'services/judge-service/**'
+            question-bank-service:
+              - 'services/question-bank-service/**'
+              - 'services/pom.xml'
             ai-evaluation:
               - 'AI/AI-Evaluation/**'
             frontend:
@@ -161,6 +165,31 @@ jobs:
         working-directory: services/judge-service
       - name: Build Docker image
         run: docker build -f services/judge-service/Dockerfile -t mockwise/judge-service:${{ github.sha }} services/judge-service
+
+  build-question-bank-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.question-bank-service == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: PACKAGES_TOKEN
+      - name: Build & test
+        run: mvn -B -pl question-bank-service clean package -DskipTests
+        working-directory: services
+        env:
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+      - name: Build Docker image
+        run: docker build -f services/question-bank-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/question-bank-service:${{ github.sha }} services
 
   build-ai-evaluation:
     needs: detect-changes

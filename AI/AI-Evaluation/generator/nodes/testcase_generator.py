@@ -1,0 +1,96 @@
+import json
+from typing import List, Any, Dict
+
+import instructor
+from google import genai
+from pydantic import BaseModel, field_validator
+
+import config
+from generator.prompts.testcase_generation import build_testcase_generation_prompt
+from generator.state import GeneratorState
+from models.generator_inputs import GenerateTestcasesRequest
+
+
+# ── Internal Pydantic model used with Instructor ──────────────────────────────
+# inputData and expectedOutput are JSON strings to avoid Dict[str, Any] schema
+# issues with Gemini structured output (which returns {} for open-ended dicts).
+
+class _TestCase(BaseModel):
+    id: str
+    label: str
+    inputData: str   # JSON string, e.g. '{"s": "abcabcbb"}'
+    expectedOutput: str  # JSON string, e.g. '{"result": 3}'
+    is_hidden: bool
+    note: str
+
+    @field_validator("inputData", "expectedOutput", mode="after")
+    @classmethod
+    def must_be_non_empty_json_object(cls, v: str) -> str:
+        try:
+            parsed = json.loads(v)
+        except (json.JSONDecodeError, TypeError):
+            raise ValueError(f"Must be a valid JSON string, got: {v!r}")
+        if not isinstance(parsed, dict) or not parsed:
+            raise ValueError(f"Must be a non-empty JSON object, got: {v!r}")
+        return v
+
+    def input_dict(self) -> Dict[str, Any]:
+        return json.loads(self.inputData)
+
+    def output_dict(self) -> Dict[str, Any]:
+        return json.loads(self.expectedOutput)
+
+
+class _TestcaseList(BaseModel):
+    testcases: List[_TestCase]
+
+
+# ── Node ──────────────────────────────────────────────────────────────────────
+
+def testcase_generator_node(state: GeneratorState) -> dict:
+    """
+    Call Gemini via Instructor to generate testcases based on problem_analysis.
+    Passes retry_instruction if this is a retry attempt.
+    """
+    req: GenerateTestcasesRequest = state["validated_input"]
+    analysis: dict = state["problem_analysis"]
+    retry_count: int = state.get("retry_count", 0)
+    previous_error: str = state.get("generation_error", "") or ""
+
+    retry_instruction = previous_error if retry_count > 0 else ""
+
+    try:
+        prompt = build_testcase_generation_prompt(req, analysis, retry_instruction)
+
+        client = instructor.from_genai(
+            genai.Client(api_key=config.GOOGLE_API_KEY),
+        )
+        result: _TestcaseList = client.chat.completions.create(
+            model=config.MODEL_NAME,
+            messages=[{"role": "user", "content": prompt}],
+            response_model=_TestcaseList,
+        )
+
+        # Convert string fields back to dicts for downstream validators
+        raw = [
+            {
+                "id": tc.id,
+                "label": tc.label,
+                "inputData": tc.input_dict(),
+                "expectedOutput": tc.output_dict(),
+                "is_hidden": tc.is_hidden,
+                "note": tc.note,
+            }
+            for tc in result.testcases
+        ]
+
+        return {
+            "raw_testcases": raw,
+            "generation_error": None,
+        }
+
+    except Exception as exc:
+        return {
+            "raw_testcases": None,
+            "generation_error": f"TestcaseGenerator error: {exc}",
+        }
