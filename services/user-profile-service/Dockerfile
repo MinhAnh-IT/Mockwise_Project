@@ -12,6 +12,7 @@ COPY api-gateway/pom.xml api-gateway/pom.xml
 COPY iam-service/pom.xml iam-service/pom.xml
 COPY mail-service/pom.xml mail-service/pom.xml
 COPY user-profile-service/pom.xml user-profile-service/pom.xml
+COPY question-bank-service/pom.xml question-bank-service/pom.xml
 COPY user-profile-service/src user-profile-service/src
 RUN mvn -B -pl user-profile-service clean package -DskipTests
 
