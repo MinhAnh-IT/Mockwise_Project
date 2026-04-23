@@ -372,6 +372,12 @@ jobs:
             docker compose -f docker/docker-compose.prod.yml --env-file .env \
               up -d --no-deps ${{ steps.services.outputs.list }}
 
+            # Flush nginx DNS cache so it picks up new container IPs.
+            # Recreated upstreams (frontend / api-gateway / swagger-ui) get new
+            # IPs, and nginx's resolver cache can keep the dead ones, causing 502.
+            # Reload is idempotent and ~instant — safe to run every deploy.
+            docker exec mockwise-nginx-1 nginx -s reload 2>/dev/null || true
+
             docker image prune -f
             echo "Deploy completed: $(date)"
 
