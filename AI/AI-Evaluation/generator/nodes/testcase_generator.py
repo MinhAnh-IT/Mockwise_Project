@@ -1,11 +1,9 @@
 import json
 from typing import List, Any, Dict
 
-import instructor
-from google import genai
 from pydantic import BaseModel, field_validator
 
-import config
+from llm import call_structured
 from generator.prompts.testcase_generation import build_testcase_generation_prompt
 from generator.state import GeneratorState
 from models.generator_inputs import GenerateTestcasesRequest
@@ -62,14 +60,9 @@ def testcase_generator_node(state: GeneratorState) -> dict:
     try:
         prompt = build_testcase_generation_prompt(req, analysis, retry_instruction)
 
-        client = instructor.from_genai(
-            genai.Client(api_key=config.GOOGLE_API_KEY),
-        )
-        result: _TestcaseList = client.chat.completions.create(
-            model=config.MODEL_NAME,
-            messages=[{"role": "user", "content": prompt}],
-            response_model=_TestcaseList,
-        )
+        # 20 testcases × ~400 tokens each = ~8k, leave headroom for larger counts
+        max_tokens = max(8192, req.num_testcases * 600)
+        result: _TestcaseList = call_structured(prompt, _TestcaseList, max_tokens=max_tokens)
 
         # Convert string fields back to dicts for downstream validators
         raw = [
