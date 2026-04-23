@@ -1,7 +1,4 @@
-import instructor
-from google import genai
-
-import config
+from llm import call_structured
 from agent.state import AgentState
 from agent.prompts.conceptual import build_conceptual_prompt
 from models.outputs import ConceptualOutput
@@ -22,15 +19,7 @@ def conceptual_evaluator_node(state: AgentState) -> dict:
 
     try:
         prompt = build_conceptual_prompt(validated_input, retry_instruction=retry_instruction)
-
-        client = instructor.from_genai(
-            genai.Client(api_key=config.GOOGLE_API_KEY),
-        )
-        result: ConceptualOutput = client.chat.completions.create(
-            model=config.MODEL_NAME,
-            messages=[{"role": "user", "content": prompt}],
-            response_model=ConceptualOutput,
-        )
+        result: ConceptualOutput = call_structured(prompt, ConceptualOutput)
 
         return {
             "raw_output": result,

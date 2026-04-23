@@ -122,6 +122,7 @@ services:
       - MODEL_NAME=${MODEL_NAME:-gemini-flash-latest}
       - MAX_RETRIES=${MAX_RETRIES:-2}
       - MODEL_VERSION=${MODEL_VERSION:-evaluator-v1.0}
+      - SERVICE_API_KEY=${AI_SERVICE_API_KEY}
       - PORT=8000
     networks:
       - internal-net

@@ -52,9 +52,13 @@ public class AuthGatewayFilter implements GlobalFilter, Ordered {
             new PublicRoute(HttpMethod.GET,  "/api/v1/position-tracks/**"),
             new PublicRoute(HttpMethod.GET,  "/api/v1/position-levels/**"),
             new PublicRoute(HttpMethod.GET,  "/api/v1/iam/auth/health"),
-            new PublicRoute(HttpMethod.GET,  "/api/ai/health"),
             new PublicRoute(HttpMethod.POST, "/api/v1/judge/callback/**"),
             new PublicRoute(HttpMethod.PUT,  "/api/v1/judge/callback/**"),
+
+            // AI Evaluation — protected by X-API-Key at the AI service itself
+            // (service-to-service; JWT introspection is skipped here)
+            new PublicRoute(HttpMethod.GET,  "/api/ai/**"),
+            new PublicRoute(HttpMethod.POST, "/api/ai/**"),
 
             // Question Bank — service-to-service read endpoints (used by Interview/AI Service)
             // Lists and test cases are admin-only; users access questions only through Interview Service

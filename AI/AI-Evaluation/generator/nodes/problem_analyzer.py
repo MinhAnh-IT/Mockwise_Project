@@ -1,10 +1,8 @@
 from typing import List, Literal
 
-import instructor
-from google import genai
 from pydantic import BaseModel
 
-import config
+from llm import call_structured
 from generator.leetcode_fetcher import (
     LeetCodeFetchError,
     LeetCodeNotFoundError,
@@ -84,15 +82,7 @@ def problem_analyzer_node(state: GeneratorState) -> dict:
     # ── Step 2: LLM analysis ──────────────────────────────────────────────────
     try:
         prompt = build_problem_analysis_prompt(req, leetcode_problem)
-
-        client = instructor.from_genai(
-            genai.Client(api_key=config.GOOGLE_API_KEY),
-        )
-        result: ProblemAnalysisOutput = client.chat.completions.create(
-            model=config.MODEL_NAME,
-            messages=[{"role": "user", "content": prompt}],
-            response_model=ProblemAnalysisOutput,
-        )
+        result: ProblemAnalysisOutput = call_structured(prompt, ProblemAnalysisOutput)
 
         # ── Step 3: override LLM output with authoritative sources ────────────
         if req.mode == "leetcode" and leetcode_problem:

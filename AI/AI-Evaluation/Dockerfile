@@ -24,10 +24,12 @@ COPY --from=builder /install /usr/local
 
 # Copy source (exclude .venv, .env, tests)
 COPY --chown=appuser:appgroup agent/     ./agent/
+COPY --chown=appuser:appgroup generator/ ./generator/
 COPY --chown=appuser:appgroup models/    ./models/
 COPY --chown=appuser:appgroup api.py     ./api.py
 COPY --chown=appuser:appgroup config.py  ./config.py
 COPY --chown=appuser:appgroup main.py    ./main.py
+COPY --chown=appuser:appgroup llm.py     ./llm.py
 
 USER appuser
 

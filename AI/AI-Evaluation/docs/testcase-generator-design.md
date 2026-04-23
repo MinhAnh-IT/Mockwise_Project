@@ -1,22 +1,23 @@
 # Testcase Generator Agent — Design Document
 
-> **Status:** Draft — awaiting review  
+> **Status:** Implemented  
 > **Service:** AI-Evaluation  
 > **Feature:** `POST /generate-testcases`
 
 ---
 
-## 1. Existing Service Overview
+## 1. Service Overview
 
 | Item | Detail |
 |---|---|
 | Framework | FastAPI + LangGraph |
-| LLM | Gemini 2.0 Flash via `google-genai` + `instructor` (structured output) |
-| Pattern | LangGraph `StateGraph` — router → evaluator → output_validator → (retry or END) |
-| Auth | `X-API-Key` header |
-| Current endpoints | `GET /health`, `POST /evaluate` |
+| LLM | `gemini-3-flash-preview` via `google-genai` + `instructor` (`GENAI_STRUCTURED_OUTPUTS` mode) |
+| Thinking | `thinking_level=low` (configurable via `THINKING_LEVEL` env) |
+| Pattern | LangGraph `StateGraph` — router → analyzer → generator → validator → (retry or END) |
+| Auth | `X-API-Key` header (only enforced if `SERVICE_API_KEY` env is set) |
+| Endpoints | `GET /health`, `POST /evaluate`, `POST /generate-testcases`, `GET /leetcode/fetch` |
 
-### Existing graph flow
+### Evaluator graph (existing, for reference)
 ```
 raw_input
     │
@@ -53,11 +54,16 @@ Admin cung cấp đầy đủ thông tin. AI chỉ cần sinh `functionMeta`, `s
 **Fields bắt buộc:** `title`, `description`, `difficulty`  
 **Fields tùy chọn:** `tags`, `optimal_time_complexity`, `optimal_space_complexity` (AI tự suy nếu thiếu)
 
-### Mode B — `leetcode`: Chỉ cần số thứ tự + tên bài
+### Mode B — `leetcode`: Chỉ cần URL hoặc slug
 
-Admin chỉ truyền `leetcode_number` + `leetcode_title`. AI tự recall toàn bộ thông tin bài từ knowledge base (Gemini đã được train trên LeetCode problems) và sinh ra **tất cả fields** cho CodingQuestion.
+Admin truyền `leetcode_url` (full URL hoặc bare slug). Service **fetch dữ liệu gốc trực tiếp** từ LeetCode GraphQL endpoint — không phụ thuộc vào knowledge cutoff của LLM.
 
-**Caveat:** Các bài mới hơn training cutoff (Aug 2025) sẽ không được nhận diện → dùng `mode: custom` thay thế.
+Luồng thực tế:
+1. `problem_analyzer` gọi `fetch_leetcode_problem()` → lấy title, description, difficulty, tags, constraints, examples.
+2. LLM chỉ được dùng để **suy ra metadata kỹ thuật** (`functionMeta`, `complexity`, `starter_code`, `edge_case_hints`).
+3. Các field có thể lấy trực tiếp từ LeetCode (title, description, difficulty, tags, constraints) sẽ **override output của LLM** để đảm bảo đúng ground truth.
+
+**Premium problems:** Nếu bài là premium và không có `session_cookie`, service trả `leetcode_premium` error. Có thể override qua endpoint `GET /leetcode/fetch?url=...&session_cookie=...`.
 
 ---
 
@@ -90,14 +96,15 @@ Header: X-API-Key: <service_api_key>
 ```json
 {
   "mode": "leetcode",
-  "leetcode_number": 1,
-  "leetcode_title": "Two Sum",
+  "leetcode_url": "https://leetcode.com/problems/two-sum/",
   "num_testcases": 10,
   "num_hidden": 3
 }
 ```
 
-> Với `mode: leetcode`, tất cả các field còn lại (description, difficulty, tags, complexity...) đều do AI tự sinh — Admin không cần cung cấp thêm gì.
+`leetcode_url` chấp nhận full URL (`https://leetcode.com/problems/two-sum/`) hoặc bare slug (`two-sum`).
+
+> Với `mode: leetcode`, description / difficulty / tags / constraints lấy trực tiếp từ LeetCode. AI chỉ suy ra `functionMeta`, `starter_code`, `optimal_*_complexity`, `edge_case_hints`.
 
 ---
 
@@ -162,15 +169,28 @@ Output là **toàn bộ data** sẵn sàng để POST vào `question-bank-servic
   "meta": {
     "mode": "leetcode",
     "leetcode_number": 1,
-    "generated_at": "2026-04-04T10:00:00Z",
+    "generated_at": "2026-04-23T10:00:00Z",
     "model_version": "evaluator-v1.0",
-    "generation_duration_ms": 1842,
+    "generation_duration_ms": 30636,
     "total_testcases": 10,
     "visible_testcases": 7,
     "hidden_testcases": 3
-  }
+  },
+  "warning": null
 }
 ```
+
+- `meta.leetcode_number` được điền từ `questionFrontendId` của LeetCode (chỉ khi `mode=leetcode`), không phải từ request.
+- `warning` là `null` khi thành công; có giá trị `"max_retries_exceeded (...)"` khi validator exhausted và trả partial result.
+
+**Error responses:**
+| Status | `error` code | Khi nào |
+|---|---|---|
+| 400 | `input_validation_failed` | Pydantic validation fail (thiếu field, `num_hidden >= num_testcases`...) |
+| 403 | `leetcode_premium` | Bài premium, cần `session_cookie` |
+| 404 | `leetcode_not_found` | URL/slug không tồn tại |
+| 422 | `leetcode_fetch_failed` / `problem_analysis_failed` / `generation_failed` | Lỗi trong pipeline |
+| 500 | — | Unhandled exception |
 
 **Flow:** Admin nhận response → review/chỉnh sửa trên UI → nhấn "Apply" → FE POST thẳng vào `question-bank-service`.
 
@@ -184,17 +204,16 @@ Output là **toàn bộ data** sẵn sàng để POST vào `question-bank-servic
 class GenerateTestcasesRequest(BaseModel):
     mode: Literal["custom", "leetcode"]
 
-    # Mode: leetcode — chỉ cần 2 fields này
-    leetcode_number: Optional[int] = None       # e.g. 1
-    leetcode_title: Optional[str] = None        # e.g. "Two Sum"
+    # Mode: leetcode — chỉ cần URL hoặc slug
+    leetcode_url: Optional[str] = None          # "https://leetcode.com/problems/two-sum/" hoặc "two-sum"
 
     # Mode: custom — bắt buộc title + description
     title: Optional[str] = None
     description: Optional[str] = None
-    difficulty: Optional[str] = None            # EASY | MEDIUM | HARD (AI tự suy nếu thiếu)
+    difficulty: Optional[str] = None                  # EASY | MEDIUM | HARD (AI infer nếu thiếu)
     tags: List[str] = []
-    optimal_time_complexity: Optional[str] = None   # AI tự suy nếu thiếu
-    optimal_space_complexity: Optional[str] = None  # AI tự suy nếu thiếu
+    optimal_time_complexity: Optional[str] = None     # AI infer nếu thiếu
+    optimal_space_complexity: Optional[str] = None    # AI infer nếu thiếu
 
     # Chung cho cả hai mode
     num_testcases: int = 10
@@ -202,12 +221,12 @@ class GenerateTestcasesRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_by_mode(self):
-        if self.mode == "leetcode":
-            if not self.leetcode_number or not self.leetcode_title:
-                raise ValueError("leetcode_number and leetcode_title are required for mode=leetcode")
-        if self.mode == "custom":
-            if not self.title or not self.description:
-                raise ValueError("title and description are required for mode=custom")
+        if self.mode == "leetcode" and not self.leetcode_url:
+            raise ValueError("leetcode_url is required for mode=leetcode")
+        if self.mode == "custom" and (not self.title or not self.description):
+            raise ValueError("title and description are required for mode=custom")
+        if self.num_hidden >= self.num_testcases:
+            raise ValueError("num_hidden must be less than num_testcases")
         return self
 ```
 
@@ -219,9 +238,12 @@ class ParamMeta(BaseModel):
     type: str
 
 class FunctionMeta(BaseModel):
+    """Serialize with .model_dump(by_alias=True) so `return_type` → `"return"`."""
+    model_config = ConfigDict(populate_by_name=True)
+
     fn: str
     params: List[ParamMeta]
-    return_type: str = Field(alias="return")
+    return_type: str = Field(serialization_alias="return")
     orderMatters: bool
     inPlace: bool
 
@@ -235,7 +257,7 @@ class GeneratedTestCase(BaseModel):
 
 class GeneratedMeta(BaseModel):
     mode: str
-    leetcode_number: Optional[int]
+    leetcode_number: Optional[int] = None      # từ LeetCode questionFrontendId
     generated_at: str
     model_version: str
     generation_duration_ms: int
@@ -255,6 +277,7 @@ class GenerateTestcasesResponse(BaseModel):
     starter_code: str                # Python
     testcases: List[GeneratedTestCase]
     meta: GeneratedMeta
+    warning: Optional[str] = None    # set khi validator exhausted retries
 ```
 
 ---
@@ -273,13 +296,17 @@ raw_input
     │   Lỗi validation → trả về error ngay (END)
     │
 [problem_analyzer]
-    │   AI phân tích/recall đề bài và sinh ra:
-    │   - description (leetcode mode: AI recall; custom mode: từ input)
-    │   - difficulty, tags, time_limit_minutes
-    │   - optimal_time_complexity, optimal_space_complexity
+    │   mode=leetcode: fetch real problem via LeetCode GraphQL (fetch_leetcode_problem)
+    │                  → lưu vào state["leetcode_problem"]
+    │                  → lỗi fetch trả final_output ngay (leetcode_not_found / leetcode_premium)
+    │   Sau đó LLM sinh ra:
     │   - functionMeta (fn, params, return, orderMatters, inPlace)
     │   - starter_code (Python)
+    │   - optimal_time_complexity, optimal_space_complexity (hoặc dùng input nếu custom có)
+    │   - time_limit_minutes
     │   - constraints & edge_case_hints (dùng nội bộ cho bước tiếp theo)
+    │   Override: mode=leetcode — title/description/difficulty/tags/constraints lấy từ LeetCode
+    │             mode=custom  — difficulty/tags/complexity lấy từ input nếu có
     │
 [testcase_generator]
     │   AI sinh testcases đủ num_testcases với phân bổ:
@@ -306,8 +333,9 @@ raw_input
 class GeneratorState(TypedDict):
     raw_input: dict
     validated_input: Optional[GenerateTestcasesRequest]
+    leetcode_problem: Optional[dict]    # fetched LeetCode data (mode=leetcode only)
     problem_analysis: Optional[dict]    # structured output của problem_analyzer
-    raw_output: Optional[GenerateTestcasesResponse]
+    raw_testcases: Optional[list]       # structured output của testcase_generator
     final_output: Optional[dict]
     retry_count: int
     needs_retry: bool
@@ -321,9 +349,9 @@ class GeneratorState(TypedDict):
 
 ### `problem_analyzer` prompt (cho cả hai mode)
 
-**Mode leetcode:** Prompt yêu cầu AI recall bài LeetCode theo số thứ tự + tên, trả về full structured output.
+**Mode leetcode:** Prompt chứa dữ liệu LeetCode đã fetch (title, description, difficulty, tags, constraints, examples). LLM chỉ suy ra metadata kỹ thuật (`functionMeta`, `starter_code`, `complexity`, `edge_case_hints`). Sau khi LLM trả output, code ghi đè `title / description / difficulty / tags / constraints` bằng dữ liệu LeetCode gốc (xem `problem_analyzer.py` §3).
 
-**Mode custom:** Prompt nhận `title + description` đã có, chỉ yêu cầu AI suy ra `functionMeta`, `complexity`, `constraints`, `edge_case_hints`.
+**Mode custom:** Prompt nhận `title + description` từ input, LLM suy ra toàn bộ metadata kỹ thuật. Các field có trong request (`difficulty`, `tags`, `complexity`) override output của LLM sau đó.
 
 Output structured (Pydantic):
 ```json
@@ -372,31 +400,36 @@ Yêu cầu:
 
 ```
 AI-Evaluation/
-├── api.py                              ← MODIFY: thêm POST /generate-testcases
-├── config.py                           ← không đổi
-├── main.py                             ← không đổi
+├── api.py                              ← POST /generate-testcases, GET /leetcode/fetch
+├── config.py                           ← env: MODEL_NAME, THINKING_LEVEL, GENERATOR_MAX_RETRIES...
+├── main.py                             ← entry points (evaluate, generate_testcases)
+├── llm.py                              ← shared Gemini helper (call_structured)
 │
-├── generator/                          ← NEW package
+├── generator/
 │   ├── __init__.py
 │   ├── graph.py                        ← build_generator_graph()
 │   ├── state.py                        ← GeneratorState
+│   ├── leetcode_fetcher.py             ← fetch_leetcode_problem() via GraphQL
 │   ├── nodes/
 │   │   ├── __init__.py
-│   │   ├── generator_router.py         ← validate & normalize input
-│   │   ├── problem_analyzer.py         ← AI recall/phân tích đề bài
-│   │   ├── testcase_generator.py       ← AI sinh testcases
-│   │   └── testcase_validator.py       ← validate output, trigger retry
+│   │   ├── generator_router.py         ← validate & init state
+│   │   ├── problem_analyzer.py         ← fetch LeetCode (nếu cần) + LLM suy metadata
+│   │   ├── testcase_generator.py       ← LLM sinh testcases
+│   │   └── testcase_validator.py       ← validate output, retry, assemble response
 │   └── prompts/
 │       ├── __init__.py
-│       ├── problem_analysis.py         ← prompt cho problem_analyzer
-│       └── testcase_generation.py      ← prompt cho testcase_generator
+│       ├── problem_analysis.py
+│       └── testcase_generation.py
+│
+├── agent/                              ← Evaluator (LiveCoding/Behavioral/Conceptual)
+│   └── ...
 │
 └── models/
-    ├── common.py                       ← không đổi
-    ├── inputs.py                       ← không đổi
-    ├── outputs.py                      ← không đổi
-    ├── generator_inputs.py             ← NEW: GenerateTestcasesRequest
-    └── generator_outputs.py            ← NEW: GenerateTestcasesResponse
+    ├── common.py
+    ├── inputs.py                       ← evaluator inputs
+    ├── outputs.py                      ← evaluator outputs
+    ├── generator_inputs.py             ← GenerateTestcasesRequest
+    └── generator_outputs.py            ← GenerateTestcasesResponse
 ```
 
 ---
@@ -407,7 +440,7 @@ AI-Evaluation/
 Admin UI
   │
   ├─ [1] POST /generate-testcases  →  AI-Evaluation Service
-  │       Mode leetcode: { mode, leetcode_number, leetcode_title, num_testcases, num_hidden }
+  │       Mode leetcode: { mode, leetcode_url, num_testcases, num_hidden }
   │       Mode custom:   { mode, title, description, difficulty, ..., num_testcases, num_hidden }
   │
   │       Response: full CodingQuestion data + testcases[]
@@ -506,11 +539,14 @@ AI tự estimate theo difficulty:
 
 | Rule | Hành động |
 |---|---|
-| `len(testcases) < num_testcases` | retry |
+| `len(testcases) != num_testcases` | retry |
 | `sum(is_hidden) != num_hidden` | retry |
-| Hai testcase có `inputData` giống nhau | retry |
+| Hai testcase có `inputData` giống nhau (so sánh canonicalized JSON) | retry |
 | Bất kỳ `expectedOutput` nào rỗng `{}` | retry |
-| Vượt `MAX_RETRIES` | trả partial result + `"warning": "max_retries_exceeded"` |
+| Vượt `GENERATOR_MAX_RETRIES` (default `1`) | trả partial result + `warning: "max_retries_exceeded (...)"` |
+| `raw_testcases` = None (generator fail) + vượt retry | trả `error: generation_failed` |
+
+Duplicate check dùng `json.dumps(inputData, sort_keys=True)` để tránh false positive khi LLM đổi thứ tự key.
 
 ---
 
@@ -531,3 +567,40 @@ AI tự estimate theo difficulty:
 | `testcases[].expectedOutput` | `testCases[].expectedOutput` |
 | `testcases[].is_hidden` | `testCases[].is_hidden` |
 | `testcases[].label` + `note` | chỉ dùng cho Admin UI review, không lưu vào DB |
+
+---
+
+## 13. Configuration — Environment Variables
+
+| Env | Default | Dùng cho |
+|---|---|---|
+| `GOOGLE_API_KEY` | — | Gemini API key (bắt buộc) |
+| `MODEL_NAME` | `gemini-3-flash-preview` | Model gọi cả analyzer + generator |
+| `THINKING_LEVEL` | `low` | `minimal` / `low` / `medium` / `high` (Gemini 3) — auto-map sang `thinking_budget` nếu dùng Gemini 2.x |
+| `GENERATOR_MAX_RETRIES` | `1` | Số lần retry tối đa của `testcase_validator` |
+| `MAX_RETRIES` | `2` | Retry cho evaluator agent (`/evaluate`) |
+| `MODEL_VERSION` | `evaluator-v1.0` | Ghi vào `meta.model_version` của response |
+| `SERVICE_API_KEY` | — | Nếu set, `/generate-testcases` & `/evaluate` yêu cầu `X-API-Key` header |
+
+Tất cả LLM call đi qua `llm.call_structured(prompt, response_model)` — thay model / thinking level chỉ cần sửa `.env`, không cần sửa code.
+
+---
+
+## 14. Performance
+
+Đo trên `leetcode/group-anagrams` với `num_testcases=20, num_hidden=3`:
+
+| Config | Duration | Note |
+|---|---|---|
+| `gemini-2.5-flash` + thinking mặc định + `GENAI_TOOLS` mode | ~700s | Setup ban đầu — 4 lần retry do duplicate false-positive |
+| `gemini-3-flash-preview` + `thinking_level=low` + `GENAI_STRUCTURED_OUTPUTS` | ~30s | Setup hiện tại |
+
+Các cải thiện chính khiến giảm ~23×:
+1. **`GENAI_STRUCTURED_OUTPUTS` mode** — schema-bound JSON, không còn tool-calling round-trip.
+2. **`thinking_level=low`** — tránh chi phí reasoning mặc định khá nặng của Gemini 3/2.5.
+3. **Canonicalized duplicate check** — hết false positive → giảm retry từ 3 → 0.
+4. **`GENERATOR_MAX_RETRIES=1`** — structured output đáng tin hơn, không cần 3 retry.
+
+Nếu muốn trade-off:
+- Tăng chất lượng → `MODEL_NAME=gemini-3-pro-preview` hoặc `THINKING_LEVEL=medium` (chậm hơn).
+- Nhanh hơn nữa → `THINKING_LEVEL=minimal`.

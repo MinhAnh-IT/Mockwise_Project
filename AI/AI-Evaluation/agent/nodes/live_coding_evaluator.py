@@ -1,7 +1,4 @@
-import instructor
-from google import genai
-
-import config
+from llm import call_structured
 from agent.state import AgentState
 from agent.prompts.live_coding import build_live_coding_prompt
 from models.outputs import LiveCodingOutput
@@ -22,15 +19,7 @@ def live_coding_evaluator_node(state: AgentState) -> dict:
 
     try:
         prompt = build_live_coding_prompt(validated_input, retry_instruction=retry_instruction)
-
-        client = instructor.from_genai(
-            genai.Client(api_key=config.GOOGLE_API_KEY),
-        )
-        result: LiveCodingOutput = client.chat.completions.create(
-            model=config.MODEL_NAME,
-            messages=[{"role": "user", "content": prompt}],
-            response_model=LiveCodingOutput,
-        )
+        result: LiveCodingOutput = call_structured(prompt, LiveCodingOutput)
 
         return {
             "raw_output": result,

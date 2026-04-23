@@ -1,7 +1,4 @@
-import instructor
-from google import genai
-
-import config
+from llm import call_structured
 from agent.state import AgentState
 from agent.prompts.behavioral import build_behavioral_prompt
 from models.outputs import BehavioralOutput
@@ -22,15 +19,7 @@ def behavioral_evaluator_node(state: AgentState) -> dict:
 
     try:
         prompt = build_behavioral_prompt(validated_input, retry_instruction=retry_instruction)
-
-        client = instructor.from_genai(
-            genai.Client(api_key=config.GOOGLE_API_KEY),
-        )
-        result: BehavioralOutput = client.chat.completions.create(
-            model=config.MODEL_NAME,
-            messages=[{"role": "user", "content": prompt}],
-            response_model=BehavioralOutput,
-        )
+        result: BehavioralOutput = call_structured(prompt, BehavioralOutput)
 
         return {
             "raw_output": result,

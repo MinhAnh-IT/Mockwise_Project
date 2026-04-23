@@ -1,3 +1,4 @@
+import json
 import time
 from datetime import datetime, timezone
 from typing import Any
@@ -20,6 +21,7 @@ def _build_final_response(
     testcases: list,
     generation_start_ms: int,
     warning: str = None,
+    leetcode_problem: dict | None = None,
 ) -> dict:
     """Assemble GenerateTestcasesResponse from analysis + validated testcases."""
     now_ms = int(time.time() * 1000)
@@ -50,7 +52,7 @@ def _build_final_response(
         testcases=tc_objects,
         meta=GeneratedMeta(
             mode=req.mode,
-            leetcode_number=req.leetcode_number,
+            leetcode_number=(leetcode_problem or {}).get("number"),
             generated_at=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             model_version=config.MODEL_VERSION,
             generation_duration_ms=duration_ms,
@@ -86,6 +88,7 @@ def testcase_validator_node(state: GeneratorState) -> dict:
     raw_testcases: Any = state.get("raw_testcases")
     retry_count: int = state.get("retry_count", 0)
     generation_start_ms: int = state.get("generation_start_ms", int(time.time() * 1000))
+    leetcode_problem: dict | None = state.get("leetcode_problem")
 
     max_retries = config.GENERATOR_MAX_RETRIES
 
@@ -122,15 +125,17 @@ def testcase_validator_node(state: GeneratorState) -> dict:
             f"Expected exactly {req.num_hidden} hidden testcases (is_hidden=true) but got {hidden_count}."
         )
 
-    seen_inputs = []
+    seen_inputs: set[str] = set()
     for i, tc in enumerate(raw_testcases):
         input_data = tc.get("inputData", {})
-        if input_data in seen_inputs:
+        # Canonicalize so key-order differences don't trigger false duplicates
+        key = json.dumps(input_data, sort_keys=True, default=str)
+        if key in seen_inputs:
             violations.append(
                 f"Testcase '{tc.get('id', i)}' has duplicate inputData: {input_data}."
             )
         else:
-            seen_inputs.append(input_data)
+            seen_inputs.add(key)
 
         if not tc.get("expectedOutput"):
             violations.append(
@@ -154,11 +159,15 @@ def testcase_validator_node(state: GeneratorState) -> dict:
             "final_output": _build_final_response(
                 req, analysis, raw_testcases, generation_start_ms,
                 warning=f"max_retries_exceeded ({max_retries}). Some issues remain: {'; '.join(violations)}",
+                leetcode_problem=leetcode_problem,
             ),
         }
 
     # ── 4. All valid — assemble final response ────────────────────────────────
     return {
         "needs_retry": False,
-        "final_output": _build_final_response(req, analysis, raw_testcases, generation_start_ms),
+        "final_output": _build_final_response(
+            req, analysis, raw_testcases, generation_start_ms,
+            leetcode_problem=leetcode_problem,
+        ),
     }

@@ -92,6 +92,7 @@ def leetcode_fetch(
     session_cookie: str | None = Query(
         None, description="Optional LEETCODE_SESSION cookie for premium problems"
     ),
+    _: None = Security(_require_api_key),
 ):
     """Fetch a LeetCode problem's structured data from its public GraphQL endpoint.
 
