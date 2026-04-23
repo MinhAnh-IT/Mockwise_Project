@@ -23,6 +23,8 @@ jobs:
       question-bank-service: ${{ steps.filter.outputs.question-bank-service }}
       ai-evaluation:        ${{ steps.filter.outputs.ai-evaluation }}
       frontend:             ${{ steps.filter.outputs.frontend }}
+      swagger-config:       ${{ steps.filter.outputs.swagger-config }}
+      nginx-config:         ${{ steps.filter.outputs.nginx-config }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -50,6 +52,12 @@ jobs:
               - 'AI/AI-Evaluation/**'
             frontend:
               - 'frontend/**'
+            swagger-config:
+              - 'docker/docker-compose.prod.yml'
+              - 'api-spec/**'
+            nginx-config:
+              - 'docker/docker-compose.prod.yml'
+              - 'nginx/**'
 
   # ─── Shared build step (reusable template via composite) ───────
   # Each service has its own job so we can condition on detect-changes.
@@ -298,17 +306,23 @@ jobs:
       - build-question-bank-service
       - build-ai-evaluation
       - build-frontend
-    # Run if: no job failed AND at least one build job succeeded (not all skipped)
+    # Run if: no job failed AND either a build succeeded OR a config-only change
+    # exists (swagger-ui / nginx configs don't trigger any build job).
     if: |
       always() &&
       !cancelled() &&
       !contains(needs.*.result, 'failure') &&
-      contains(needs.*.result, 'success')
+      (contains(needs.*.result, 'success') ||
+       needs.detect-changes.outputs.swagger-config == 'true' ||
+       needs.detect-changes.outputs.nginx-config == 'true')
     runs-on: ubuntu-latest
     environment: production
 
     steps:
-      # Compute which services were actually rebuilt so we only restart those
+      # Compute which services were actually rebuilt so we only restart those.
+      # swagger-ui / nginx don't go through a build job — they're image-only or
+      # config-only, and need restarting whenever compose/spec/nginx configs change
+      # so the new env vars and mounted files are picked up.
       - name: Compute changed services
         id: services
         run: |
@@ -321,6 +335,8 @@ jobs:
           [ "${{ needs.detect-changes.outputs.question-bank-service }}" = "true" ] && list="$list question-bank-service"
           [ "${{ needs.detect-changes.outputs.ai-evaluation }}"        = "true" ] && list="$list ai-evaluation"
           [ "${{ needs.detect-changes.outputs.frontend }}"             = "true" ] && list="$list frontend"
+          [ "${{ needs.detect-changes.outputs.swagger-config }}"       = "true" ] && list="$list swagger-ui"
+          [ "${{ needs.detect-changes.outputs.nginx-config }}"         = "true" ] && list="$list nginx"
           echo "list=${list## }" >> $GITHUB_OUTPUT
           echo "Deploying: ${list## }"
 
