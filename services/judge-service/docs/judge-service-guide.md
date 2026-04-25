@@ -8,6 +8,7 @@ This guide covers everything you need to submit code for evaluation: request sch
 
 1. [How It Works](#1-how-it-works)
 2. [Submission Request Schema](#2-submission-request-schema)
+   - 2.1 [Language: Java vs Python](#21-language-java-vs-python)
 3. [functionMeta Reference](#3-functionmeta-reference)
 4. [Naming Conventions](#4-naming-conventions)
 5. [Supported Types](#5-supported-types)
@@ -43,11 +44,13 @@ Client sends SubmissionEvent (via Kafka or REST)
   └─ JudgeResultEvent   publish verdict per test case
 ```
 
-The driver (`UniversalJavaDriver`) running inside Judge0:
+A language-specific driver (`UniversalJavaDriver` or `UniversalPythonDriver`) running inside Judge0:
 - Reads `functionMeta` from **stdin line 1** (JSON)
 - Reads each param value from the subsequent stdin lines
-- Calls `Solution.<fn>(args...)` via reflection
+- Calls `Solution.<fn>(args...)` (Java reflection / Python `getattr`)
 - Prints the return value (or first argument if `inPlace: true`) as JSON to stdout
+
+The stdin format and the output format are identical across languages — switching `language` only changes which driver wraps the user code.
 
 ---
 
@@ -66,10 +69,51 @@ The driver (`UniversalJavaDriver`) running inside Judge0:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `submissionId` | UUID string | yes | Unique ID for this submission |
-| `language` | string | yes | Must be `"java"` (only Java is supported) |
+| `language` | string | yes | `"java"` or `"python"` — see [§2.1](#21-language-java-vs-python) |
 | `code` | string | yes | The solution body — must contain a class named `Solution` |
 | `functionMeta` | object | yes | Describes the function to call — see section 3 |
 | `testCases` | array | yes | One or more test case objects — see section 3 |
+
+### 2.1 Language: Java vs Python
+
+Both languages use the same `functionMeta`, `inputData`, and `expectedOutput` shape. The only difference is how user code is structured.
+
+**Java:**
+- Must contain `class Solution { ... }`. The judge wraps it; do **not** declare it `public`.
+- The target method is an **instance** method on `Solution`. The driver creates `new Solution()` and invokes via reflection.
+- Use boxed types in lists (`List<Integer>`, `List<String>`); the driver auto-normalizes the `params[].type` strings.
+
+```java
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        // ...
+    }
+}
+```
+
+**Python:**
+- Must contain `class Solution:` with the target method defined as `def <fn>(self, ...):`.
+- The driver instantiates `Solution()` and dispatches via `getattr`.
+- Type strings in `functionMeta.params[].type` stay the same (`int[]`, `String`, `List<Integer>`, `TreeNode`, etc.) — they describe the **schema**, not the user-language type. The Python driver maps them to native Python values: `int[]` / `List<Integer>` → `list[int]`, `String[]` → `list[str]`, `char[][]` → `list[list[str]]` (each inner item is a 1-char string), etc.
+- `TreeNode` and `ListNode` classes are pre-defined by the driver and visible to user code.
+
+```python
+class Solution:
+    def twoSum(self, nums, target):
+        seen = {}
+        for i, n in enumerate(nums):
+            d = target - n
+            if d in seen:
+                return [seen[d], i]
+            seen[n] = i
+        return []
+```
+
+**Output equivalence.** Both drivers emit the exact same stdout for a given test case (e.g. `[0,1]`, `true`, `hello` — top-level strings are unquoted). `OutputComparator` parses stdout as JSON; languages that produce identical JSON pass identically.
+
+**Python boolean note.** The driver detects `bool` before `int` (`isinstance(True, int) == True` in Python is a known gotcha) and prints `true` / `false` to match Java.
+
+**Python char handling.** Python has no `char` primitive. A `char` param is delivered as a 1-char `str`; a `char` return must also be a 1-char `str`. A `char[][]` param is `list[list[str]]` where every inner element is exactly one character.
 
 ### testCases item schema
 

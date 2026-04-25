@@ -44,10 +44,10 @@ public class Judge0Client {
      * Submits code to Judge0 asynchronously. Judge0 will POST the result
      * to {@code callbackUrl} when execution finishes.
      *
-     * @param sourceCode  raw Java source code (not base64)
+     * @param sourceCode  raw source code (not base64) — language matches {@code language}
      * @param stdin       raw stdin string (not base64)
      * @param callbackUrl URL for Judge0 to POST the result back
-     * @param language    submission language (only "java" supported)
+     * @param language    submission language ({@code "java"} or {@code "python"})
      * @return Judge0 submission token
      */
     public String submitAsync(String sourceCode, String stdin, String callbackUrl, String language) {
