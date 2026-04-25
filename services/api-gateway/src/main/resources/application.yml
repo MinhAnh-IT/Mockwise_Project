@@ -42,6 +42,11 @@ spring:
           predicates:
             - Path=/api/v1/question-bank/**
 
+        - id: storage-service
+          uri: ${STORAGE_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/v1/storage/**
+
         - id: user-profile-service
           uri: ${USER_PROFILE_SERVICE_URL:http://localhost:8082}
           predicates:

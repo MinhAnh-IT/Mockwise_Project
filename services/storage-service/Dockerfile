@@ -9,16 +9,16 @@ RUN mkdir -p /root/.m2 && \
 
 COPY pom.xml .
 COPY api-gateway/pom.xml api-gateway/pom.xml
-COPY iam-service/pom.xml iam-service/pom.xml
 COPY mail-service/pom.xml mail-service/pom.xml
 COPY user-profile-service/pom.xml user-profile-service/pom.xml
+COPY iam-service/pom.xml iam-service/pom.xml
 COPY question-bank-service/pom.xml question-bank-service/pom.xml
 COPY storage-service/pom.xml storage-service/pom.xml
-COPY user-profile-service/src user-profile-service/src
-RUN mvn -B -pl user-profile-service clean package -DskipTests
+COPY storage-service/src storage-service/src
+RUN mvn -B -pl storage-service clean package -DskipTests
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY --from=build /app/user-profile-service/target/*.jar app.jar
-EXPOSE 8082
+COPY --from=build /app/storage-service/target/*.jar app.jar
+EXPOSE 8085
 ENTRYPOINT ["java","-jar","/app/app.jar"]

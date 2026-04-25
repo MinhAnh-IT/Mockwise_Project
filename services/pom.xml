@@ -23,6 +23,7 @@
         <module>user-profile-service</module>
         <module>api-gateway</module>
         <module>question-bank-service</module>
+        <module>storage-service</module>
     </modules>
 
     <properties>

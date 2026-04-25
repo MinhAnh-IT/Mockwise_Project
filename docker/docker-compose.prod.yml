@@ -59,6 +59,22 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     networks: [internal-net]
 
+  # ─── Storage Service (internal only) ───────────────────────────
+  storage-service:
+    image: ghcr.io/minhanh-it/mockwise_project/storage-service:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/storage
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-${MINIO_ENDPOINT}}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+    networks: [internal-net]
+
   # ─── Judge Service (internal only) ────────────────────────────
   judge-service:
     image: ghcr.io/minhanh-it/mockwise_project/judge-service:${IMAGE_TAG:-latest}
@@ -88,10 +104,11 @@ services:
       USER_PROFILE_SERVICE_URL: http://user-profile-service:8082
       JUDGE_SERVICE_URL: http://judge-service:8083
       QUESTION_BANK_SERVICE_URL: http://question-bank-service:8084
+      STORAGE_SERVICE_URL: http://storage-service:8085
       AI_EVALUATION_URL: http://ai-evaluation:8000
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
     networks: [public-net, internal-net]
-    depends_on: [iam-service, user-profile-service, judge-service, question-bank-service]
+    depends_on: [iam-service, user-profile-service, judge-service, question-bank-service, storage-service]
 
   # ─── AI Evaluation (internal only) ─────────────────────────────
   ai-evaluation:
@@ -129,7 +146,8 @@ services:
         [{"url":"/api-spec/iam-service.yaml","name":"IAM Service"},
          {"url":"/api-spec/user-profile-service.yaml","name":"User Profile Service"},
          {"url":"/api-spec/judge-service.yaml","name":"Judge Service"},
-         {"url":"/api-spec/question-bank-service.yaml","name":"Question Bank Service"}]
+         {"url":"/api-spec/question-bank-service.yaml","name":"Question Bank Service"},
+         {"url":"/api-spec/storage-service.yaml","name":"Storage Service"}]
     networks: [internal-net]
 
   # ─── Nginx (only service exposed to the internet) ─────────────
