@@ -63,6 +63,9 @@ class LeetCodeProblem(BaseModel):
     tags: List[str]
     hints: List[str]
     starter_code_python: Optional[str] = None
+    starter_code_java: Optional[str] = None
+    starter_code_cpp: Optional[str] = None
+    starter_code_javascript: Optional[str] = None
     sample_testcases_raw: Optional[str] = None   # raw "exampleTestcases" field
     is_premium: bool
 
@@ -278,10 +281,9 @@ def fetch_leetcode_problem(
     plain = _html_to_text(content_html)
     body_text, examples, constraints, follow_up = _split_sections(plain)
 
-    starter_py = next(
-        (c["code"] for c in (q.get("codeSnippets") or []) if c.get("langSlug") == "python3"),
-        None,
-    )
+    snippets = q.get("codeSnippets") or []
+    def _by_slug(slug: str) -> Optional[str]:
+        return next((c["code"] for c in snippets if c.get("langSlug") == slug), None)
 
     return LeetCodeProblem(
         number=int(q["questionFrontendId"]),
@@ -294,7 +296,10 @@ def fetch_leetcode_problem(
         follow_up=follow_up,
         tags=[t["slug"] for t in (q.get("topicTags") or [])],
         hints=list(q.get("hints") or []),
-        starter_code_python=starter_py,
+        starter_code_python=_by_slug("python3"),
+        starter_code_java=_by_slug("java"),
+        starter_code_cpp=_by_slug("cpp"),
+        starter_code_javascript=_by_slug("javascript"),
         sample_testcases_raw=q.get("exampleTestcases"),
         is_premium=bool(q.get("isPaidOnly")),
     )
