@@ -77,10 +77,16 @@ public class AuthGatewayFilter implements GlobalFilter, Ordered {
                     h.remove("X-User-Id");
                     h.remove("X-User-Role");
                     h.remove("X-User-Email");
+                    h.remove("X-Internal-Auth");
                 })
                 .build();
 
         ServerWebExchange sanitizedExchange = exchange.mutate().request(sanitized).build();
+
+        // Internal service-to-service paths must never be reachable from the public network.
+        if (isInternalPath(sanitized.getPath().value())) {
+            return writeError(exchange, HttpStatus.NOT_FOUND, "Not found");
+        }
 
         if (isPublicRoute(sanitized.getMethod(), sanitized.getPath().value())) {
             return chain.filter(sanitizedExchange);
@@ -135,6 +141,12 @@ public class AuthGatewayFilter implements GlobalFilter, Ordered {
     // e.g. /api/v1/admin/profiles, /api/v1/admin/position-tracks, etc.
     private boolean isAdminPath(String path) {
         return PATH_MATCHER.match("/**/admin/**", path) || path.contains("/admin/");
+    }
+
+    // Rule: any path segment named "internal" is service-to-service only —
+    // never reachable from the public network.
+    private boolean isInternalPath(String path) {
+        return path.contains("/internal/");
     }
 
     private Mono<Void> writeError(ServerWebExchange exchange, HttpStatus status, String message) {
