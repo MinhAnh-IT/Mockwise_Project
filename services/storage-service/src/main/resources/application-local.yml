@@ -11,7 +11,7 @@ minio:
   endpoint: http://31.220.84.140:9000
   public-endpoint: http://31.220.84.140:9000
   access-key: minioadmin
-  secret-key: ${MINIO_ROOT_PASSWORD}
+  secret-key: mockwise_minio_password2026
 
 internal:
   auth:

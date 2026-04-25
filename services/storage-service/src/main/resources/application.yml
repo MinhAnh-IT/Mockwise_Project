@@ -1,4 +1,10 @@
 spring:
+  profiles:
+    # If no profile is set explicitly (e.g. running the jar locally), fall back
+    # to `local` so application-local.yml's hard-coded VPS values are used.
+    # In production, compose injects env vars which take precedence over yaml.
+    default: local
+
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${POSTGRES_USER}
