@@ -19,6 +19,7 @@ jobs:
       mail-service: ${{ steps.filter.outputs.mail-service }}
       judge-service: ${{ steps.filter.outputs.judge-service }}
       question-bank-service: ${{ steps.filter.outputs.question-bank-service }}
+      storage-service: ${{ steps.filter.outputs.storage-service }}
       ai-evaluation: ${{ steps.filter.outputs.ai-evaluation }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
@@ -43,6 +44,9 @@ jobs:
               - 'services/judge-service/**'
             question-bank-service:
               - 'services/question-bank-service/**'
+              - 'services/pom.xml'
+            storage-service:
+              - 'services/storage-service/**'
               - 'services/pom.xml'
             ai-evaluation:
               - 'AI/AI-Evaluation/**'
@@ -190,6 +194,31 @@ jobs:
           PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       - name: Build Docker image
         run: docker build -f services/question-bank-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/question-bank-service:${{ github.sha }} services
+
+  build-storage-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.storage-service == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: PACKAGES_TOKEN
+      - name: Build & test
+        run: mvn -B -pl storage-service clean package -DskipTests
+        working-directory: services
+        env:
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+      - name: Build Docker image
+        run: docker build -f services/storage-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/storage-service:${{ github.sha }} services
 
   build-ai-evaluation:
     needs: detect-changes
