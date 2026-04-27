@@ -86,7 +86,10 @@ public class JudgeOrchestrator {
         // Transaction committed — DB rows are now visible to callback handler
 
         // Phase 2: build source and submit to Judge0 (outside transaction)
-        String fullSource = codeBuilder.buildFullSource(event.getCode(), event.getLanguage());
+        // C++ codegen needs functionMeta to bake the dispatch block; the other
+        // languages ignore the third arg.
+        String fullSource = codeBuilder.buildFullSource(
+                event.getCode(), event.getLanguage(), event.getFunctionMeta());
         log.info("full code: " + fullSource);
 
         int localFailures = 0;

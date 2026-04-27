@@ -47,8 +47,9 @@ public class CodingQuestion {
     @Column(nullable = false, columnDefinition = "jsonb")
     FunctionMeta functionMeta;
 
-    @Column(columnDefinition = "TEXT")
-    String starterCode;
+    @Type(JsonBinaryType.class)
+    @Column(columnDefinition = "jsonb")
+    StarterCode starterCode;
 
     @Type(JsonBinaryType.class)
     @Column(nullable = false, columnDefinition = "jsonb")

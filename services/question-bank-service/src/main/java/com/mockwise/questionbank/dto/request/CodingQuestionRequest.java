@@ -1,6 +1,7 @@
 package com.mockwise.questionbank.dto.request;
 
 import com.mockwise.questionbank.entity.FunctionMeta;
+import com.mockwise.questionbank.entity.StarterCode;
 import com.mockwise.questionbank.entity.TestCase;
 import com.mockwise.questionbank.enums.Difficulty;
 import jakarta.validation.Valid;
@@ -43,7 +44,7 @@ public class CodingQuestionRequest {
     @Valid
     FunctionMeta functionMeta;
 
-    String starterCode;
+    StarterCode starterCode;
 
     @NotEmpty(message = "testCases must not be empty")
     @Valid

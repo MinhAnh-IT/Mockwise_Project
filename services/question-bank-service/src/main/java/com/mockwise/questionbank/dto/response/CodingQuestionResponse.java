@@ -1,6 +1,7 @@
 package com.mockwise.questionbank.dto.response;
 
 import com.mockwise.questionbank.entity.FunctionMeta;
+import com.mockwise.questionbank.entity.StarterCode;
 import com.mockwise.questionbank.entity.TestCase;
 import com.mockwise.questionbank.enums.Difficulty;
 import com.mockwise.questionbank.enums.QuestionStatus;
@@ -30,7 +31,7 @@ public class CodingQuestionResponse {
     String optimalTimeComplexity;
     String optimalSpaceComplexity;
     FunctionMeta functionMeta;
-    String starterCode;
+    StarterCode starterCode;
     List<TestCase> testCases;
     String createdBy;
     OffsetDateTime createdAt;
