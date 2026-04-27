@@ -1,0 +1,38 @@
+spring:
+  datasource:
+    url: jdbc:mysql://31.220.84.140:3306/tts_stt?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: mockwise
+    password: mockwise_db_password2026
+
+  data:
+    redis:
+      host: 31.220.84.140
+      port: 6379
+      password: mockwise_redis_password2026
+
+  kafka:
+    bootstrap-servers: 31.220.84.140:9092
+
+  jpa:
+    show-sql: true
+
+internal:
+  auth:
+    api-key: 6ae8fa4439a44c035d952e4e144e492a7cde953d9587286f63feccc9962831fd
+
+elevenlabs:
+  api-key: sk_4361a3cede5ece9cc809fb3cb8856d2198ae525f958eb725
+
+storage-client:
+  base-url: http://31.220.84.140:8085
+  internal-api-key: 6ae8fa4439a44c035d952e4e144e492a7cde953d9587286f63feccc9962831fd
+
+tts-stt:
+  ffmpeg:
+    bin: /opt/homebrew/bin/ffmpeg
+    tmp-dir: /tmp/tts-stt
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    com.mockwise.ttsstt: DEBUG

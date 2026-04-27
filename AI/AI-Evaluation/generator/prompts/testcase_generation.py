@@ -6,7 +6,7 @@ def build_testcase_generation_prompt(
     analysis: dict,
     retry_instruction: str = "",
 ) -> str:
-    num_visible = req.num_testcases - req.num_hidden
+    num_visible = req.num_visible
     params_str = ", ".join(
         f"{p['name']}: {p['type']}" for p in analysis["params"]
     )

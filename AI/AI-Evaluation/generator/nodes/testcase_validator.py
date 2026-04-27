@@ -12,6 +12,7 @@ from models.generator_outputs import (
     GeneratedTestCase,
     GenerateTestcasesResponse,
     ParamMeta,
+    StarterCode,
 )
 
 
@@ -35,6 +36,14 @@ def _build_final_response(
         inPlace=analysis["in_place"],
     )
 
+    sc = analysis["starter_code"]
+    starter_code = StarterCode(
+        python=sc["python"],
+        java=sc["java"],
+        cpp=sc["cpp"],
+        javascript=sc["javascript"],
+    )
+
     tc_objects = [GeneratedTestCase(**tc) for tc in testcases]
     hidden_count = sum(1 for tc in tc_objects if tc.is_hidden)
     visible_count = len(tc_objects) - hidden_count
@@ -48,7 +57,7 @@ def _build_final_response(
         optimal_time_complexity=analysis["optimal_time_complexity"],
         optimal_space_complexity=analysis["optimal_space_complexity"],
         function_meta=function_meta,
-        starter_code=analysis["starter_code"],
+        starter_code=starter_code,
         testcases=tc_objects,
         meta=GeneratedMeta(
             mode=req.mode,
@@ -63,10 +72,9 @@ def _build_final_response(
         warning=warning,
     )
 
-    # Serialize function_meta with alias so "return" key appears correctly
-    data = response.model_dump()
-    data["function_meta"] = response.function_meta.model_dump(by_alias=True)
-    return data
+    # The whole response is camelCase via alias_generator; FunctionMeta uses
+    # field-level alias to keep "return" (instead of "returnType").
+    return response.model_dump(by_alias=True)
 
 
 def testcase_validator_node(state: GeneratorState) -> dict:

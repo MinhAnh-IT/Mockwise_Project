@@ -88,6 +88,41 @@ services:
     networks:
       - internal-net
 
+  # ─── TTS-STT Service (internal only) ──────────────────────────
+  tts-stt-service:
+    build:
+      context: ../services
+      dockerfile: tts-stt-service/Dockerfile
+    env_file: ../.env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT:-3306}/tts_stt?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST}
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      STORAGE_SERVICE_BASE_URL: http://storage-service:8085
+      STORAGE_INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
+      ELEVENLABS_BASE_URL: ${ELEVENLABS_BASE_URL:-https://api.elevenlabs.io}
+      ELEVENLABS_DEFAULT_VOICE_ID: ${ELEVENLABS_DEFAULT_VOICE_ID:-21m00Tcm4TlvDq8ikWAM}
+      ELEVENLABS_TTS_MODEL: ${ELEVENLABS_TTS_MODEL:-eleven_multilingual_v2}
+      ELEVENLABS_STT_MODEL: ${ELEVENLABS_STT_MODEL:-scribe_v1}
+      ELEVENLABS_TIMEOUT_TTS_MS: ${ELEVENLABS_TIMEOUT_TTS_MS:-30000}
+      ELEVENLABS_TIMEOUT_STT_MS: ${ELEVENLABS_TIMEOUT_STT_MS:-600000}
+      KAFKA_TOPIC_ANSWER_SUBMITTED: ${KAFKA_TOPIC_ANSWER_SUBMITTED:-answer-submitted}
+      KAFKA_TOPIC_TRANSCRIPT_READY: ${KAFKA_TOPIC_TRANSCRIPT_READY:-transcript-ready}
+      KAFKA_TOPIC_TRANSCRIPT_FAILED: ${KAFKA_TOPIC_TRANSCRIPT_FAILED:-transcript-failed}
+      FFMPEG_BIN: /usr/bin/ffmpeg
+      FFMPEG_TMP_DIR: /tmp/tts-stt
+    networks:
+      - internal-net
+    depends_on:
+      - storage-service
+    # No ports — internal only, callers use api-gateway or service DNS
+
   # ─── Judge Service (internal only) ────────────────────────────
   judge-service:
     build:

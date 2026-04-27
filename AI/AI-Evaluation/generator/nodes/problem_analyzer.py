@@ -21,6 +21,13 @@ class _ParamMeta(BaseModel):
     type: str
 
 
+class _StarterCode(BaseModel):
+    python: str
+    java: str
+    cpp: str
+    javascript: str
+
+
 class ProblemAnalysisOutput(BaseModel):
     title: str
     description: str
@@ -34,7 +41,7 @@ class ProblemAnalysisOutput(BaseModel):
     return_type: str
     order_matters: bool
     in_place: bool
-    starter_code: str
+    starter_code: _StarterCode
     constraints: List[str]
     edge_case_hints: List[str]
 

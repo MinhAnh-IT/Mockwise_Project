@@ -39,7 +39,9 @@ info:
     ```
 
     ### Supported languages
-    Only `"java"` is supported.
+    `"java"` and `"python"` are supported. The judge wraps user code in a
+    language-specific driver before submitting to Judge0; the public schema
+    (functionMeta, inputData, expectedOutput) is identical for both.
 
     ### Supported parameter / return types
     | Category | Type strings |
@@ -154,14 +156,18 @@ components:
           example: 123e4567-e89b-12d3-a456-426614174000
         language:
           type: string
-          enum: [java]
-          description: Programming language. Only `"java"` is supported.
+          enum: [java, python]
+          description: |
+            Programming language. Supported values:
+            - `"java"` — code must contain a `class Solution` (no `public` modifier)
+            - `"python"` — code must contain a `class Solution` with the target method
           example: java
         code:
           type: string
           description: |
             Full solution body. Must contain a class named `Solution`.
-            Do **not** include a `public` modifier on the class — the driver wraps it.
+            For Java: do **not** include a `public` modifier — the driver wraps it.
+            For Python: define methods on `class Solution` (instance methods, `self` first).
           example: |
             class Solution {
                 public int[] twoSum(int[] nums, int target) {

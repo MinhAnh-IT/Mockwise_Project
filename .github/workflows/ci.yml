@@ -20,6 +20,7 @@ jobs:
       judge-service: ${{ steps.filter.outputs.judge-service }}
       question-bank-service: ${{ steps.filter.outputs.question-bank-service }}
       storage-service: ${{ steps.filter.outputs.storage-service }}
+      tts-stt-service: ${{ steps.filter.outputs.tts-stt-service }}
       ai-evaluation: ${{ steps.filter.outputs.ai-evaluation }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
@@ -47,6 +48,9 @@ jobs:
               - 'services/pom.xml'
             storage-service:
               - 'services/storage-service/**'
+              - 'services/pom.xml'
+            tts-stt-service:
+              - 'services/tts-stt-service/**'
               - 'services/pom.xml'
             ai-evaluation:
               - 'AI/AI-Evaluation/**'
@@ -219,6 +223,31 @@ jobs:
           PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       - name: Build Docker image
         run: docker build -f services/storage-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/storage-service:${{ github.sha }} services
+
+  build-tts-stt-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.tts-stt-service == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: PACKAGES_TOKEN
+      - name: Build & test
+        run: mvn -B -pl tts-stt-service clean package -DskipTests
+        working-directory: services
+        env:
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+      - name: Build Docker image
+        run: docker build -f services/tts-stt-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/tts-stt-service:${{ github.sha }} services
 
   build-ai-evaluation:
     needs: detect-changes
