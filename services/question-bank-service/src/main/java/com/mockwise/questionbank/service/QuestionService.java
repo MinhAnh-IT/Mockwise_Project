@@ -17,6 +17,7 @@ import com.mockwise.questionbank.repository.BehavioralQuestionRepository;
 import com.mockwise.questionbank.repository.CodingQuestionRepository;
 import com.mockwise.questionbank.repository.CoreQuestionRepository;
 import com.mockwise.questionbank.repository.QuestionRepository;
+import com.mockwise.questionbank.tts.TtsClient;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -44,6 +45,8 @@ public class QuestionService {
     CoreMapper coreMapper;
     CodingMapper codingMapper;
 
+    TtsClient ttsClient;
+
     // ── Create ──────────────────────────────────────────────────────────────
 
     @Transactional
@@ -55,9 +58,14 @@ public class QuestionService {
 
         BehavioralQuestion bq = behavioralMapper.toEntity(req);
         bq.setQuestion(base);
+
+        TtsClient.TtsResult tts = ttsClient.synthesize(base.getId(), req.getText(), null);
+        if (tts.success()) {
+            bq.setAudioKey(tts.objectKey());
+        }
         behavioralRepository.save(bq);
 
-        log.info("Created behavioral question id={}", base.getId());
+        log.info("Created behavioral question id={} audio={}", base.getId(), bq.getAudioKey());
         return behavioralMapper.toResponse(bq);
     }
 
@@ -70,9 +78,14 @@ public class QuestionService {
 
         CoreQuestion cq = coreMapper.toEntity(req);
         cq.setQuestion(base);
+
+        TtsClient.TtsResult tts = ttsClient.synthesize(base.getId(), req.getText(), null);
+        if (tts.success()) {
+            cq.setAudioKey(tts.objectKey());
+        }
         coreRepository.save(cq);
 
-        log.info("Created core question id={}", base.getId());
+        log.info("Created core question id={} audio={}", base.getId(), cq.getAudioKey());
         return coreMapper.toResponse(cq);
     }
 
@@ -169,8 +182,9 @@ public class QuestionService {
 
         behavioralMapper.updateEntity(bq, req);
         if (textChanged) {
-            bq.setAudioKey(null);
-            log.info("Text changed for behavioral question id={} — audio_key reset", id);
+            TtsClient.TtsResult tts = ttsClient.synthesize(id, req.getText(), null);
+            bq.setAudioKey(tts.success() ? tts.objectKey() : null);
+            log.info("Text changed for behavioral question id={} — audio_key={}", id, bq.getAudioKey());
         }
 
         return behavioralMapper.toResponse(behavioralRepository.save(bq));
@@ -188,8 +202,9 @@ public class QuestionService {
 
         coreMapper.updateEntity(cq, req);
         if (textChanged) {
-            cq.setAudioKey(null);
-            log.info("Text changed for core question id={} — audio_key reset", id);
+            TtsClient.TtsResult tts = ttsClient.synthesize(id, req.getText(), null);
+            cq.setAudioKey(tts.success() ? tts.objectKey() : null);
+            log.info("Text changed for core question id={} — audio_key={}", id, cq.getAudioKey());
         }
 
         return coreMapper.toResponse(coreRepository.save(cq));

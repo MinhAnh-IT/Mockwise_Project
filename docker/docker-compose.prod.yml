@@ -54,10 +54,17 @@ services:
     restart: unless-stopped
     env_file: ../.env
     environment:
+      # Force prod so application-local.yml's hard-coded dev DB url
+      # is not loaded on top of the env vars below.
+      SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/question_bank
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Sync TTS call after admin creates / updates a behavioral or core question.
+      TTS_STT_SERVICE_URL: http://tts-stt-service:8086
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
     networks: [internal-net]
+    depends_on: [tts-stt-service]
 
   # ─── Storage Service (internal only) ───────────────────────────
   storage-service:
@@ -145,9 +152,8 @@ services:
       TTS_STT_SERVICE_URL: http://tts-stt-service:8086
       AI_EVALUATION_URL: http://ai-evaluation:8000
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
-      # Temporary — expose tts-stt internal endpoints publicly for testing.
-      # Set to false once verification is done.
-      EXPOSE_TTS_STT_INTERNAL: "true"
+      # End-to-end TTS testing finished — internal endpoints are private again.
+      EXPOSE_TTS_STT_INTERNAL: "false"
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
     networks: [public-net, internal-net]
     depends_on: [iam-service, user-profile-service, judge-service, question-bank-service, storage-service, tts-stt-service]
