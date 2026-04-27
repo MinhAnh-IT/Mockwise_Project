@@ -2,6 +2,7 @@ package com.mockwise.questionbank.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.mockwise.questionbank.entity.FunctionMeta;
+import com.mockwise.questionbank.entity.StarterCode;
 import com.mockwise.questionbank.entity.TestCase;
 import com.mockwise.questionbank.enums.Competency;
 import com.mockwise.questionbank.enums.Difficulty;
@@ -76,7 +77,7 @@ public class QuestionSnapshotResponse {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     FunctionMeta functionMeta;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    String starterCode;
+    StarterCode starterCode;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     List<TestCase> testCases;
 }

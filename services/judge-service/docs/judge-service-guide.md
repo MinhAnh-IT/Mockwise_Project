@@ -8,7 +8,7 @@ This guide covers everything you need to submit code for evaluation: request sch
 
 1. [How It Works](#1-how-it-works)
 2. [Submission Request Schema](#2-submission-request-schema)
-   - 2.1 [Language: Java vs Python](#21-language-java-vs-python)
+   - 2.1 [Language: Java, Python, JavaScript, C++](#21-language-java-python-javascript-c)
 3. [functionMeta Reference](#3-functionmeta-reference)
 4. [Naming Conventions](#4-naming-conventions)
 5. [Supported Types](#5-supported-types)
@@ -44,13 +44,19 @@ Client sends SubmissionEvent (via Kafka or REST)
   └─ JudgeResultEvent   publish verdict per test case
 ```
 
-A language-specific driver (`UniversalJavaDriver` or `UniversalPythonDriver`) running inside Judge0:
+A language-specific driver (`UniversalJavaDriver`, `UniversalPythonDriver`, `UniversalJsDriver`, or `UniversalCppDriver`) running inside Judge0:
 - Reads `functionMeta` from **stdin line 1** (JSON)
 - Reads each param value from the subsequent stdin lines
-- Calls `Solution.<fn>(args...)` (Java reflection / Python `getattr`)
+- Calls `Solution.<fn>(args...)` (Java reflection / Python `getattr` / JS dynamic dispatch / C++ statically-generated dispatch)
 - Prints the return value (or first argument if `inPlace: true`) as JSON to stdout
 
 The stdin format and the output format are identical across languages — switching `language` only changes which driver wraps the user code.
+
+> **C++ note.** C++ has no runtime reflection, so `judge-service` performs
+> per-submission codegen: when `language` is `cpp`, the dispatch block inside
+> the driver's `main()` is generated from `functionMeta` at submit time and
+> compiled together with the user's `class Solution`. The wire protocol
+> (stdin / stdout) is unchanged.
 
 ---
 
@@ -69,14 +75,14 @@ The stdin format and the output format are identical across languages — switch
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `submissionId` | UUID string | yes | Unique ID for this submission |
-| `language` | string | yes | `"java"` or `"python"` — see [§2.1](#21-language-java-vs-python) |
+| `language` | string | yes | `"java"`, `"python"`, `"javascript"` (alias `"js"`), or `"cpp"` (alias `"c++"`) — see [§2.1](#21-language-java-python-javascript-c) |
 | `code` | string | yes | The solution body — must contain a class named `Solution` |
 | `functionMeta` | object | yes | Describes the function to call — see section 3 |
 | `testCases` | array | yes | One or more test case objects — see section 3 |
 
-### 2.1 Language: Java vs Python
+### 2.1 Language: Java, Python, JavaScript, C++
 
-Both languages use the same `functionMeta`, `inputData`, and `expectedOutput` shape. The only difference is how user code is structured.
+All four languages use the same `functionMeta`, `inputData`, and `expectedOutput` shape. The only difference is how user code is structured.
 
 **Java:**
 - Must contain `class Solution { ... }`. The judge wraps it; do **not** declare it `public`.
@@ -109,11 +115,60 @@ class Solution:
         return []
 ```
 
-**Output equivalence.** Both drivers emit the exact same stdout for a given test case (e.g. `[0,1]`, `true`, `hello` — top-level strings are unquoted). `OutputComparator` parses stdout as JSON; languages that produce identical JSON pass identically.
+**JavaScript:**
+- Must contain `class Solution { ... }` with the target method defined as a regular instance method (`fn(args) { ... }`).
+- The driver instantiates `new Solution()` and dispatches via property lookup (`sol[fn].apply(sol, args)`).
+- Type strings in `functionMeta.params[].type` stay the same. The JS driver maps them to native JS values: `int[]` / `List<Integer>` → `number[]`, `String[]` → `string[]`, `char[][]` → `string[][]` (each inner item is a 1-char string), `TreeNode` / `ListNode` → instances of the pre-defined classes.
+- `TreeNode` and `ListNode` classes are pre-defined by the driver and visible to user code.
+- Runs on Judge0's Node.js 12.14.0 sandbox.
+
+```javascript
+class Solution {
+    twoSum(nums, target) {
+        const seen = new Map();
+        for (let i = 0; i < nums.length; i++) {
+            const d = target - nums[i];
+            if (seen.has(d)) return [seen.get(d), i];
+            seen.set(nums[i], i);
+        }
+        return [];
+    }
+}
+```
+
+**C++:**
+- Must contain `class Solution { public: ... };` with the target method as a regular non-static member.
+- The driver instantiates `Solution sol;` and calls `sol.<fn>(args...)` directly — the call site is generated at submit time from `functionMeta`.
+- Type strings in `functionMeta.params[].type` map to native C++ types: `int` → `int`, `long` → `long long`, `int[]` / `List<Integer>` → `std::vector<int>`, `String` → `std::string`, `char[][]` → `std::vector<std::vector<char>>`, `TreeNode` → `TreeNode*`, `ListNode` → `ListNode*`, etc.
+- `TreeNode` and `ListNode` are pre-defined as `struct`s by the driver. **Do not redeclare them** in user code — that would be a redefinition error in C++.
+- The driver pre-includes a comprehensive set of standard headers (`<algorithm>`, `<vector>`, `<string>`, `<map>`, `<unordered_map>`, `<set>`, `<unordered_set>`, `<stack>`, `<deque>`, `<queue>`, `<numeric>`, `<sstream>`, `<cmath>`, `<climits>`, `<cstdint>`, …) and `using namespace std;`, so user code can write `vector<int>` / `sort` / `cout` without extra includes.
+- For `inPlace: true` problems, declare the first parameter by reference (`vector<int>&`, `string&`, etc.) so mutations are visible to the driver after the call.
+- Compiled with `gcc -std=c++17` inside Judge0's GCC 9.2.0 sandbox.
+
+```cpp
+class Solution {
+public:
+    vector<int> twoSum(vector<int>& nums, int target) {
+        unordered_map<int, int> seen;
+        for (int i = 0; i < (int)nums.size(); i++) {
+            int d = target - nums[i];
+            if (seen.count(d)) return {seen[d], i};
+            seen[nums[i]] = i;
+        }
+        return {};
+    }
+};
+```
+
+**Output equivalence.** All four drivers emit the exact same stdout for a given test case (e.g. `[0,1]`, `true`, `hello` — top-level strings are unquoted). `OutputComparator` parses stdout as JSON; languages that produce identical JSON pass identically.
 
 **Python boolean note.** The driver detects `bool` before `int` (`isinstance(True, int) == True` in Python is a known gotcha) and prints `true` / `false` to match Java.
 
-**Python char handling.** Python has no `char` primitive. A `char` param is delivered as a 1-char `str`; a `char` return must also be a 1-char `str`. A `char[][]` param is `list[list[str]]` where every inner element is exactly one character.
+**Python / JavaScript char handling.** Neither language has a `char` primitive. A `char` param is delivered as a 1-char string; a `char` return must also be a 1-char string. A `char[][]` param is a 2-D array of 1-char strings.
+
+**JavaScript `long` precision.** JavaScript represents all numbers as 64-bit floats, so `long` values beyond `Number.MAX_SAFE_INTEGER` (`2^53 - 1 = 9007199254740991`) lose precision. Avoid `long` for JS submissions when test cases approach 64-bit boundaries — use `int` or keep values within the safe-integer range.
+
+**C++ memory.** TreeNode / ListNode inputs are heap-allocated by the driver via `new` and never freed — the process exits after one test case so the leak is harmless within Judge0's sandbox.
 
 ### testCases item schema
 

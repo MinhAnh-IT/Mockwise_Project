@@ -84,8 +84,12 @@ elevenlabs:
   api-key: ${ELEVENLABS_API_KEY}
   base-url: ${ELEVENLABS_BASE_URL:https://api.elevenlabs.io}
   default-voice-id: ${ELEVENLABS_DEFAULT_VOICE_ID:21m00Tcm4TlvDq8ikWAM}
-  tts-model: ${ELEVENLABS_TTS_MODEL:eleven_multilingual_v2}
+  # eleven_turbo_v2_5 honours language_code (multilingual_v2 ignores it and
+  # auto-detects). For a Vietnamese-first product turbo gives more reliable
+  # pronunciation than v2 + auto-detect on short sentences.
+  tts-model: ${ELEVENLABS_TTS_MODEL:eleven_turbo_v2_5}
   stt-model: ${ELEVENLABS_STT_MODEL:scribe_v1}
+  default-language-code: ${ELEVENLABS_DEFAULT_LANGUAGE_CODE:vi}
   tts-timeout-ms: ${ELEVENLABS_TIMEOUT_TTS_MS:30000}
   stt-timeout-ms: ${ELEVENLABS_TIMEOUT_STT_MS:600000}
 

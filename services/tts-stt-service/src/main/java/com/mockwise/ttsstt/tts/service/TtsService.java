@@ -35,6 +35,8 @@ public class TtsService {
                 ? req.getVoiceId() : elevenProps.defaultVoiceId();
         String modelId = (req.getModelId() != null && !req.getModelId().isBlank())
                 ? req.getModelId() : elevenProps.ttsModel();
+        String languageCode = (req.getLanguageCode() != null && !req.getLanguageCode().isBlank())
+                ? req.getLanguageCode() : elevenProps.defaultLanguageCode();
 
         String hash = cache.hash(req.getText(), voiceId, modelId);
         TtsCacheEntry hit = cache.get(hash);
@@ -50,10 +52,10 @@ public class TtsService {
                     .build();
         }
 
-        log.info("TTS cache miss — calling ElevenLabs for question={} voice={} model={}",
-                req.getQuestionId(), voiceId, modelId);
+        log.info("TTS cache miss — calling ElevenLabs for question={} voice={} model={} lang={}",
+                req.getQuestionId(), voiceId, modelId, languageCode);
 
-        byte[] audio = elevenLabs.synthesize(req.getText(), voiceId, modelId);
+        byte[] audio = elevenLabs.synthesize(req.getText(), voiceId, modelId, languageCode);
 
         UploadedQuestionAudio uploaded = storage.uploadQuestionAudio(req.getQuestionId(), audio, "audio/mpeg");
 

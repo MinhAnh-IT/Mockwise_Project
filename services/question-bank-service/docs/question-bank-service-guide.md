@@ -187,7 +187,7 @@ core_question.depth_expected → input.question.depth_expected
 | `optimal_time_complexity` | VARCHAR | yes | Độ phức tạp thời gian tối ưu. Ví dụ: `"O(n)"` |
 | `optimal_space_complexity` | VARCHAR | yes | Độ phức tạp không gian tối ưu. Ví dụ: `"O(1)"` |
 | `function_meta` | JSONB | yes | Mô tả hàm cần implement — xem chi tiết bên dưới |
-| `starter_code` | TEXT | no | Template code hiển thị cho ứng viên |
+| `starter_code` | JSONB | no | Template code cho 4 ngôn ngữ — xem chi tiết bên dưới |
 | `test_cases` | JSONB | yes | Mảng test case — xem chi tiết bên dưới |
 
 #### `function_meta` schema
@@ -206,6 +206,19 @@ core_question.depth_expected → input.question.depth_expected
 ```
 
 > Xem [Judge Service Guide](../../judge-service/docs/judge-service-guide.md) để biết đầy đủ các type hợp lệ.
+
+#### `starter_code` schema
+
+```json
+{
+  "java": "public class Solution {\n    public int[] twoSum(int[] nums, int target) {\n    }\n}",
+  "python": "class Solution:\n    def twoSum(self, nums, target):\n        pass",
+  "cpp": "class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n    }\n};",
+  "javascript": "var twoSum = function(nums, target) {\n};"
+}
+```
+
+Mỗi field tương ứng với một ngôn ngữ FE hỗ trợ. Khi candidate đổi ngôn ngữ trong UI, FE đọc đúng key tương ứng để hiển thị template.
 
 #### `test_cases` schema
 
@@ -296,7 +309,7 @@ CREATE TABLE coding_questions (
     optimal_time_complexity    VARCHAR(50)  NOT NULL,
     optimal_space_complexity   VARCHAR(50)  NOT NULL,
     function_meta              JSONB        NOT NULL,
-    starter_code               TEXT,
+    starter_code               JSONB,
     test_cases                 JSONB        NOT NULL DEFAULT '[]'
 );
 

@@ -154,7 +154,12 @@ Tài liệu tra cứu nhanh các schema JSON cho request/response của từng l
     "orderMatters": false,
     "inPlace": false
   },
-  "starter_code": "string | null",
+  "starter_code": {
+    "java": "string",
+    "python": "string",
+    "cpp": "string",
+    "javascript": "string"
+  },
   "test_cases": [
     {
       "id": "string",
@@ -190,7 +195,12 @@ Tài liệu tra cứu nhanh các schema JSON cho request/response của từng l
     "orderMatters": false,
     "inPlace": false
   },
-  "starter_code": "public class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        // write your solution here\n    }\n}",
+  "starter_code": {
+    "java": "public class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        // write your solution here\n    }\n}",
+    "python": "class Solution:\n    def twoSum(self, nums, target):\n        pass",
+    "cpp": "class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n    }\n};",
+    "javascript": "var twoSum = function(nums, target) {\n};"
+  },
   "test_cases": [
     {
       "id": "tc-001",

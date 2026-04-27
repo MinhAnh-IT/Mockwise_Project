@@ -106,8 +106,16 @@ services:
       STORAGE_INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
       ELEVENLABS_BASE_URL: ${ELEVENLABS_BASE_URL:-https://api.elevenlabs.io}
+      # Vietnamese-first defaults. The default voice (Rachel) is English-trained; for
+      # natural Vietnamese pronunciation pick a Vietnamese-native voice from
+      # https://elevenlabs.io/app/voice-library?language=vi and override via
+      # ELEVENLABS_DEFAULT_VOICE_ID in .env.
       ELEVENLABS_DEFAULT_VOICE_ID: ${ELEVENLABS_DEFAULT_VOICE_ID:-21m00Tcm4TlvDq8ikWAM}
-      ELEVENLABS_TTS_MODEL: ${ELEVENLABS_TTS_MODEL:-eleven_multilingual_v2}
+      # eleven_turbo_v2_5 honours language_code (multilingual_v2 ignores it). Combined
+      # with ELEVENLABS_DEFAULT_LANGUAGE_CODE=vi this stops the model from auto-detecting
+      # short Vietnamese sentences as Indonesian / Thai.
+      ELEVENLABS_TTS_MODEL: ${ELEVENLABS_TTS_MODEL:-eleven_turbo_v2_5}
+      ELEVENLABS_DEFAULT_LANGUAGE_CODE: ${ELEVENLABS_DEFAULT_LANGUAGE_CODE:-vi}
       ELEVENLABS_STT_MODEL: ${ELEVENLABS_STT_MODEL:-scribe_v1}
       ELEVENLABS_TIMEOUT_TTS_MS: ${ELEVENLABS_TIMEOUT_TTS_MS:-30000}
       ELEVENLABS_TIMEOUT_STT_MS: ${ELEVENLABS_TIMEOUT_STT_MS:-600000}
