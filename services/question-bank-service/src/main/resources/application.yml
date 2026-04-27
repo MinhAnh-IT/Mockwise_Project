@@ -36,6 +36,15 @@ api:
   response:
     enabled: false
 
+# Sync TTS call after admin creates / updates a behavioral or core question.
+# Failures are logged but do NOT block question creation.
+tts-client:
+  base-url: ${TTS_STT_SERVICE_URL:http://tts-stt-service:8086}
+  internal-api-key: ${INTERNAL_API_KEY:}
+  connect-timeout-ms: ${TTS_CLIENT_CONNECT_TIMEOUT_MS:5000}
+  read-timeout-ms: ${TTS_CLIENT_READ_TIMEOUT_MS:30000}
+  enabled: ${TTS_CLIENT_ENABLED:true}
+
 logging:
   level:
     org.hibernate.SQL: DEBUG
