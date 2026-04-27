@@ -1,0 +1,121 @@
+spring:
+  profiles:
+    default: local
+
+  application:
+    name: tts-stt-service
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      pool-name: TtsSttHikariPool
+      idle-timeout: 30000
+      max-lifetime: 600000
+      connection-timeout: 20000
+
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: none
+    database-platform: org.hibernate.dialect.MySQLDialect
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      timeout: 6000
+
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+    consumer:
+      group-id: tts-stt-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.mockwise.ttsstt.stt.kafka.event.AnswerSubmittedEvent
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+    listener:
+      ack-mode: manual_immediate
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 25MB
+      max-request-size: 25MB
+
+server:
+  port: 8086
+  servlet:
+    context-path: /api/v1/tts-stt
+
+api:
+  response:
+    enabled: false
+
+internal:
+  auth:
+    api-key: ${INTERNAL_API_KEY}
+
+elevenlabs:
+  api-key: ${ELEVENLABS_API_KEY}
+  base-url: ${ELEVENLABS_BASE_URL:https://api.elevenlabs.io}
+  default-voice-id: ${ELEVENLABS_DEFAULT_VOICE_ID:21m00Tcm4TlvDq8ikWAM}
+  tts-model: ${ELEVENLABS_TTS_MODEL:eleven_multilingual_v2}
+  stt-model: ${ELEVENLABS_STT_MODEL:scribe_v1}
+  tts-timeout-ms: ${ELEVENLABS_TIMEOUT_TTS_MS:30000}
+  stt-timeout-ms: ${ELEVENLABS_TIMEOUT_STT_MS:600000}
+
+storage-client:
+  base-url: ${STORAGE_SERVICE_BASE_URL:http://storage-service:8085}
+  internal-api-key: ${STORAGE_INTERNAL_API_KEY:${INTERNAL_API_KEY}}
+  download-ttl-seconds: 600
+  connect-timeout-ms: 5000
+  read-timeout-ms: 60000
+
+tts-stt:
+  ffmpeg:
+    bin: ${FFMPEG_BIN:/usr/bin/ffmpeg}
+    tmp-dir: ${FFMPEG_TMP_DIR:/tmp/tts-stt}
+  tts:
+    max-text-length: 5000
+    cache-ttl-seconds: 7776000     # 90 days
+  stt:
+    max-video-size-bytes: 524288000     # 500 MB
+    max-duration-seconds: 1800          # 30 min
+    max-attempts: 3
+    processing-timeout-minutes: 15
+  kafka:
+    topic-answer-submitted: ${KAFKA_TOPIC_ANSWER_SUBMITTED:answer-submitted}
+    topic-transcript-ready: ${KAFKA_TOPIC_TRANSCRIPT_READY:transcript-ready}
+    topic-transcript-failed: ${KAFKA_TOPIC_TRANSCRIPT_FAILED:transcript-failed}
+
+logging:
+  level:
+    org.hibernate.SQL: INFO
+    org.springframework.kafka: INFO
+    org.apache.kafka.clients.consumer: INFO
+    org.apache.kafka.clients.NetworkClient: WARN

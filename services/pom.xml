@@ -24,6 +24,7 @@
         <module>api-gateway</module>
         <module>question-bank-service</module>
         <module>storage-service</module>
+        <module>tts-stt-service</module>
     </modules>
 
     <properties>

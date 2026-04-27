@@ -22,6 +22,7 @@ jobs:
       judge-service:        ${{ steps.filter.outputs.judge-service }}
       question-bank-service: ${{ steps.filter.outputs.question-bank-service }}
       storage-service:      ${{ steps.filter.outputs.storage-service }}
+      tts-stt-service:      ${{ steps.filter.outputs.tts-stt-service }}
       ai-evaluation:        ${{ steps.filter.outputs.ai-evaluation }}
       frontend:             ${{ steps.filter.outputs.frontend }}
       swagger-config:       ${{ steps.filter.outputs.swagger-config }}
@@ -51,6 +52,9 @@ jobs:
               - 'services/pom.xml'
             storage-service:
               - 'services/storage-service/**'
+              - 'services/pom.xml'
+            tts-stt-service:
+              - 'services/tts-stt-service/**'
               - 'services/pom.xml'
             ai-evaluation:
               - 'AI/AI-Evaluation/**'
@@ -269,6 +273,35 @@ jobs:
           cache-from: type=gha,scope=storage-service
           cache-to:   type=gha,scope=storage-service,mode=max
 
+  build-tts-stt-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.tts-stt-service == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set image prefix
+        run: echo "IMAGE_PREFIX=${GITHUB_REPOSITORY_OWNER,,}/mockwise_project" >> $GITHUB_ENV
+      - uses: docker/build-push-action@v6
+        with:
+          context: services
+          file: services/tts-stt-service/Dockerfile
+          push: true
+          build-args: PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/tts-stt-service:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/tts-stt-service:${{ github.sha }}
+          cache-from: type=gha,scope=tts-stt-service
+          cache-to:   type=gha,scope=tts-stt-service,mode=max
+
   build-ai-evaluation:
     needs: detect-changes
     if: needs.detect-changes.outputs.ai-evaluation == 'true'
@@ -338,6 +371,7 @@ jobs:
       - build-judge-service
       - build-question-bank-service
       - build-storage-service
+      - build-tts-stt-service
       - build-ai-evaluation
       - build-frontend
     # Run if: no job failed AND either a build succeeded OR a config-only change
@@ -368,6 +402,7 @@ jobs:
           [ "${{ needs.detect-changes.outputs.judge-service }}"        = "true" ] && list="$list judge-service"
           [ "${{ needs.detect-changes.outputs.question-bank-service }}" = "true" ] && list="$list question-bank-service"
           [ "${{ needs.detect-changes.outputs.storage-service }}"      = "true" ] && list="$list storage-service"
+          [ "${{ needs.detect-changes.outputs.tts-stt-service }}"      = "true" ] && list="$list tts-stt-service"
           [ "${{ needs.detect-changes.outputs.ai-evaluation }}"        = "true" ] && list="$list ai-evaluation"
           [ "${{ needs.detect-changes.outputs.frontend }}"             = "true" ] && list="$list frontend"
           [ "${{ needs.detect-changes.outputs.swagger-config }}"       = "true" ] && list="$list swagger-ui"
