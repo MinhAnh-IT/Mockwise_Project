@@ -38,11 +38,11 @@ public class ElevenLabsTtsClient {
         body.put("text", text);
         body.put("model_id", modelId);
         body.put("voice_settings", Map.of("stability", 0.5, "similarity_boost", 0.75));
-        // language_code is honored by eleven_turbo_v2_5 / eleven_flash_v2_5 / eleven_v3.
-        // eleven_multilingual_v2 ignores the field and auto-detects, so passing it is
-        // safe across models. Sending it explicitly avoids Vietnamese text being mis-detected
-        // as Indonesian / Thai when sentences are short.
-        if (languageCode != null && !languageCode.isBlank()) {
+        // language_code is supported by turbo_v2_5 / flash_v2_5 / eleven_v3; multilingual_v2
+        // rejects it with HTTP 400 ("Model X does not support language_code Y"). Skip the
+        // field for any model that does not opt in, so callers can keep sending a global
+        // languageCode default without us having to mirror ElevenLabs' compatibility matrix.
+        if (languageCode != null && !languageCode.isBlank() && supportsLanguageCode(modelId)) {
             body.put("language_code", languageCode);
         }
 
@@ -87,5 +87,12 @@ public class ElevenLabsTtsClient {
 
     public ElevenLabsProperties props() {
         return props;
+    }
+
+    private static boolean supportsLanguageCode(String modelId) {
+        if (modelId == null) return false;
+        return modelId.startsWith("eleven_turbo_v2_5")
+                || modelId.startsWith("eleven_flash_v2_5")
+                || modelId.startsWith("eleven_v3");
     }
 }
