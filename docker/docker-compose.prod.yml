@@ -136,10 +136,15 @@ services:
       JUDGE_SERVICE_URL: http://judge-service:8083
       QUESTION_BANK_SERVICE_URL: http://question-bank-service:8084
       STORAGE_SERVICE_URL: http://storage-service:8085
+      TTS_STT_SERVICE_URL: http://tts-stt-service:8086
       AI_EVALUATION_URL: http://ai-evaluation:8000
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      # Temporary — expose tts-stt internal endpoints publicly for testing.
+      # Set to false once verification is done.
+      EXPOSE_TTS_STT_INTERNAL: "true"
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
     networks: [public-net, internal-net]
-    depends_on: [iam-service, user-profile-service, judge-service, question-bank-service, storage-service]
+    depends_on: [iam-service, user-profile-service, judge-service, question-bank-service, storage-service, tts-stt-service]
 
   # ─── AI Evaluation (internal only) ─────────────────────────────
   ai-evaluation:
@@ -178,7 +183,8 @@ services:
          {"url":"/api-spec/user-profile-service.yaml","name":"User Profile Service"},
          {"url":"/api-spec/judge-service.yaml","name":"Judge Service"},
          {"url":"/api-spec/question-bank-service.yaml","name":"Question Bank Service"},
-         {"url":"/api-spec/storage-service.yaml","name":"Storage Service"}]
+         {"url":"/api-spec/storage-service.yaml","name":"Storage Service"},
+         {"url":"/api-spec/tts-stt-service.yaml","name":"TTS-STT Service"}]
     networks: [internal-net]
 
   # ─── Nginx (only service exposed to the internet) ─────────────

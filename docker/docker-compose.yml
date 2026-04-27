@@ -157,6 +157,7 @@ services:
       - USER_PROFILE_SERVICE_URL=http://user-profile-service:8082
       - JUDGE_SERVICE_URL=http://judge-service:8083
       - STORAGE_SERVICE_URL=http://storage-service:8085
+      - TTS_STT_SERVICE_URL=http://tts-stt-service:8086
       - AI_EVALUATION_URL=http://ai-evaluation:8000
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     networks:
@@ -167,6 +168,7 @@ services:
       - user-profile-service
       - judge-service
       - storage-service
+      - tts-stt-service
 
   # ─── AI Evaluation (internal only) ─────────────────────────────
   ai-evaluation:

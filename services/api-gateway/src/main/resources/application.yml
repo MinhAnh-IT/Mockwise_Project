@@ -47,6 +47,11 @@ spring:
           predicates:
             - Path=/api/v1/storage/**
 
+        - id: tts-stt-service
+          uri: ${TTS_STT_SERVICE_URL:http://localhost:8086}
+          predicates:
+            - Path=/api/v1/tts-stt/**
+
         - id: user-profile-service
           uri: ${USER_PROFILE_SERVICE_URL:http://localhost:8082}
           predicates:
@@ -59,6 +64,14 @@ server:
 app:
   iam:
     url: ${IAM_SERVICE_URL:http://localhost:8081}
+  internal:
+    # Re-injected as X-Internal-Auth when forwarding to internal endpoints that the
+    # gateway has been told to expose temporarily (see app.tts-stt.expose-internal).
+    api-key: ${INTERNAL_API_KEY:}
+  tts-stt:
+    # Temporary: expose /api/v1/tts-stt/internal/** through the gateway for end-to-end
+    # testing on the deployed VPS. Set to false when done.
+    expose-internal: ${EXPOSE_TTS_STT_INTERNAL:false}
 
 management:
   endpoints:
