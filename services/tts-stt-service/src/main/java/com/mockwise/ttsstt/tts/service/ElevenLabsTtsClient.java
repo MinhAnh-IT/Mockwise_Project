@@ -33,11 +33,18 @@ public class ElevenLabsTtsClient {
     /**
      * Synthesize text → mp3 bytes via ElevenLabs.
      */
-    public byte[] synthesize(String text, String voiceId, String modelId) {
-        Map<String, Object> body = Map.of(
-                "text", text,
-                "model_id", modelId,
-                "voice_settings", Map.of("stability", 0.5, "similarity_boost", 0.75));
+    public byte[] synthesize(String text, String voiceId, String modelId, String languageCode) {
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("text", text);
+        body.put("model_id", modelId);
+        body.put("voice_settings", Map.of("stability", 0.5, "similarity_boost", 0.75));
+        // language_code is honored by eleven_turbo_v2_5 / eleven_flash_v2_5 / eleven_v3.
+        // eleven_multilingual_v2 ignores the field and auto-detects, so passing it is
+        // safe across models. Sending it explicitly avoids Vietnamese text being mis-detected
+        // as Indonesian / Thai when sentences are short.
+        if (languageCode != null && !languageCode.isBlank()) {
+            body.put("language_code", languageCode);
+        }
 
         try {
             byte[] audio = client.post()

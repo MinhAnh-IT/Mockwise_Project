@@ -9,6 +9,7 @@ public record ElevenLabsProperties(
         String defaultVoiceId,
         String ttsModel,
         String sttModel,
+        String defaultLanguageCode,
         int ttsTimeoutMs,
         int sttTimeoutMs
 ) {}
