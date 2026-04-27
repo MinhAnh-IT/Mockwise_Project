@@ -65,6 +65,9 @@ services:
     restart: unless-stopped
     env_file: ../.env
     environment:
+      # Force prod so application-local.yml's hard-coded dev values
+      # (internal.auth.api-key=dev-internal-key-change-me) are not loaded.
+      SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/storage
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -81,6 +84,9 @@ services:
     restart: unless-stopped
     env_file: ../.env
     environment:
+      # Force prod so application-local.yml's hard-coded dev values
+      # (storage-client.base-url, ffmpeg path, scoped api-keys) are not loaded.
+      SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT:-3306}/tts_stt?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
