@@ -47,6 +47,11 @@ spring:
           predicates:
             - Path=/api/v1/storage/**
 
+        - id: tts-stt-service
+          uri: ${TTS_STT_SERVICE_URL:http://localhost:8086}
+          predicates:
+            - Path=/api/v1/tts-stt/**
+
         - id: user-profile-service
           uri: ${USER_PROFILE_SERVICE_URL:http://localhost:8082}
           predicates:

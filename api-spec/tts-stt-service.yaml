@@ -1,0 +1,567 @@
+openapi: 3.0.3
+
+info:
+  title: MockWise — TTS-STT Service
+  version: 1.0.0
+  description: |
+    Bridges the platform with ElevenLabs for two flows:
+
+    - **Text → Speech (TTS)** — `question-bank-service` calls this synchronously when an
+      admin creates or updates a behavioral / core question. The service generates an mp3
+      via ElevenLabs, uploads it to `storage-service` (bucket `question-audio`), caches the
+      result by `sha256(text + voice + model)`, and returns the storage `objectKey` for the
+      caller to persist on the question row.
+
+    - **Speech → Text (STT)** — driven by Kafka. `interview-service` publishes
+      `answer-submitted` after a candidate uploads their video answer; this service consumes,
+      pulls the video via a presigned URL from storage, extracts audio with ffmpeg, sends it
+      to ElevenLabs Scribe, and persists the transcript (text + word-level timestamps).
+      Completion is announced on `transcript-ready` (or `transcript-failed`) — only
+      `interview-service` consumes that.
+
+    All public traffic goes through the API Gateway: **`http://localhost:8888`**
+    Direct service port (dev only): `8086` (context-path: `/api/v1/tts-stt`)
+
+    ### Two classes of endpoints
+
+    | Class    | Path prefix                       | Auth                         | Reachable from                                        |
+    |----------|-----------------------------------|------------------------------|-------------------------------------------------------|
+    | Public   | `/api/v1/tts-stt/health`          | none                         | Public network via gateway (liveness only)            |
+    | Internal | `/api/v1/tts-stt/internal/**`     | `X-Internal-Auth: <secret>`  | Internal network only — gateway returns 404 otherwise |
+
+    ### Design notes
+
+    - **Audio bytes never flow through public callers.** TTS uploads directly to storage;
+      STT pulls directly from storage. Callers only exchange small JSON pointers.
+    - **Idempotent.** TTS is keyed by content hash; STT is keyed by `storageObjectId`
+      (UNIQUE constraint on `stt_job`). Re-submitting the same input does not re-bill.
+    - **STT trigger is event-driven.** The REST endpoint exists for replay / admin tooling;
+      production traffic flows through Kafka. See [tts-stt-service-design.md](../services/tts-stt-service/docs/tts-stt-service-design.md).
+    - **Service does not re-check ACL.** It trusts internal callers after the
+      `X-Internal-Auth` handshake; gating belongs to `interview-service`.
+
+servers:
+  - url: http://localhost:8888
+    description: Local via API Gateway (public endpoints only)
+  - url: http://localhost:8086
+    description: Direct (dev only — required for /internal/** endpoints)
+
+tags:
+  - name: TTS
+    description: Text-to-speech for question audio (internal — called by question-bank)
+  - name: STT
+    description: Speech-to-text for interview answers (internal — called by interview-service)
+  - name: Health
+    description: Liveness probe
+
+components:
+  securitySchemes:
+    internalAuth:
+      type: apiKey
+      in: header
+      name: X-Internal-Auth
+      description: |
+        Shared secret for service-to-service calls. The api-gateway strips this header
+        from any incoming public request, so it can only be set by callers that already
+        live on the internal network (e.g. question-bank-service, interview-service).
+
+  schemas:
+    # ── Enums ──────────────────────────────────────────────────────────────────
+
+    SttJobStatus:
+      type: string
+      enum: [PENDING, PROCESSING, READY, FAILED]
+      description: |
+        - `PENDING` — job created, not yet picked up by a worker.
+        - `PROCESSING` — worker is downloading / extracting / transcribing.
+        - `READY` — transcript persisted; `transcriptId` is set.
+        - `FAILED` — terminal failure; `errorCode` / `errorMessage` populated.
+
+    # ── Requests ──────────────────────────────────────────────────────────────
+
+    TtsSynthesizeRequest:
+      type: object
+      required: [questionId, text]
+      properties:
+        questionId:
+          type: string
+          description: Question id this audio is generated for. Used for audit logs only.
+          example: "01JXAA9P2K8R3C4FZ8N7H5BWAQ"
+        text:
+          type: string
+          minLength: 1
+          maxLength: 5000
+          description: |
+            Text to synthesize. Hard cap at 5000 characters — longer payloads are rejected
+            with `4001`. Whitespace is preserved as-is.
+          example: "Tell me about a time you faced a tight deadline."
+        voiceId:
+          type: string
+          nullable: true
+          description: |
+            ElevenLabs voice id. If omitted, the service default (`ELEVENLABS_DEFAULT_VOICE_ID`)
+            is used. Different voices produce different cache entries.
+          example: "21m00Tcm4TlvDq8ikWAM"
+        modelId:
+          type: string
+          nullable: true
+          description: |
+            ElevenLabs model id. Defaults to `eleven_multilingual_v2`. Different models
+            produce different cache entries.
+          example: "eleven_multilingual_v2"
+        languageCode:
+          type: string
+          nullable: true
+          description: |
+            ISO 639-1 hint. Optional — multilingual_v2 auto-detects. Set only when forcing
+            a language (e.g. `vi` with `eleven_turbo_v2_5`).
+          example: "en"
+
+    CreateTranscriptRequest:
+      type: object
+      required: [storageObjectId, answerId, sessionId, questionId, ownerUserId]
+      description: |
+        Replay / fallback payload. Production STT triggers come from the
+        `answer-submitted` Kafka topic, not this endpoint.
+      properties:
+        storageObjectId:
+          type: string
+          description: |
+            UUID of the video object in storage-service. Idempotency key — calling twice
+            with the same value returns the existing job (unless `force: true`).
+          example: "0a1b2c3d-4e5f-6789-abcd-ef0123456789"
+        answerId:
+          type: string
+          description: Answer id from interview-service. Carried through to the transcript-ready event.
+        sessionId:
+          type: string
+          description: Interview session id. Indexed for queries / debugging.
+        questionId:
+          type: string
+          description: Question id this answer is for.
+        ownerUserId:
+          type: string
+          description: End-user who recorded the answer. Used in audit logs.
+        objectKey:
+          type: string
+          nullable: true
+          description: |
+            Storage object key (e.g. `u-7f3a/sess-01JX9P/8f1c3a4d-...`). Optional —
+            the worker re-resolves it via storage-service when not provided.
+        contentType:
+          type: string
+          nullable: true
+          example: "video/webm"
+        sizeBytes:
+          type: integer
+          format: int64
+          nullable: true
+        languageCode:
+          type: string
+          nullable: true
+          description: |
+            ISO 639-1 hint forwarded to ElevenLabs Scribe. Optional — when omitted
+            the model auto-detects.
+          example: "en"
+        force:
+          type: boolean
+          default: false
+          description: |
+            When `true`, ignores any existing READY job for the same `storageObjectId`
+            and creates a fresh job (will re-bill ElevenLabs). Use only for replay.
+
+    # ── Responses (raw payloads — wrapped in ApiResponse below) ───────────────
+
+    TtsSynthesizeResponse:
+      type: object
+      properties:
+        objectId:
+          type: string
+          description: storage-service object id (UUID).
+          example: "ab12cd34-ef56-7890-abcd-ef1234567890"
+        objectKey:
+          type: string
+          description: |
+            Storage key under the `audio/` prefix. Persist this in
+            `question-bank.<table>.audio_key`.
+          example: "audio/8f1c3a4d-9a2b-4e7f-8c1d-2a4b6c8e0f12"
+        bucket:
+          type: string
+          example: "question-audio"
+        sizeBytes:
+          type: integer
+          format: int64
+          description: Size of the generated mp3 in bytes.
+          example: 184320
+        durationMs:
+          type: integer
+          nullable: true
+          description: |
+            Duration of the audio in milliseconds. May be null if the cache entry
+            predates duration-tracking.
+          example: 8540
+        cached:
+          type: boolean
+          description: |
+            `true` if served from cache (no ElevenLabs call). Caller can use this
+            to skip an unnecessary `audio_key` write when nothing changed.
+
+    SttJobResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+        status:
+          $ref: '#/components/schemas/SttJobStatus'
+        storageObjectId:
+          type: string
+        answerId:
+          type: string
+        transcriptId:
+          type: string
+          nullable: true
+          description: Set only when `status = READY`.
+        errorCode:
+          type: string
+          nullable: true
+          description: |
+            One of: `ELEVENLABS_5XX`, `AUDIO_EXTRACT_FAILED`, `DOWNLOAD_FAILED`,
+            `INVALID_AUDIO`. Null on success / in-flight.
+        errorMessage:
+          type: string
+          nullable: true
+        attemptCount:
+          type: integer
+          description: Number of worker attempts so far. Capped by `STT_MAX_ATTEMPTS`.
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    TranscriptWord:
+      type: object
+      description: |
+        Raw word entry as returned by ElevenLabs Scribe. `start` / `end` are seconds
+        from the start of the audio.
+      properties:
+        text:
+          type: string
+          example: "Hello"
+        type:
+          type: string
+          nullable: true
+          description: ElevenLabs marker — typically `word`, `spacing`, or `audio_event`.
+          example: "word"
+        start:
+          type: number
+          format: double
+          example: 0.12
+        end:
+          type: number
+          format: double
+          example: 0.34
+        speakerId:
+          type: string
+          nullable: true
+          description: |
+            Diarization label. Always a single speaker today; populated for forward
+            compatibility with panel interviews.
+          example: "speaker_1"
+        confidence:
+          type: number
+          format: double
+          nullable: true
+          example: 0.98
+
+    TranscriptResponse:
+      type: object
+      properties:
+        transcriptId:
+          type: string
+        sttJobId:
+          type: string
+        answerId:
+          type: string
+        sessionId:
+          type: string
+        questionId:
+          type: string
+        text:
+          type: string
+          description: Concatenated transcript text. Word boundaries preserved by `words[]`.
+        languageCode:
+          type: string
+          example: "en"
+        languageConfidence:
+          type: number
+          format: float
+          nullable: true
+          example: 0.99
+        words:
+          type: array
+          items:
+            $ref: '#/components/schemas/TranscriptWord'
+        durationMs:
+          type: integer
+          nullable: true
+        modelId:
+          type: string
+          example: "scribe_v1"
+        createdAt:
+          type: string
+          format: date-time
+
+    # ── Standard envelope ─────────────────────────────────────────────────────
+
+    ApiResponse:
+      type: object
+      required: [success, code]
+      properties:
+        success:
+          type: boolean
+        code:
+          type: integer
+          description: |
+            Service-specific status code. `1000` is success; values `4001` and up are
+            documented in the [error codes table](../services/tts-stt-service/docs/tts-stt-service-design.md#10-error-codes).
+        message:
+          type: string
+          nullable: true
+        data:
+          nullable: true
+
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      example:
+        success: false
+        code: 4001
+        message: "Text length exceeds maximum (5000 chars)"
+        data: null
+
+  responses:
+    BadRequest:
+      description: |
+        Validation error. Common codes: `4001` (text too long), `4002` (voice invalid),
+        `4003` (object not READY), `4004` (audio too long), `4005` (extract failed).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Missing or invalid `X-Internal-Auth` (code `4011`)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Job / transcript does not exist (code `4041`)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    TooManyRequests:
+      description: Service-side rate limit hit (code `4291`)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadGateway:
+      description: |
+        Upstream failure. Codes: `5001` (ElevenLabs TTS), `5003` (ElevenLabs Scribe),
+        `5005` (storage-service).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    GatewayTimeout:
+      description: ElevenLabs TTS timeout (code `5002`)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+paths:
+  /api/v1/tts-stt/health:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      description: |
+        Returns 200 if the service is up. Does **not** call ElevenLabs or storage —
+        deeper readiness checks belong on a separate endpoint.
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/v1/tts-stt/internal/tts:
+    post:
+      tags: [TTS]
+      summary: Synthesize text → mp3 and upload to storage-service
+      description: |
+        Synchronous TTS pipeline:
+
+        1. Compute `sha256(text + voiceId + modelId)`.
+        2. **Cache hit** — return the cached `objectKey` (no ElevenLabs call). `cached: true`.
+        3. **Cache miss** — POST to ElevenLabs `/v1/text-to-speech/{voiceId}`, then
+           upload the mp3 to storage-service (`/internal/question-audio`), then write the
+           cache entry. `cached: false`.
+
+        The caller is expected to persist `objectKey` on the question row. The service
+        does **not** call back into question-bank.
+
+        Reachable only from the internal network — the api-gateway returns 404 for any
+        path containing `/internal/`.
+      security:
+        - internalAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TtsSynthesizeRequest'
+      responses:
+        '200':
+          description: Audio generated (or served from cache) and stored
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TtsSynthesizeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /api/v1/tts-stt/internal/transcripts:
+    post:
+      tags: [STT]
+      summary: Replay / fallback trigger for STT (admin / backfill only)
+      description: |
+        Equivalent to publishing an `answer-submitted` Kafka event — used by
+        interview-service for replay or when Kafka is unavailable. Returns immediately
+        with the job in `PROCESSING`; completion arrives via `transcript-ready` /
+        `transcript-failed` (the consumer is `interview-service`, not the caller of
+        this endpoint).
+
+        ### Idempotency
+
+        Keyed by `storageObjectId`:
+        - If a `READY` job exists and `force: false`, returns that job's status and
+          `transcriptId` without re-billing.
+        - If `force: true`, creates a new job and re-runs the pipeline.
+
+        Reachable only from the internal network.
+      security:
+        - internalAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTranscriptRequest'
+      responses:
+        '202':
+          description: Job created or replay queued
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SttJobResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/v1/tts-stt/internal/transcripts/{transcriptId}:
+    get:
+      tags: [STT]
+      summary: Fetch transcript text + word timestamps
+      description: |
+        Called by `interview-service` (and forwarded to AI-Evaluation) after consuming
+        `transcript-ready`. Word-level timestamps are returned verbatim from ElevenLabs
+        Scribe — useful for pace/filler detection in evaluation.
+
+        Reachable only from the internal network.
+      security:
+        - internalAuth: []
+      parameters:
+        - in: path
+          name: transcriptId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transcript found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TranscriptResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/tts-stt/internal/jobs/{jobId}:
+    get:
+      tags: [STT]
+      summary: Inspect an STT job (debug / observability)
+      description: |
+        Returns the live status of a job. Intended for ops / debugging — production
+        consumers should rely on the Kafka events instead of polling.
+
+        Reachable only from the internal network.
+      security:
+        - internalAuth: []
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SttJobResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'

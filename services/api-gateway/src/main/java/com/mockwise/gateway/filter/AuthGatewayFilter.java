@@ -69,7 +69,10 @@ public class AuthGatewayFilter implements GlobalFilter, Ordered {
             new PublicRoute(HttpMethod.GET,  "/api/v1/question-bank/questions/*/audio-key"),
 
             // Storage Service — liveness probe (uploads/** still require JWT)
-            new PublicRoute(HttpMethod.GET,  "/api/v1/storage/health")
+            new PublicRoute(HttpMethod.GET,  "/api/v1/storage/health"),
+
+            // TTS-STT Service — liveness probe (internal/** is blocked by isInternalPath)
+            new PublicRoute(HttpMethod.GET,  "/api/v1/tts-stt/health")
     );
 
     @Override
