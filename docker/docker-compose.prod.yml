@@ -151,9 +151,6 @@ services:
       STORAGE_SERVICE_URL: http://storage-service:8085
       TTS_STT_SERVICE_URL: http://tts-stt-service:8086
       AI_EVALUATION_URL: http://ai-evaluation:8000
-      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
-      # End-to-end TTS testing finished — internal endpoints are private again.
-      EXPOSE_TTS_STT_INTERNAL: "false"
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
     networks: [public-net, internal-net]
     depends_on: [iam-service, user-profile-service, judge-service, question-bank-service, storage-service, tts-stt-service]
