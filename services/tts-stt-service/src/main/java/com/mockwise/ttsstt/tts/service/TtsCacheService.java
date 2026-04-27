@@ -28,7 +28,7 @@ public class TtsCacheService {
 
     private static final String KEY_PREFIX = "tts:cache:v1:";
 
-    RedisTemplate<String, Object> redis;
+    RedisTemplate<String, TtsCacheEntry> redis;
     TtsSttProperties props;
 
     public String hash(String text, String voiceId, String modelId) {
@@ -46,9 +46,12 @@ public class TtsCacheService {
     }
 
     public TtsCacheEntry get(String contentHash) {
-        Object v = redis.opsForValue().get(KEY_PREFIX + contentHash);
-        if (v instanceof TtsCacheEntry e) return e;
-        return null;
+        try {
+            return redis.opsForValue().get(KEY_PREFIX + contentHash);
+        } catch (Exception ex) {
+            log.warn("Failed to read tts cache for hash={} — treating as miss", contentHash, ex);
+            return null;
+        }
     }
 
     public void put(String contentHash, TtsCacheEntry entry) {
