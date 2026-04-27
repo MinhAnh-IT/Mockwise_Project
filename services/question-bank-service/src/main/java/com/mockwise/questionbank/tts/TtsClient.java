@@ -36,7 +36,7 @@ public class TtsClient {
         this.props = props;
     }
 
-    public TtsResult synthesize(String questionId, String text, String languageCode) {
+    public TtsResult synthesize(String questionId, String text) {
         if (!props.enabled()) {
             log.info("TTS disabled by config — skipping synthesis for question={}", questionId);
             return TtsResult.skipped();
@@ -45,8 +45,9 @@ public class TtsClient {
         Map<String, Object> body = new HashMap<>();
         body.put("questionId", questionId);
         body.put("text", text);
-        if (languageCode != null && !languageCode.isBlank()) {
-            body.put("languageCode", languageCode);
+        String lang = props.defaultLanguageCode();
+        if (lang != null && !lang.isBlank()) {
+            body.put("languageCode", lang);
         }
 
         try {

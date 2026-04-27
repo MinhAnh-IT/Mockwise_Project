@@ -14,5 +14,11 @@ public record TtsClientProperties(
         String internalApiKey,
         int connectTimeoutMs,
         int readTimeoutMs,
-        boolean enabled
+        boolean enabled,
+        /**
+         * ISO 639-1 hint sent to ElevenLabs. Defaults to {@code vi} because the
+         * platform serves Vietnamese candidates today; switch when adding other
+         * languages or set to {@code null} to let ElevenLabs auto-detect.
+         */
+        String defaultLanguageCode
 ) {}

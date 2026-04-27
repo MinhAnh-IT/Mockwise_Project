@@ -44,6 +44,7 @@ tts-client:
   connect-timeout-ms: ${TTS_CLIENT_CONNECT_TIMEOUT_MS:5000}
   read-timeout-ms: ${TTS_CLIENT_READ_TIMEOUT_MS:30000}
   enabled: ${TTS_CLIENT_ENABLED:true}
+  default-language-code: ${TTS_DEFAULT_LANGUAGE_CODE:vi}
 
 logging:
   level:
