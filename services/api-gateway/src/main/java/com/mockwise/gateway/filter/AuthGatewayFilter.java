@@ -35,20 +35,6 @@ public class AuthGatewayFilter implements GlobalFilter, Ordered {
     @Value("${app.iam.url}")
     private String iamUrl;
 
-    /**
-     * Temporary flag: when {@code true}, requests to {@code /api/v1/tts-stt/internal/**}
-     * skip JWT/internal-path enforcement and the gateway injects {@code X-Internal-Auth}
-     * from {@link #internalApiKey}. Set via {@code EXPOSE_TTS_STT_INTERNAL=true} in the
-     * gateway env. Default: {@code false} — flip back when done testing.
-     */
-    @Value("${app.tts-stt.expose-internal:false}")
-    private boolean exposeTtsSttInternal;
-
-    @Value("${app.internal.api-key:}")
-    private String internalApiKey;
-
-    private static final String TTS_STT_INTERNAL_PREFIX = "/api/v1/tts-stt/internal/";
-
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
     private record PublicRoute(HttpMethod method, String pattern) {}
@@ -104,22 +90,6 @@ public class AuthGatewayFilter implements GlobalFilter, Ordered {
         ServerWebExchange sanitizedExchange = exchange.mutate().request(sanitized).build();
 
         String pathValue = sanitized.getPath().value();
-
-        // Temporary public exposure of tts-stt internal endpoints for end-to-end
-        // testing on the deployed VPS. Forwards with X-Internal-Auth re-injected from
-        // gateway env so the downstream filter accepts the request. Disable by setting
-        // EXPOSE_TTS_STT_INTERNAL=false (or removing it) on api-gateway.
-        if (exposeTtsSttInternal && pathValue.startsWith(TTS_STT_INTERNAL_PREFIX)) {
-            if (internalApiKey == null || internalApiKey.isBlank()) {
-                log.error("EXPOSE_TTS_STT_INTERNAL=true but INTERNAL_API_KEY not configured");
-                return writeError(exchange, HttpStatus.INTERNAL_SERVER_ERROR, "Gateway misconfigured");
-            }
-            log.warn("Exposing internal tts-stt endpoint publicly: {} (testing mode)", pathValue);
-            ServerHttpRequest withInternalAuth = sanitized.mutate()
-                    .header("X-Internal-Auth", internalApiKey)
-                    .build();
-            return chain.filter(sanitizedExchange.mutate().request(withInternalAuth).build());
-        }
 
         // Internal service-to-service paths must never be reachable from the public network.
         if (isInternalPath(pathValue)) {
