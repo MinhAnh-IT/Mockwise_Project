@@ -14,6 +14,7 @@ COPY user-profile-service/pom.xml user-profile-service/pom.xml
 COPY mail-service/pom.xml mail-service/pom.xml
 COPY question-bank-service/pom.xml question-bank-service/pom.xml
 COPY storage-service/pom.xml storage-service/pom.xml
+COPY tts-stt-service/pom.xml tts-stt-service/pom.xml
 COPY mail-service/src mail-service/src
 RUN mvn -B -pl mail-service clean package -DskipTests
 
