@@ -7,7 +7,7 @@ spring:
           predicates:
             - Path=/api/v1/iam/**
 
-        - id: ai-evaluation
+        - id: ai-service
           uri: http://localhost:8000
           predicates:
             - Path=/api/ai/**

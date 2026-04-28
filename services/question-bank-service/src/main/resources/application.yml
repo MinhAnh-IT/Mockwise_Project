@@ -27,6 +27,9 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
 
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
 server:
   port: 8084
   servlet:
