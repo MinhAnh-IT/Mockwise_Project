@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Union
 from pydantic import BaseModel, Field
 
 
@@ -30,7 +30,10 @@ class QuestionBankEvent(BaseModel):
     """Wire format of events on topic question-bank-events (camelCase from Java side)."""
     eventId: str
     eventType: EventType
-    occurredAt: str  # ISO-8601 string from Java OffsetDateTime
+    # Java's OffsetDateTime serialises to ISO-8601 string when JsonSerializer
+    # has JavaTimeModule registered. We accept float/int as a fallback in case
+    # an older producer (without that config) sends epoch seconds.
+    occurredAt: Union[str, float, int]
     questionId: str
     questionType: Literal["BEHAVIORAL", "CORE_CONCEPTUAL", "LIVE_CODING"]
     snapshot: Optional[EventSnapshot] = None
