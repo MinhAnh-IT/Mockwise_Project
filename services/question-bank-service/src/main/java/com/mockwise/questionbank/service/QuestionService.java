@@ -13,6 +13,7 @@ import com.mockwise.questionbank.enums.*;
 import com.mockwise.questionbank.mapper.BehavioralMapper;
 import com.mockwise.questionbank.mapper.CodingMapper;
 import com.mockwise.questionbank.mapper.CoreMapper;
+import com.mockwise.questionbank.message.publisher.QuestionBankEventEmitter;
 import com.mockwise.questionbank.repository.BehavioralQuestionRepository;
 import com.mockwise.questionbank.repository.CodingQuestionRepository;
 import com.mockwise.questionbank.repository.CoreQuestionRepository;
@@ -46,6 +47,7 @@ public class QuestionService {
     CodingMapper codingMapper;
 
     TtsClient ttsClient;
+    QuestionBankEventEmitter eventEmitter;
 
     // ── Create ──────────────────────────────────────────────────────────────
 
@@ -187,7 +189,11 @@ public class QuestionService {
             log.info("Text changed for behavioral question id={} — audio_key={}", id, bq.getAudioKey());
         }
 
-        return behavioralMapper.toResponse(behavioralRepository.save(bq));
+        BehavioralQuestion saved = behavioralRepository.save(bq);
+        if (saved.getQuestion().getStatus() == QuestionStatus.ACTIVE) {
+            eventEmitter.emitUpdated(saved.getQuestion());
+        }
+        return behavioralMapper.toResponse(saved);
     }
 
     @Transactional
@@ -207,7 +213,11 @@ public class QuestionService {
             log.info("Text changed for core question id={} — audio_key={}", id, cq.getAudioKey());
         }
 
-        return coreMapper.toResponse(coreRepository.save(cq));
+        CoreQuestion saved = coreRepository.save(cq);
+        if (saved.getQuestion().getStatus() == QuestionStatus.ACTIVE) {
+            eventEmitter.emitUpdated(saved.getQuestion());
+        }
+        return coreMapper.toResponse(saved);
     }
 
     @Transactional
@@ -229,18 +239,32 @@ public class QuestionService {
     public void updateStatus(String id, QuestionStatus status) {
         Question base = questionRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(StatusCode.QUESTION_NOT_FOUND));
+        QuestionStatus previous = base.getStatus();
         base.setStatus(status);
-        questionRepository.save(base);
-        log.info("Question id={} status changed to {}", id, status);
+        Question saved = questionRepository.save(base);
+        log.info("Question id={} status changed: {} -> {}", id, previous, status);
+
+        if (previous != status) {
+            if (status == QuestionStatus.ACTIVE) {
+                eventEmitter.emitActivated(saved);
+            } else if (previous == QuestionStatus.ACTIVE) {
+                eventEmitter.emitDeactivated(saved);
+            }
+        }
     }
 
     @Transactional
     public void delete(String id) {
         Question base = questionRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(StatusCode.QUESTION_NOT_FOUND));
+        QuestionStatus previous = base.getStatus();
         base.setStatus(QuestionStatus.INACTIVE);
-        questionRepository.save(base);
+        Question saved = questionRepository.save(base);
         log.info("Question id={} soft-deleted (INACTIVE)", id);
+
+        if (previous == QuestionStatus.ACTIVE) {
+            eventEmitter.emitDeactivated(saved);
+        }
     }
 
     // ── Downstream payloads ───────────────────────────────────────────────────

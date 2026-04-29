@@ -25,12 +25,12 @@ spring:
           predicates:
             - Path=/api/v1/iam/**
 
-        - id: ai-evaluation
-          uri: ${AI_EVALUATION_URL:http://localhost:8000}
+        - id: ai-service
+          uri: ${AI_SERVICE_URL:http://localhost:8000}
           predicates:
             - Path=/api/ai/**
           filters:
-            - StripPrefix=2   # /api/ai/evaluate → /evaluate
+            - StripPrefix=2   # /api/ai/evaluate → /evaluate ; /api/ai/selector/next-question → /selector/next-question
 
         - id: judge-service
           uri: ${JUDGE_SERVICE_URL:http://localhost:8083}

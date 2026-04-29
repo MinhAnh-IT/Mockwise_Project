@@ -8,7 +8,7 @@ name: mockwise
 #   internal-net: api-gateway ↔ all backend services  (no external access)
 #
 # Only nginx (80/443) and api-gateway (8888) are reachable from outside.
-# iam-service, user-profile-service, mail-service, ai-evaluation are
+# iam-service, user-profile-service, mail-service, ai-service are
 # strictly internal — no ports exposed to the host.
 
 networks:
@@ -158,7 +158,7 @@ services:
       - JUDGE_SERVICE_URL=http://judge-service:8083
       - STORAGE_SERVICE_URL=http://storage-service:8085
       - TTS_STT_SERVICE_URL=http://tts-stt-service:8086
-      - AI_EVALUATION_URL=http://ai-evaluation:8000
+      - AI_SERVICE_URL=http://ai-service:8000
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     networks:
       - public-net
@@ -170,16 +170,29 @@ services:
       - storage-service
       - tts-stt-service
 
-  # ─── AI Evaluation (internal only) ─────────────────────────────
-  ai-evaluation:
-    build: ../AI/AI-Evaluation
+  # ─── AI Service (internal only) ────────────────────────────────
+  # Single FastAPI service hosting both:
+  #   • the evaluation graph   (POST /evaluate, /generate-testcases, /leetcode/fetch)
+  #   • the question selector  (POST /selector/next-question, /selector/admin/reindex)
+  # The selector half is gated on DATABASE_URL — omit it to run eval-only.
+  ai-service:
+    build: ../AI
     env_file: ../.env
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - MODEL_NAME=${MODEL_NAME:-gemini-flash-latest}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-004}
+      - EMBEDDING_DIM=${EMBEDDING_DIM:-768}
       - MAX_RETRIES=${MAX_RETRIES:-2}
-      - MODEL_VERSION=${MODEL_VERSION:-evaluator-v1.0}
+      - EVALUATOR_VERSION=${EVALUATOR_VERSION:-evaluator-v1.0}
+      - SELECTOR_VERSION=${SELECTOR_VERSION:-selector-v1.0}
       - SERVICE_API_KEY=${AI_SERVICE_API_KEY}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/ai_question_selector
+      - KAFKA_BOOTSTRAP_SERVERS=${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      - KAFKA_TOPIC_QUESTION_BANK=${KAFKA_TOPIC_QUESTION_BANK:-question-bank-events}
+      - KAFKA_CONSUMER_GROUP=${KAFKA_CONSUMER_GROUP_SELECTOR:-ai-service-selector}
+      - QUESTION_BANK_BASE_URL=http://question-bank-service:8084
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
       - PORT=8000
     networks:
       - internal-net
@@ -187,7 +200,7 @@ services:
       test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"]
       interval: 30s
       timeout: 10s
-      start_period: 15s
+      start_period: 30s
       retries: 3
     # No ports — only reachable via api-gateway on internal-net
 
@@ -225,10 +238,10 @@ services:
       - ../api-spec:/etc/nginx/api-spec:ro
     networks:
       - public-net
-      - internal-net   # ← can reach frontend and ai-evaluation
+      - internal-net   # ← can reach frontend and ai-service
     depends_on:
       - api-gateway
-      - ai-evaluation
+      - ai-service
       - frontend
       - swagger-ui
 

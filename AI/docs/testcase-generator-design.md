@@ -654,7 +654,7 @@ AI-Evaluation/
 │       ├── problem_analysis.py         ← prompt với judge-service type table + 4 language templates
 │       └── testcase_generation.py
 │
-├── agent/                              ← Evaluator (LiveCoding/Behavioral/Conceptual)
+├── evaluator/                          ← Evaluator (LiveCoding/Behavioral/Conceptual)
 │   └── ...
 │
 └── models/

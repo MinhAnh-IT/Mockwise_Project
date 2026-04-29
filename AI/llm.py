@@ -1,9 +1,10 @@
-"""Shared Gemini client helper.
+"""Shared Gemini client helpers — structured chat + embeddings.
 
-Keeps all Gemini calls on the same model/mode/thinking config so the whole
-service scales the same way when we swap models.
+Used by both the evaluation graph (call_structured) and the question
+selector (embed_text / embed_batch). Centralising here keeps model and
+thinking config aligned across both feature areas.
 """
-from typing import Any
+from typing import Any, List
 
 import instructor
 from google import genai
@@ -34,3 +35,25 @@ def call_structured(prompt: str, response_model: type, max_tokens: int = 8192) -
         generation_config={"temperature": 0.4, "max_tokens": max_tokens},
         config={"thinking_config": _thinking_config()},
     )
+
+
+def embed_text(text: str) -> List[float]:
+    """Embed a single text. Defaults to text-embedding-004 (768 dim)."""
+    client = genai.Client(api_key=config.GOOGLE_API_KEY)
+    result = client.models.embed_content(
+        model=config.EMBEDDING_MODEL,
+        contents=text,
+    )
+    return list(result.embeddings[0].values)
+
+
+def embed_batch(texts: List[str]) -> List[List[float]]:
+    """Embed a batch of texts in one API call. Order preserved."""
+    if not texts:
+        return []
+    client = genai.Client(api_key=config.GOOGLE_API_KEY)
+    result = client.models.embed_content(
+        model=config.EMBEDDING_MODEL,
+        contents=texts,
+    )
+    return [list(emb.values) for emb in result.embeddings]

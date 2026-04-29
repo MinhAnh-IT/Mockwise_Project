@@ -11,14 +11,17 @@ services:
     ports:
       - "3000:3000"
 
-  ai-evaluation:
+  ai-service:
     command: uvicorn api:app --host 0.0.0.0 --port 8000 --reload
     volumes:
-      - ../AI/AI-Evaluation/agent:/app/agent:ro
-      - ../AI/AI-Evaluation/models:/app/models:ro
-      - ../AI/AI-Evaluation/api.py:/app/api.py:ro
-      - ../AI/AI-Evaluation/main.py:/app/main.py:ro
-      - ../AI/AI-Evaluation/config.py:/app/config.py:ro
+      - ../AI/evaluator:/app/evaluator:ro
+      - ../AI/generator:/app/generator:ro
+      - ../AI/selector:/app/selector:ro
+      - ../AI/models:/app/models:ro
+      - ../AI/api.py:/app/api.py:ro
+      - ../AI/main.py:/app/main.py:ro
+      - ../AI/config.py:/app/config.py:ro
+      - ../AI/llm.py:/app/llm.py:ro
     ports:
       - "8000:8000"
 
