@@ -1,4 +1,4 @@
-from agent.graph import build_graph
+from evaluator.graph import build_graph
 from generator.graph import build_generator_graph
 
 _graph = None

@@ -1,6 +1,6 @@
 from llm import call_structured
-from agent.state import AgentState
-from agent.prompts.conceptual import build_conceptual_prompt
+from evaluator.state import AgentState
+from evaluator.prompts.conceptual import build_conceptual_prompt
 from models.outputs import ConceptualOutput
 
 

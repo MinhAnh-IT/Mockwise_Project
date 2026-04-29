@@ -6,7 +6,7 @@ from typing import Any
 import config
 
 logger = logging.getLogger(__name__)
-from agent.state import AgentState
+from evaluator.state import AgentState
 from models.common import Grade, HireSignal, MetaBlock, SummaryBlock
 from models.outputs import LiveCodingOutput, BehavioralOutput, ConceptualOutput
 

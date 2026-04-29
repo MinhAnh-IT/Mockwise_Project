@@ -1,6 +1,6 @@
 from llm import call_structured
-from agent.state import AgentState
-from agent.prompts.live_coding import build_live_coding_prompt
+from evaluator.state import AgentState
+from evaluator.prompts.live_coding import build_live_coding_prompt
 from models.outputs import LiveCodingOutput
 
 

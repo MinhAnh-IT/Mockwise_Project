@@ -1,11 +1,11 @@
 from langgraph.graph import StateGraph, END
 
-from agent.state import AgentState
-from agent.nodes.router import router_node
-from agent.nodes.live_coding_evaluator import live_coding_evaluator_node
-from agent.nodes.behavioral_evaluator import behavioral_evaluator_node
-from agent.nodes.conceptual_evaluator import conceptual_evaluator_node
-from agent.nodes.output_validator import output_validator_node
+from evaluator.state import AgentState
+from evaluator.nodes.router import router_node
+from evaluator.nodes.live_coding_evaluator import live_coding_evaluator_node
+from evaluator.nodes.behavioral_evaluator import behavioral_evaluator_node
+from evaluator.nodes.conceptual_evaluator import conceptual_evaluator_node
+from evaluator.nodes.output_validator import output_validator_node
 
 
 def route_by_type(state: AgentState):

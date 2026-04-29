@@ -1,6 +1,6 @@
 from llm import call_structured
-from agent.state import AgentState
-from agent.prompts.behavioral import build_behavioral_prompt
+from evaluator.state import AgentState
+from evaluator.prompts.behavioral import build_behavioral_prompt
 from models.outputs import BehavioralOutput
 
 
