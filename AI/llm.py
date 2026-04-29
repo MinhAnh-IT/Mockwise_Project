@@ -37,12 +37,21 @@ def call_structured(prompt: str, response_model: type, max_tokens: int = 8192) -
     )
 
 
+def _embed_config() -> types.EmbedContentConfig:
+    """gemini-embedding-001 supports configurable output dim (default 3072).
+    We pin it to EMBEDDING_DIM (768 by default) to keep the pgvector schema
+    column type aligned with the embeddings written into it.
+    """
+    return types.EmbedContentConfig(output_dimensionality=config.EMBEDDING_DIM)
+
+
 def embed_text(text: str) -> List[float]:
-    """Embed a single text. Defaults to text-embedding-004 (768 dim)."""
+    """Embed a single text. Defaults to gemini-embedding-001 with 768 dim."""
     client = genai.Client(api_key=config.GOOGLE_API_KEY)
     result = client.models.embed_content(
         model=config.EMBEDDING_MODEL,
         contents=text,
+        config=_embed_config(),
     )
     return list(result.embeddings[0].values)
 
@@ -55,5 +64,6 @@ def embed_batch(texts: List[str]) -> List[List[float]]:
     result = client.models.embed_content(
         model=config.EMBEDDING_MODEL,
         contents=texts,
+        config=_embed_config(),
     )
     return [list(emb.values) for emb in result.embeddings]

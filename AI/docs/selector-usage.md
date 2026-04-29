@@ -48,7 +48,7 @@ Tài liệu này mô tả cách dùng và vận hành phần **RAG question sele
 
 **Stateless API**: AI Service không lưu session — interview-service truyền `asked_question_ids` và `previous_evaluation` mỗi lần gọi.
 
-**Index lifecycle**: question-bank publish event sau mỗi commit (`@TransactionalEventListener(AFTER_COMMIT)`); consumer dedup bằng `event_id`, embed lại bằng Gemini `text-embedding-004`, upsert vào pgvector.
+**Index lifecycle**: question-bank publish event sau mỗi commit (`@TransactionalEventListener(AFTER_COMMIT)`); consumer dedup bằng `event_id`, embed lại bằng Gemini `gemini-embedding-001` (pin về 768 dim), upsert vào pgvector.
 
 ---
 
@@ -102,7 +102,7 @@ QUESTION_BANK_BASE_URL=http://question-bank-service:8084
 INTERNAL_API_KEY=...
 
 # Embedding (default ok)
-EMBEDDING_MODEL=text-embedding-004
+EMBEDDING_MODEL=gemini-embedding-001
 EMBEDDING_DIM=768
 
 # Tuning retrieval
@@ -268,7 +268,7 @@ request
 [build_profile]   ── từ previous_evaluation → text profile + structured hints
   │
   ▼
-[embed_text]      ── Gemini text-embedding-004 → vector 768
+[embed_text]      ── Gemini gemini-embedding-001 (output_dim=768) → vector 768
   │
   ▼
 [hard_filter]     ── SQL: type, active, NOT IN asked_ids,
