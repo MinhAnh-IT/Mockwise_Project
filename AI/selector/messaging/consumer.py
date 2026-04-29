@@ -53,10 +53,14 @@ def _to_snapshot(event: QuestionBankEvent) -> Optional[QuestionSnapshot]:
     )
 
 
-def _parse_occurred_at(raw: str) -> datetime:
+def _parse_occurred_at(raw) -> datetime:
+    # Numeric form: epoch seconds (float or int) — what Spring Kafka's
+    # JsonSerializer emits if JavaTimeModule isn't registered.
+    if isinstance(raw, (int, float)):
+        return datetime.fromtimestamp(float(raw), tz=timezone.utc)
     try:
-        # Java OffsetDateTime serialises with offset (e.g. "+07:00") which
-        # fromisoformat handles since Python 3.11.
+        # ISO-8601 with offset (e.g. "2026-04-29T11:57:02+07:00") — what we
+        # get once JavaTimeModule + WRITE_DATES_AS_TIMESTAMPS=false are set.
         return datetime.fromisoformat(raw)
     except Exception:
         return datetime.now(tz=timezone.utc)
@@ -93,9 +97,17 @@ async def _handle_event(event: QuestionBankEvent) -> None:
     await repo.mark_event_processed(event.eventId, event.eventType, event.questionId)
 
 
-def _deserialize(raw: bytes) -> QuestionBankEvent:
-    payload = json.loads(raw.decode("utf-8"))
-    return QuestionBankEvent.model_validate(payload)
+def _deserialize(raw: bytes):
+    """
+    Parse JSON to dict only — defer Pydantic validation until _handle_event
+    so a single bad message can be logged & skipped without aborting the
+    aiokafka consumer (value_deserializer exceptions kill the consumer).
+    """
+    try:
+        return json.loads(raw.decode("utf-8"))
+    except Exception as exc:
+        logger.error("Failed to JSON-decode kafka message: %s", exc)
+        return None
 
 
 async def run_consumer(stop_event: asyncio.Event) -> None:
@@ -132,7 +144,10 @@ async def run_consumer(stop_event: asyncio.Event) -> None:
             for tp, messages in batch.items():
                 for message in messages:
                     try:
-                        await _handle_event(message.value)
+                        if message.value is None:
+                            continue  # JSON-decode failed in _deserialize
+                        event = QuestionBankEvent.model_validate(message.value)
+                        await _handle_event(event)
                     except Exception as exc:
                         logger.exception(
                             "Failed to handle event from %s offset=%d: %s",
