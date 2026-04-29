@@ -80,7 +80,7 @@ Before serving `/selector/next-question`, populate the index:
 |------------------------------|-----------------------|-----------------------------------------|
 | `GOOGLE_API_KEY`             | both                  | Required                                |
 | `MODEL_NAME`                 | both                  | Default `gemini-flash-latest`           |
-| `EMBEDDING_MODEL`            | selector              | Default `text-embedding-004` (768 dim)  |
+| `EMBEDDING_MODEL`            | selector              | Default `gemini-embedding-001` (output_dim=768) |
 | `SERVICE_API_KEY`            | both                  | Inbound auth for non-health endpoints   |
 | `DATABASE_URL`               | selector              | postgres://... (omit to disable RAG)    |
 | `KAFKA_BOOTSTRAP_SERVERS`    | selector              | omit to disable live indexing           |

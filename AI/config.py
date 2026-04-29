@@ -7,7 +7,7 @@ load_dotenv()
 GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
 MODEL_NAME: str = os.getenv("MODEL_NAME", "gemini-flash-latest")
 THINKING_LEVEL: str = os.getenv("THINKING_LEVEL", "low")
-EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "text-embedding-004")
+EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "gemini-embedding-001")
 EMBEDDING_DIM: int = int(os.getenv("EMBEDDING_DIM", "768"))
 
 # ─── Evaluation graph ─────────────────────────────────────────────────────────
