@@ -1,0 +1,4279 @@
+[
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "universal",
+      "oop"
+    ],
+    "text": "Bốn nguyên tắc chính của OOP là gì? Hãy lấy một ví dụ code thực tế để minh hoạ encapsulation và polymorphism.",
+    "targetRoles": [
+      "BACKEND",
+      "FRONTEND",
+      "FULLSTACK",
+      "MOBILE",
+      "QA",
+      "DATA_ENGINEER",
+      "AI"
+    ],
+    "domain": "DESIGN_PATTERN",
+    "keyConcepts": [
+      "encapsulation",
+      "inheritance",
+      "polymorphism",
+      "abstraction",
+      "real_code_example"
+    ],
+    "depthExpected": "definitions, working code example, common misconceptions"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "universal",
+      "solid"
+    ],
+    "text": "Hãy giải thích nguyên tắc SOLID. Lấy ví dụ một đoạn code vi phạm Single Responsibility hoặc Open Closed và cách refactor cho đúng.",
+    "targetRoles": [
+      "BACKEND",
+      "FRONTEND",
+      "FULLSTACK",
+      "MOBILE"
+    ],
+    "domain": "DESIGN_PATTERN",
+    "keyConcepts": [
+      "single_responsibility",
+      "open_closed",
+      "liskov_substitution",
+      "interface_segregation",
+      "dependency_inversion"
+    ],
+    "depthExpected": "each principle, real refactor example, common violations"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "universal",
+      "complexity"
+    ],
+    "text": "Big O notation là gì? Hãy so sánh O(1), O(log n), O(n), O(n log n), O(n^2) qua ví dụ thuật toán cụ thể và cho biết khi nào ta thực sự quan tâm tới Big O trong công việc hằng ngày.",
+    "targetRoles": [
+      "BACKEND",
+      "FRONTEND",
+      "FULLSTACK",
+      "MOBILE",
+      "DATA_ENGINEER",
+      "AI"
+    ],
+    "domain": "LANGUAGE_SPECIFIC",
+    "keyConcepts": [
+      "asymptotic_analysis",
+      "common_classes",
+      "amortized_complexity",
+      "real_world_relevance",
+      "constant_factor_matters"
+    ],
+    "depthExpected": "complexity classes, examples, when Big O matters in practice"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "universal",
+      "data-structure"
+    ],
+    "text": "Khi nào dùng array, linked list, hash map, set, stack và queue? Hãy nêu một use case thực tế cho mỗi cấu trúc và độ phức tạp các thao tác chính.",
+    "targetRoles": [
+      "BACKEND",
+      "FRONTEND",
+      "FULLSTACK",
+      "MOBILE",
+      "DATA_ENGINEER",
+      "AI"
+    ],
+    "domain": "LANGUAGE_SPECIFIC",
+    "keyConcepts": [
+      "array_random_access",
+      "linked_list_insertion",
+      "hash_map_lookup",
+      "stack_queue_use_cases",
+      "complexity_table"
+    ],
+    "depthExpected": "data structure trade-offs, lookup/insert costs, real-world use cases"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "universal",
+      "git"
+    ],
+    "text": "Hãy giải thích git workflow phổ biến trong team (Git Flow, GitHub Flow, trunk-based) và cách bạn xử lý merge conflict. Phân biệt rebase và merge: bạn dùng cái nào và tại sao?",
+    "targetRoles": [
+      "BA",
+      "BACKEND",
+      "FRONTEND",
+      "FULLSTACK",
+      "MOBILE",
+      "DEVOPS",
+      "QA",
+      "DATA_ENGINEER",
+      "AI"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "git_flow_vs_trunk_based",
+      "rebase_vs_merge",
+      "merge_conflict_resolution",
+      "branch_naming",
+      "pull_request_workflow"
+    ],
+    "depthExpected": "workflow choice, conflict resolution, rebase vs merge philosophy"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "universal",
+      "http"
+    ],
+    "text": "Một HTTP request và response gồm những thành phần nào? Phân biệt GET, POST, PUT, PATCH, DELETE và idempotency của từng method. Vì sao điều này quan trọng cho việc retry?",
+    "targetRoles": [
+      "BA",
+      "BACKEND",
+      "FRONTEND",
+      "FULLSTACK",
+      "MOBILE",
+      "QA"
+    ],
+    "domain": "NETWORKING",
+    "keyConcepts": [
+      "request_line_headers_body",
+      "method_semantics",
+      "idempotency",
+      "status_codes",
+      "retry_safety"
+    ],
+    "depthExpected": "anatomy of HTTP, method semantics, idempotency for retries"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "universal",
+      "rest"
+    ],
+    "text": "REST API có những nguyên tắc nào? Hãy thiết kế URL endpoints cho hệ thống quản lý đơn hàng (orders, line items) theo chuẩn REST. Khi nào REST không phù hợp và bạn chọn gì khác?",
+    "targetRoles": [
+      "BA",
+      "BACKEND",
+      "FRONTEND",
+      "FULLSTACK",
+      "MOBILE",
+      "QA"
+    ],
+    "domain": "NETWORKING",
+    "keyConcepts": [
+      "resource_oriented",
+      "stateless",
+      "uniform_interface",
+      "nested_resources",
+      "rest_alternatives_graphql_grpc"
+    ],
+    "depthExpected": "REST principles, URL design, when REST is wrong fit"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "universal",
+      "sql"
+    ],
+    "text": "Phân biệt INNER JOIN và LEFT JOIN qua ví dụ hai bảng users và orders. Khi nào dùng GROUP BY so với DISTINCT, và viết query đếm số đơn hàng theo từng user.",
+    "targetRoles": [
+      "BA",
+      "BACKEND",
+      "FRONTEND",
+      "FULLSTACK",
+      "QA",
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATABASE",
+    "keyConcepts": [
+      "inner_left_join",
+      "group_by_aggregation",
+      "distinct_dedup",
+      "where_vs_having",
+      "sample_query"
+    ],
+    "depthExpected": "JOIN semantics, aggregation, write a working query"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "universal",
+      "db"
+    ],
+    "text": "Database normalization 1NF, 2NF, 3NF là gì? Hãy chuẩn hoá một bảng đơn hàng có cột product_list là chuỗi A,B,C. Khi nào denormalize lại hợp lý?",
+    "targetRoles": [
+      "BA",
+      "BACKEND",
+      "FULLSTACK",
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATABASE",
+    "keyConcepts": [
+      "1nf_2nf_3nf",
+      "redundancy_reduction",
+      "denormalize_for_read",
+      "real_world_example",
+      "olap_vs_oltp_difference"
+    ],
+    "depthExpected": "normalization steps, concrete example, when to denormalize"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "universal",
+      "db"
+    ],
+    "text": "Hãy giải thích thuộc tính ACID qua ví dụ giao dịch chuyển khoản. Trong NoSQL, khái niệm BASE thay thế ACID ra sao và lý do?",
+    "targetRoles": [
+      "BA",
+      "BACKEND",
+      "FULLSTACK",
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATABASE",
+    "keyConcepts": [
+      "atomicity",
+      "consistency",
+      "isolation",
+      "durability",
+      "BASE_eventual"
+    ],
+    "depthExpected": "ACID with example, BASE rationale in NoSQL"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "universal",
+      "auth"
+    ],
+    "text": "Phân biệt authentication và authorization. Một bug nào đó của hệ thống bạn cho phép user A truy cập dữ liệu của user B: đây là vấn đề authentication hay authorization?",
+    "targetRoles": [
+      "BA",
+      "BACKEND",
+      "FRONTEND",
+      "FULLSTACK",
+      "MOBILE",
+      "DEVOPS",
+      "QA"
+    ],
+    "domain": "SECURITY",
+    "keyConcepts": [
+      "authn_identity",
+      "authz_permission",
+      "broken_access_control",
+      "OWASP_a01",
+      "concrete_example"
+    ],
+    "depthExpected": "definitions, classify the bug, OWASP terminology"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "universal",
+      "https"
+    ],
+    "text": "HTTPS bảo vệ chống lại loại tấn công nào và HTTPS không giải quyết những gì? Một certificate có thể nói được điều gì với client?",
+    "targetRoles": [
+      "BA",
+      "BACKEND",
+      "FRONTEND",
+      "FULLSTACK",
+      "MOBILE",
+      "DEVOPS",
+      "QA"
+    ],
+    "domain": "SECURITY",
+    "keyConcepts": [
+      "eavesdropping",
+      "tampering",
+      "MITM",
+      "server_authentication",
+      "what_https_doesnt_solve"
+    ],
+    "depthExpected": "threat model, what cert proves, limits of HTTPS"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "universal",
+      "code-review"
+    ],
+    "text": "Một code review chất lượng tốt nên nhìn vào những gì? Hãy phân biệt comment kiểu blocking, suggestion và nitpick: bạn cấu trúc comment ra sao để vừa giúp tác giả vừa không quá chi li?",
+    "targetRoles": [
+      "BA",
+      "BACKEND",
+      "FRONTEND",
+      "FULLSTACK",
+      "MOBILE",
+      "DEVOPS",
+      "QA",
+      "DATA_ENGINEER",
+      "AI"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "correctness_design_readability",
+      "blocking_vs_nit",
+      "constructive_phrasing",
+      "small_PR_culture",
+      "review_etiquette"
+    ],
+    "depthExpected": "review checklist, comment classification, productive culture"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "universal",
+      "test"
+    ],
+    "text": "Test pyramid là gì? Phân biệt unit, integration và E2E test về phạm vi, tốc độ, độ tin cậy. Vì sao team thường có ice cream cone (nhiều E2E ít unit) và đó là dấu hiệu xấu ra sao?",
+    "targetRoles": [
+      "BACKEND",
+      "FRONTEND",
+      "FULLSTACK",
+      "MOBILE",
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "test_pyramid",
+      "unit_integration_e2e",
+      "ice_cream_cone_antipattern",
+      "test_speed_reliability",
+      "cost_of_each_layer"
+    ],
+    "depthExpected": "pyramid concept, anti-pattern, why pyramid is healthier"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "universal",
+      "agile"
+    ],
+    "text": "Phân biệt Scrum và Kanban. Sprint planning, daily standup, retro phục vụ mục đích gì khác nhau và khi nào meeting đó trở thành hình thức thay vì giá trị?",
+    "targetRoles": [
+      "BA",
+      "BACKEND",
+      "FRONTEND",
+      "FULLSTACK",
+      "MOBILE",
+      "DEVOPS",
+      "QA",
+      "DATA_ENGINEER",
+      "AI"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "scrum_sprint",
+      "kanban_continuous_flow",
+      "ceremony_purpose",
+      "ceremony_anti_patterns",
+      "team_fit_choice"
+    ],
+    "depthExpected": "two methodologies, ceremony purposes, common dysfunctions"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "universal",
+      "async"
+    ],
+    "text": "Phân biệt synchronous, asynchronous và non-blocking. Trong stack bạn quen, hãy mô tả khi nào dùng async await thay vì callback hoặc thread, và một bug điển hình bạn từng gặp với async code.",
+    "targetRoles": [
+      "BACKEND",
+      "FRONTEND",
+      "FULLSTACK",
+      "MOBILE"
+    ],
+    "domain": "LANGUAGE_SPECIFIC",
+    "keyConcepts": [
+      "sync_blocking",
+      "async_non_blocking",
+      "callback_promise_async_await",
+      "race_condition_async",
+      "real_bug_example"
+    ],
+    "depthExpected": "concept distinctions, when each fits, real async bug"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "universal",
+      "cache"
+    ],
+    "text": "Cache hoạt động như thế nào? Phân biệt cache-aside và write-through. Một bug stale cache điển hình xảy ra ra sao và bạn invalidate cache thế nào để nhất quán với DB?",
+    "targetRoles": [
+      "BACKEND",
+      "FRONTEND",
+      "FULLSTACK",
+      "MOBILE"
+    ],
+    "domain": "CACHING",
+    "keyConcepts": [
+      "cache_aside",
+      "write_through",
+      "invalidation_strategy",
+      "stale_data_bug",
+      "TTL_choice"
+    ],
+    "depthExpected": "cache patterns, invalidation strategy, real bug example"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "universal",
+      "scaling"
+    ],
+    "text": "Khi hệ thống chậm vì traffic tăng, bạn sẽ cân nhắc những bước nào theo thứ tự: từ index database, caching, scale-out, đến refactor? Hãy mô tả một quá trình bạn đã đi qua thật.",
+    "targetRoles": [
+      "BACKEND",
+      "FULLSTACK",
+      "DEVOPS",
+      "DATA_ENGINEER"
+    ],
+    "domain": "SYSTEM_DESIGN",
+    "keyConcepts": [
+      "measure_before_act",
+      "bottleneck_identification",
+      "low_hanging_fruit_first",
+      "scale_out_when_needed",
+      "real_journey"
+    ],
+    "depthExpected": "ordered investigation steps, evidence-driven, real example"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "ba",
+      "user-story"
+    ],
+    "text": "Phân biệt user story và use case. Một user story tốt theo INVEST cần đặc tính gì? Hãy viết một user story cho tính năng người dùng đặt lại mật khẩu qua email với acceptance criteria.",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "user_story_format",
+      "INVEST_criteria",
+      "acceptance_criteria",
+      "use_case_actor_flow",
+      "concrete_example"
+    ],
+    "depthExpected": "two formats, INVEST checklist, working example"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "ba",
+      "requirements"
+    ],
+    "text": "Phân biệt functional và non-functional requirement. Hãy lấy ví dụ một feature tìm kiếm sản phẩm và liệt kê 3 functional + 3 non-functional requirement cụ thể, đo được.",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "functional_requirement",
+      "non_functional_quality_attribute",
+      "measurable_criteria",
+      "performance_security_usability",
+      "trace_to_acceptance"
+    ],
+    "depthExpected": "two categories, measurable examples, link to acceptance"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "ba",
+      "stakeholder"
+    ],
+    "text": "Stakeholder analysis là gì? Hãy mô tả ma trận power và interest và cách bạn phân nhóm stakeholder để quyết định cách giao tiếp với từng nhóm khác nhau.",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "power_interest_matrix",
+      "manage_closely",
+      "keep_satisfied",
+      "keep_informed",
+      "monitor_only"
+    ],
+    "depthExpected": "matrix model, four quadrants, communication strategy per group"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "ba",
+      "elicitation"
+    ],
+    "text": "Hãy nêu các kỹ thuật elicitation phổ biến (interview, workshop, observation, document analysis, prototyping). Khi stakeholder không biết họ muốn gì, bạn dùng kỹ thuật nào và tại sao?",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "interview_workshop",
+      "observation_shadowing",
+      "document_analysis",
+      "prototype_for_unclear_needs",
+      "technique_selection"
+    ],
+    "depthExpected": "techniques inventory, when each fits, dealing with vague stakeholders"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "ba",
+      "prioritization"
+    ],
+    "text": "MoSCoW là gì? Hãy mô tả cách áp dụng MoSCoW cho backlog 30 user story khi resource chỉ đủ làm một phần ba. Phân biệt với RICE và Kano khi nào nên dùng cái nào.",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "must_should_could_wont",
+      "rice_score",
+      "kano_model",
+      "framework_selection",
+      "stakeholder_alignment"
+    ],
+    "depthExpected": "MoSCoW mechanics, comparison with other frameworks, real application"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ba",
+      "modeling"
+    ],
+    "text": "Phân biệt BPMN, UML use case diagram và data flow diagram. Khi mô tả một quy trình duyệt đơn (request sang manager approve sang finance pay), bạn chọn diagram nào và lý do?",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "bpmn_business_process",
+      "uml_use_case",
+      "data_flow_diagram",
+      "diagram_selection",
+      "audience_appropriateness"
+    ],
+    "depthExpected": "three diagram types, selection criteria, concrete example"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ba",
+      "acceptance"
+    ],
+    "text": "Hãy viết acceptance criteria theo Gherkin (Given When Then) cho tính năng thanh toán bằng thẻ tín dụng. Bao quát happy path, edge case (thẻ hết hạn, không đủ tiền), và lỗi network.",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "gherkin_format",
+      "given_when_then",
+      "happy_path_edge_case",
+      "error_scenarios",
+      "testable_criteria"
+    ],
+    "depthExpected": "Gherkin syntax, full coverage of paths, testability"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ba",
+      "trace"
+    ],
+    "text": "Requirements traceability matrix dùng để làm gì? Hãy mô tả cách bạn link requirement, design, code, test case, release note. Khi scope thay đổi giữa chừng, matrix giúp gì?",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "traceability_matrix",
+      "forward_backward_trace",
+      "impact_analysis_on_change",
+      "test_coverage_link",
+      "audit_compliance"
+    ],
+    "depthExpected": "purpose, link chain, change impact analysis"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ba",
+      "wireframe"
+    ],
+    "text": "Phân biệt wireframe, mockup và prototype. Khi present cho stakeholder lần đầu, bạn nên dùng cái nào để tránh họ bám vào màu hoặc font thay vì flow nghiệp vụ?",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "low_fidelity_wireframe",
+      "mid_fidelity_mockup",
+      "interactive_prototype",
+      "stakeholder_anchoring",
+      "fidelity_per_phase"
+    ],
+    "depthExpected": "fidelity levels, when each fits, anchoring problem"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ba",
+      "edge-case"
+    ],
+    "text": "Khi viết requirement, bạn phát hiện edge case bằng cách nào? Hãy lấy tính năng gửi tiền liên ngân hàng và liệt kê ít nhất 5 edge case bạn sẽ hỏi PM hoặc dev, ví dụ timeout, tiền lẻ, fee, batch hold, time zone.",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "systematic_edge_case_thinking",
+      "boundary_value",
+      "timeout_failure_modes",
+      "concurrent_action",
+      "regulatory_constraints"
+    ],
+    "depthExpected": "discovery techniques, concrete edge cases, asking the right questions"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ba",
+      "kpi"
+    ],
+    "text": "PM giao bạn requirement tăng tỷ lệ chuyển đổi của trang đăng ký. Bạn định nghĩa metric đo lường ra sao, baseline ở đâu, và success criteria là gì để team kỹ thuật biết khi nào dừng tối ưu?",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "smart_kpi",
+      "conversion_funnel",
+      "baseline_measurement",
+      "success_threshold",
+      "guardrail_metric"
+    ],
+    "depthExpected": "metric definition, measurement plan, success and guardrail criteria"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ba",
+      "estimation"
+    ],
+    "text": "Story point và t-shirt sizing khác nhau ra sao? Tại sao team trưởng thành thường không quy đổi story point sang giờ, và bạn xử lý thế nào khi PM yêu cầu cam kết deadline cứng?",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "story_point_relative",
+      "t_shirt_sizing",
+      "no_hour_conversion_principle",
+      "velocity_based_forecast",
+      "deadline_negotiation"
+    ],
+    "depthExpected": "two estimation models, why no hour conversion, dealing with deadline pressure"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ba",
+      "sprint"
+    ],
+    "text": "Backlog refinement (grooming) khác sprint planning ở chỗ nào? Một story được coi là ready để vào sprint khi đáp ứng tiêu chí gì (Definition of Ready)?",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "refinement_purpose",
+      "planning_purpose",
+      "definition_of_ready",
+      "definition_of_done",
+      "shared_understanding"
+    ],
+    "depthExpected": "two ceremonies, DoR criteria, common pitfalls"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ba",
+      "scope-creep"
+    ],
+    "text": "Scope creep là gì? Hãy mô tả một tình huống stakeholder thêm yêu cầu giữa sprint và bạn xử lý ra sao: có quy trình change request nào bạn sẽ áp dụng?",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "scope_creep_definition",
+      "change_control_process",
+      "impact_analysis",
+      "trade_off_communication",
+      "documenting_decisions"
+    ],
+    "depthExpected": "definition, change control process, real-world handling"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ba",
+      "data-flow"
+    ],
+    "text": "Bạn được giao phân tích một tính năng báo cáo doanh thu hàng ngày. Bạn đi từ source data, qua transform, tới UI bằng diagram gì? Bạn xác định data quality requirement và SLA ra sao với data team?",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "data_flow_mapping",
+      "transformation_logic",
+      "data_quality_requirement",
+      "freshness_sla",
+      "cross_team_alignment"
+    ],
+    "depthExpected": "data lineage, quality criteria, cross-team SLA"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "ba",
+      "conflict"
+    ],
+    "text": "Hai stakeholder mâu thuẫn nhau về một feature: sales muốn tích hợp với CRM cũ, marketing muốn migrate sang nền tảng mới. Bạn facilitate cuộc thảo luận ra sao, dữ liệu nào bạn mang vào để giúp ra quyết định, và escalate khi nào?",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "facilitation_neutrality",
+      "data_driven_decision",
+      "trade_off_visualization",
+      "escalation_path",
+      "documenting_outcome"
+    ],
+    "depthExpected": "facilitation approach, evidence gathering, escalation criteria"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "ba",
+      "cross-functional"
+    ],
+    "text": "Một dự án cần phối hợp BA, dev, design, QA, ops. Bạn đảm bảo requirement không bị tam sao thất bản qua các team như thế nào? Hãy mô tả một artefact cụ thể, ví dụ PRD, RFC bạn dùng và quy trình review.",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "single_source_of_truth",
+      "PRD_RFC_format",
+      "review_signoff_process",
+      "version_control_for_doc",
+      "shared_glossary"
+    ],
+    "depthExpected": "artefact design, signoff process, preventing drift"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "ba",
+      "regulatory"
+    ],
+    "text": "Hệ thống bạn phụ trách phải tuân thủ một quy định mới, ví dụ GDPR, PCI-DSS, hoặc nghị định riêng của Việt Nam về data. Bạn dịch quy định pháp lý ra requirement kỹ thuật ra sao, đảm bảo team dev hiểu đúng và audit được?",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "legal_to_technical_translation",
+      "compliance_checklist",
+      "audit_trail",
+      "consent_data_retention",
+      "stakeholder_legal_team"
+    ],
+    "depthExpected": "translation methodology, audit needs, real compliance example"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "ba",
+      "process"
+    ],
+    "text": "Bạn được giao audit một quy trình nghiệp vụ tồn tại 5 năm có nhiều bước thủ công. Bạn đi qua quy trình thế nào (as-is mapping), xác định waste và bottleneck ra sao, và đề xuất to-be process kèm lộ trình chuyển đổi?",
+    "targetRoles": [
+      "BA"
+    ],
+    "domain": "BUSINESS_ANALYSIS",
+    "keyConcepts": [
+      "as_is_mapping",
+      "to_be_design",
+      "waste_identification",
+      "value_stream_mapping",
+      "transition_roadmap"
+    ],
+    "depthExpected": "audit methodology, gap analysis, transition planning"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "backend",
+      "rest"
+    ],
+    "text": "Hãy thiết kế REST API cho hệ thống quản lý người dùng có CRUD + search + đổi mật khẩu. Bạn xử lý error response thống nhất ra sao và đặt tên endpoint như thế nào để giữ idempotency?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "NETWORKING",
+    "keyConcepts": [
+      "resource_naming",
+      "http_method_mapping",
+      "error_response_envelope",
+      "idempotent_endpoints",
+      "search_query_params"
+    ],
+    "depthExpected": "endpoint design, error format, idempotency"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "backend",
+      "spring",
+      "di"
+    ],
+    "text": "Dependency injection trong Spring là gì? Phân biệt constructor injection, field injection và setter injection. Vì sao constructor injection được khuyến khích?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "FRAMEWORK",
+    "keyConcepts": [
+      "IoC_container",
+      "constructor_field_setter",
+      "immutable_dependencies",
+      "testability",
+      "circular_dependency_detection"
+    ],
+    "depthExpected": "DI principle, three flavors, why constructor wins"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "backend",
+      "exception"
+    ],
+    "text": "Trong Java, phân biệt checked và unchecked exception. Khi thiết kế REST API, bạn map exception sang HTTP status code thống nhất ra sao và có nên dùng @ControllerAdvice không?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "LANGUAGE_SPECIFIC",
+    "keyConcepts": [
+      "checked_unchecked",
+      "global_exception_handler",
+      "controller_advice",
+      "http_status_mapping",
+      "error_envelope_consistency"
+    ],
+    "depthExpected": "exception types, mapping strategy, global handler pattern"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "backend",
+      "orm"
+    ],
+    "text": "ORM (Hibernate, Sequelize, SQLAlchemy) đem lại lợi ích gì và đánh đổi gì so với raw SQL? Một bug N+1 trong ORM trông ra sao và bạn phát hiện ra sao?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "DATABASE",
+    "keyConcepts": [
+      "object_relational_mapping",
+      "lazy_loading",
+      "n_plus_1",
+      "performance_overhead",
+      "raw_sql_when_needed"
+    ],
+    "depthExpected": "ORM trade-offs, N+1 detection, when to drop down to SQL"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "backend",
+      "transaction"
+    ],
+    "text": "Transaction trong Spring với @Transactional hoạt động ra sao? Vì sao gọi method có @Transactional từ method khác trong cùng class không kích hoạt transaction?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "FRAMEWORK",
+    "keyConcepts": [
+      "proxy_based_AOP",
+      "self_invocation_pitfall",
+      "rollback_rules",
+      "checked_exception_no_rollback",
+      "extract_to_separate_bean"
+    ],
+    "depthExpected": "proxy mechanism, self-invocation issue, rollback rules"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "n+1",
+      "scenario"
+    ],
+    "text": "Endpoint orders trả 100 order kèm user info bị chậm 3 giây. Bạn nghi N+1 query: bạn debug và xác nhận ra sao? Liệt kê 3 cách khắc phục với trade-off của mỗi cách.",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "DATABASE",
+    "keyConcepts": [
+      "sql_logging_inspection",
+      "join_fetch_eager",
+      "in_query_batch",
+      "dataloader_batching",
+      "denormalized_view"
+    ],
+    "depthExpected": "diagnosis flow, three fix approaches, trade-offs"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "concurrency"
+    ],
+    "text": "Service Java của bạn xử lý đồng thời 1000 request, một số request sửa cùng một row trong DB. Bạn chống race condition bằng optimistic locking hay pessimistic locking? Đưa ra ví dụ code cho từng cách.",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "DATABASE",
+    "keyConcepts": [
+      "optimistic_version_field",
+      "pessimistic_select_for_update",
+      "retry_on_conflict",
+      "deadlock_avoidance",
+      "performance_under_contention"
+    ],
+    "depthExpected": "two locking strategies, code example, contention analysis"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "pool",
+      "scenario"
+    ],
+    "text": "Service báo lỗi connection pool exhausted giờ peak. Bạn chẩn đoán theo thứ tự nào trước khi quyết định tăng pool size? Thiếu pool size hay leak hoặc slow query gây ra?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "DATABASE",
+    "keyConcepts": [
+      "pool_metric_monitoring",
+      "long_running_query",
+      "connection_leak",
+      "DB_max_connections",
+      "pgbouncer_layer"
+    ],
+    "depthExpected": "diagnosis order, leak vs slow query, infrastructure layer"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "isolation"
+    ],
+    "text": "Hãy giải thích các transaction isolation level (READ COMMITTED, REPEATABLE READ, SERIALIZABLE). Cho ví dụ một bug lost update và level nào sẽ ngăn được nó.",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "DATABASE",
+    "keyConcepts": [
+      "isolation_levels",
+      "dirty_read",
+      "non_repeatable_read",
+      "phantom_read",
+      "lost_update_scenario"
+    ],
+    "depthExpected": "level matrix, anomaly per level, lost update example"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "jvm",
+      "memory"
+    ],
+    "text": "Service Java đột nhiên ném OutOfMemoryError. Bạn debug theo các bước nào, phân biệt heap leak và native memory leak ra sao? Tool nào bạn dùng (jcmd, jmap, VisualVM, MAT)?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "LANGUAGE_SPECIFIC",
+    "keyConcepts": [
+      "heap_dump_analysis",
+      "MAT_eclipse_dominator_tree",
+      "native_memory_tracking",
+      "GC_log_inspection",
+      "metaspace_leak"
+    ],
+    "depthExpected": "tooling, heap vs native, leak source identification"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "gc"
+    ],
+    "text": "Phân biệt G1, ZGC và Shenandoah. Service của bạn cần latency P99 dưới 100 ms cho heap 16 GB: bạn chọn GC nào và lý do? Bạn tune param nào để giảm STW pause?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "LANGUAGE_SPECIFIC",
+    "keyConcepts": [
+      "G1_region_based",
+      "ZGC_concurrent",
+      "Shenandoah",
+      "MaxGCPauseMillis",
+      "heap_size_tradeoff"
+    ],
+    "depthExpected": "GC comparison, choice rationale, tuning params"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "jpa",
+      "scenario"
+    ],
+    "text": "Bạn trả entity về client và gặp LazyInitializationException khi serialize. Vì sao? Liệt kê 3 cách sửa và đánh giá cách nào là đúng về mặt kiến trúc.",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "FRAMEWORK",
+    "keyConcepts": [
+      "session_closed",
+      "open_session_in_view",
+      "DTO_projection",
+      "fetch_join",
+      "entity_graph"
+    ],
+    "depthExpected": "root cause, fix options, architectural choice"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "microservice"
+    ],
+    "text": "Microservice và monolith khác nhau ở đâu? Một startup 5 dev có nên đi microservice không? Khi nào bạn split monolith ra microservice và bằng tín hiệu gì?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "SYSTEM_DESIGN",
+    "keyConcepts": [
+      "bounded_context",
+      "deployment_unit",
+      "operational_complexity",
+      "premature_microservice",
+      "split_signals"
+    ],
+    "depthExpected": "trade-offs, when monolith wins, split criteria"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "saga"
+    ],
+    "text": "Saga pattern dùng để làm gì? Mô tả choreography so với orchestration saga qua ví dụ đặt phòng + thanh toán + thông báo. Bạn handle compensating transaction thế nào khi step cuối fail?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "DESIGN_PATTERN",
+    "keyConcepts": [
+      "distributed_transaction_alternative",
+      "compensating_action",
+      "choreography",
+      "orchestration",
+      "eventual_consistency"
+    ],
+    "depthExpected": "saga concept, two styles, compensation design"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "idempotency"
+    ],
+    "text": "Endpoint payments có thể bị retry bởi client (network glitch). Bạn thiết kế idempotency key ra sao để charge chỉ một lần? Bạn lưu key ở đâu, TTL bao nhiêu, xử lý race condition giữa hai request giống hệt nhau thế nào?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "SYSTEM_DESIGN",
+    "keyConcepts": [
+      "idempotency_key_header",
+      "request_fingerprint",
+      "stored_response_replay",
+      "ttl_for_keys",
+      "race_condition_unique_constraint"
+    ],
+    "depthExpected": "key strategy, storage design, race-safe implementation"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "rate-limit"
+    ],
+    "text": "Hãy thiết kế rate limiter cho public API có hàng triệu user. Bạn chọn token bucket hay sliding window và lý do? Counter lưu ở đâu (Redis? in-memory?), làm sao đồng bộ trên nhiều instance?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "SYSTEM_DESIGN",
+    "keyConcepts": [
+      "token_bucket",
+      "sliding_window",
+      "redis_atomic_ops",
+      "distributed_counter",
+      "burst_handling"
+    ],
+    "depthExpected": "algorithm choice, distributed store, burst tolerance"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "circuit-breaker"
+    ],
+    "text": "Service A gọi service B qua HTTP. B đôi lúc chậm hoặc timeout và làm A cũng chậm theo. Bạn áp circuit breaker ra sao? Trạng thái closed, open, half open hoạt động thế nào và bạn config threshold ra sao?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "SYSTEM_DESIGN",
+    "keyConcepts": [
+      "closed_open_half_open",
+      "failure_threshold",
+      "fallback",
+      "timeout_vs_failure",
+      "resilience4j_hystrix"
+    ],
+    "depthExpected": "state machine, thresholds, fallback strategy"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "kafka"
+    ],
+    "text": "Phân biệt at-least-once và exactly-once trong Kafka. Idempotent producer + transactional producer + dedup tại consumer giúp đạt exactly-once thực dụng ra sao?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "MESSAGING",
+    "keyConcepts": [
+      "delivery_semantics",
+      "idempotent_producer",
+      "transactional_producer",
+      "consumer_dedup_store",
+      "end_to_end_eos"
+    ],
+    "depthExpected": "three semantics, producer + consumer dedup, real architecture"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "outbox"
+    ],
+    "text": "Service vừa cần ghi DB vừa publish event Kafka. Vì sao gọi save() rồi gọi kafkaTemplate.send() trực tiếp lại có rủi ro? Hãy giải thích outbox pattern và cách relay từ outbox table tới Kafka.",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "MESSAGING",
+    "keyConcepts": [
+      "dual_write_problem",
+      "outbox_table",
+      "transactional_consistency",
+      "polling_relay",
+      "cdc_relay_debezium"
+    ],
+    "depthExpected": "dual-write problem, outbox flow, relay options"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "cache"
+    ],
+    "text": "Khi nào dùng Redis làm cache so với làm primary store? Hãy mô tả cache stampede và 3 kỹ thuật giảm thiểu (single flight, jittered TTL, early refresh).",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "CACHING",
+    "keyConcepts": [
+      "cache_vs_store",
+      "stampede_thundering_herd",
+      "single_flight",
+      "ttl_jitter",
+      "early_refresh"
+    ],
+    "depthExpected": "Redis use cases, stampede mechanism, mitigations"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "auth",
+      "jwt"
+    ],
+    "text": "JWT so với session-based auth khác nhau ở chỗ nào? Bạn xử lý revocation cho JWT ra sao (vì JWT về bản chất stateless)? Khi nào bạn vẫn chọn session?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "SECURITY",
+    "keyConcepts": [
+      "stateful_session",
+      "stateless_jwt",
+      "revocation_difficulty",
+      "blacklist_or_short_ttl",
+      "refresh_token_rotation"
+    ],
+    "depthExpected": "trade-offs, revocation strategies, when session still wins"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "backend",
+      "oauth"
+    ],
+    "text": "Mô tả OAuth 2.0 Authorization Code flow với PKCE. Vì sao PKCE quan trọng cho mobile hoặc SPA? Bạn lưu access token và refresh token ở đâu cho mỗi loại client?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "SECURITY",
+    "keyConcepts": [
+      "authorization_code_flow",
+      "pkce_code_verifier",
+      "redirect_uri_validation",
+      "token_storage_per_client",
+      "refresh_rotation"
+    ],
+    "depthExpected": "flow steps, PKCE rationale, secure storage"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "backend",
+      "transactional"
+    ],
+    "text": "Đi qua các giá trị @Transactional propagation (REQUIRED, REQUIRES_NEW, NESTED, MANDATORY, NEVER, NOT_SUPPORTED, SUPPORTS). Lấy ví dụ thực tế cần REQUIRES_NEW, ví dụ ghi audit log dù transaction chính rollback.",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "FRAMEWORK",
+    "keyConcepts": [
+      "propagation_levels",
+      "rollback_boundary",
+      "nested_savepoint",
+      "audit_log_use_case",
+      "self_invocation_warning"
+    ],
+    "depthExpected": "all levels, rollback boundary, audit example"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "backend",
+      "spring-security"
+    ],
+    "text": "Filter chain của Spring Security từ DelegatingFilterProxy, SecurityFilterChain, AuthenticationManager, AuthorizationManager. Hãy đi qua flow xử lý một request có Bearer JWT và bạn insert custom filter ở đâu để check thêm device fingerprint.",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "FRAMEWORK",
+    "keyConcepts": [
+      "DelegatingFilterProxy",
+      "SecurityFilterChain",
+      "AuthenticationManager",
+      "AuthorizationManager",
+      "custom_filter_insertion"
+    ],
+    "depthExpected": "chain composition, request flow, custom filter placement"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "backend",
+      "consistency"
+    ],
+    "text": "Hệ thống order của bạn cần đảm bảo không double charge. Bạn kết hợp idempotency key + outbox + transactional log ra sao để đạt exactly-once thực dụng? Đâu là điểm còn yếu cần monitor?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "SYSTEM_DESIGN",
+    "keyConcepts": [
+      "effective_exactly_once",
+      "idempotency_key",
+      "outbox_pattern",
+      "transactional_log_tail",
+      "consumer_dedup"
+    ],
+    "depthExpected": "full pipeline, weak points, monitoring strategy"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "backend",
+      "search"
+    ],
+    "text": "Hệ thống sản phẩm cần search full-text + filter + facet, dữ liệu thay đổi liên tục. Bạn tích hợp Elasticsearch hoặc OpenSearch với primary DB ra sao? Sync qua CDC, dual-write, hay batch ETL: đánh đổi của mỗi cách?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "SYSTEM_DESIGN",
+    "keyConcepts": [
+      "primary_db_search_index",
+      "cdc_sync",
+      "dual_write_pitfall",
+      "batch_etl_lag",
+      "consistency_search_result"
+    ],
+    "depthExpected": "three sync strategies, trade-offs, real-world choice"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "backend",
+      "background-job"
+    ],
+    "text": "Thiết kế hệ thống background job (gửi email, sinh báo cáo, sync với bên ngoài). Bạn dùng queue (Redis, RabbitMQ hoặc Kafka) hay scheduler (Quartz)? Xử lý retry, DLQ, idempotency ra sao?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "SYSTEM_DESIGN",
+    "keyConcepts": [
+      "queue_vs_scheduler",
+      "retry_with_backoff",
+      "dead_letter_queue",
+      "idempotent_job",
+      "rate_limit_external_api"
+    ],
+    "depthExpected": "infrastructure choice, retry/DLQ design, idempotency"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "backend",
+      "tracing"
+    ],
+    "text": "Service A sang B sang C trong production, request bị chậm 3 giây nhưng log mỗi service đều ổn. Bạn dùng distributed tracing (OpenTelemetry hoặc Jaeger) thế nào để tìm bottleneck? Trace context propagation qua HTTP và Kafka khác nhau ra sao?",
+    "targetRoles": [
+      "BACKEND"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "span_trace",
+      "w3c_traceparent",
+      "kafka_header_propagation",
+      "sampling_strategy",
+      "flame_graph_analysis"
+    ],
+    "depthExpected": "tracing setup, propagation across protocols, root cause analysis"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "frontend",
+      "css",
+      "box-model"
+    ],
+    "text": "Hãy giải thích CSS box model (content, padding, border, margin). Phân biệt box-sizing: content-box so với border-box và vì sao border-box là lựa chọn mặc định của hầu hết project hiện đại?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRONTEND_DEV",
+    "keyConcepts": [
+      "box_model_layers",
+      "content_box_vs_border_box",
+      "width_calculation",
+      "global_reset",
+      "modern_default"
+    ],
+    "depthExpected": "box model, two sizing modes, why border-box default"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "frontend",
+      "css",
+      "specificity"
+    ],
+    "text": "CSS specificity tính toán ra sao? Cho 4 selector.btn, #submit, button,.form.btn: selector nào thắng? Vì sao specificity war bằng !important là dấu hiệu kiến trúc CSS xấu?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRONTEND_DEV",
+    "keyConcepts": [
+      "id_class_element_count",
+      "inline_style_weight",
+      "important_anti_pattern",
+      "css_architecture_BEM",
+      "modular_naming"
+    ],
+    "depthExpected": "specificity calculation, important anti-pattern, architectural fix"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "frontend",
+      "flex-grid"
+    ],
+    "text": "Phân biệt Flexbox và CSS Grid. Khi layout một trang dashboard có sidebar + main + tab + card grid, bạn chọn Flex hay Grid ở từng vị trí và lý do?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRONTEND_DEV",
+    "keyConcepts": [
+      "one_dimensional_flex",
+      "two_dimensional_grid",
+      "main_axis_cross_axis",
+      "implicit_explicit_grid",
+      "real_layout_example"
+    ],
+    "depthExpected": "two layout systems, choice criteria, real layout walkthrough"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "frontend",
+      "react",
+      "hooks"
+    ],
+    "text": "Phân biệt useState, useEffect và useRef trong React: useEffect chạy khi nào và rules of hooks (gọi top-level, không trong loop hoặc condition) là gì?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRAMEWORK",
+    "keyConcepts": [
+      "state_hook",
+      "effect_hook_lifecycle",
+      "ref_no_rerender",
+      "rules_of_hooks",
+      "dependency_array"
+    ],
+    "depthExpected": "three core hooks, lifecycle equivalents, rules"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "frontend",
+      "react",
+      "props"
+    ],
+    "text": "Phân biệt props và state trong React. Khi nào một dữ liệu nên là local state so với lifted up so với đưa vào global store? Lấy ví dụ form đăng ký nhiều bước.",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRAMEWORK",
+    "keyConcepts": [
+      "props_immutable",
+      "local_state",
+      "lifting_state_up",
+      "global_store_threshold",
+      "multi_step_form_example"
+    ],
+    "depthExpected": "data ownership, lifting decision, real example"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "frontend",
+      "responsive"
+    ],
+    "text": "Responsive design với media query, container query, và mobile-first approach khác nhau ra sao? Hãy giải thích khi nào dùng container query thay vì media query.",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRONTEND_DEV",
+    "keyConcepts": [
+      "media_query_viewport",
+      "container_query_component",
+      "mobile_first",
+      "breakpoint_strategy",
+      "fluid_typography"
+    ],
+    "depthExpected": "three approaches, when each fits, modern fluid design"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "frontend",
+      "react",
+      "rerender",
+      "scenario"
+    ],
+    "text": "Component React của bạn render lại quá nhiều lần dù props hoặc state có vẻ không đổi. Bạn debug ra sao bằng React DevTools Profiler? Liệt kê 4 nguyên nhân phổ biến và cách fix tương ứng.",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRAMEWORK",
+    "keyConcepts": [
+      "devtools_profiler",
+      "referential_inequality",
+      "context_value_change",
+      "useMemo_useCallback_fix",
+      "key_prop_misuse"
+    ],
+    "depthExpected": "profiling workflow, common causes, targeted fixes"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "frontend",
+      "react",
+      "memo"
+    ],
+    "text": "Phân biệt useMemo, useCallback, React.memo. Khi nào dùng cái nào? Tại sao memoize tất cả mọi thứ lại làm code tệ hơn và tốn performance hơn?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRAMEWORK",
+    "keyConcepts": [
+      "memoize_value",
+      "memoize_function",
+      "memoize_component",
+      "premature_optimization",
+      "dependency_array_pitfall"
+    ],
+    "depthExpected": "three tools, when each fits, anti-pattern of overuse"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "frontend",
+      "react",
+      "state-mgmt"
+    ],
+    "text": "So sánh Redux, Context API, Zustand, Jotai. Khi nào nên đưa state lên global thay vì giữ ở component? Vì sao dùng Context thuần cho global state thường khiến app render lại nhiều?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRAMEWORK",
+    "keyConcepts": [
+      "redux_store",
+      "context_rerender_pitfall",
+      "atomic_state_jotai",
+      "selector_memoization",
+      "global_vs_local_decision"
+    ],
+    "depthExpected": "library comparison, Context pitfall, atomic libs"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "frontend",
+      "performance",
+      "web-vitals"
+    ],
+    "text": "Core Web Vitals (LCP, CLS, INP) đo cái gì? Bạn tối ưu LCP bằng những kỹ thuật nào (preload, image optimization, font-display)? Một CLS xấu thường đến từ đâu?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRONTEND_DEV",
+    "keyConcepts": [
+      "LCP_largest_contentful_paint",
+      "CLS_layout_shift",
+      "INP_interaction_to_next_paint",
+      "preload_critical",
+      "reserve_space_for_image"
+    ],
+    "depthExpected": "three metrics, LCP optimization, CLS root causes"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "frontend",
+      "bundle"
+    ],
+    "text": "Bundle size của app React đang 2 MB và FCP chậm. Bạn áp dụng code splitting và lazy loading ra sao với React.lazy và Suspense? Phân biệt route-based so với component-based splitting.",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRONTEND_DEV",
+    "keyConcepts": [
+      "code_splitting",
+      "route_based_split",
+      "react_lazy_suspense",
+      "tree_shaking",
+      "dynamic_import"
+    ],
+    "depthExpected": "splitting strategies, React.lazy mechanics, tree-shaking"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "frontend",
+      "rendering"
+    ],
+    "text": "Phân biệt CSR, SSR, SSG và ISR. Khi xây dashboard cá nhân (cần auth, dữ liệu real-time) bạn chọn CSR hay SSR và lý do? Khi nào SSG là lựa chọn ngu ngốc?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRAMEWORK",
+    "keyConcepts": [
+      "client_side_render",
+      "server_side_render",
+      "static_site_generation",
+      "incremental_static_regen",
+      "auth_personalized_content"
+    ],
+    "depthExpected": "four modes, choice per use case, anti-pattern examples"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "frontend",
+      "browser-render"
+    ],
+    "text": "Browser rendering pipeline có những bước nào (parse, style, layout, paint, composite)? Vì sao transform và opacity không trigger layout và paint mà chỉ trigger composite, và điều này ý nghĩa gì cho animation?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRONTEND_DEV",
+    "keyConcepts": [
+      "critical_rendering_path",
+      "layout_paint_composite",
+      "compositor_layer",
+      "will_change_hint",
+      "60fps_animation"
+    ],
+    "depthExpected": "rendering pipeline, layer boundaries, animation performance"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "frontend",
+      "a11y"
+    ],
+    "text": "Accessibility (a11y) là gì? Hãy nêu các nguyên tắc WCAG cơ bản và cách bạn dùng ARIA attribute đúng cách, ví dụ aria-live, aria-label, role. Khi nào ARIA dùng sai gây hại nhiều hơn là không dùng?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRONTEND_DEV",
+    "keyConcepts": [
+      "WCAG_perceivable_operable_understandable_robust",
+      "semantic_html_first",
+      "aria_live_label_role",
+      "screen_reader_testing",
+      "aria_misuse_anti_pattern"
+    ],
+    "depthExpected": "WCAG basics, ARIA correct usage, anti-patterns"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "frontend",
+      "form"
+    ],
+    "text": "Hãy thiết kế form đăng ký với validation phía client (real-time + on-submit). Bạn dùng controlled so với uncontrolled component? Library nào (React Hook Form, Formik) và lý do? Xử lý field interdependency, ví dụ password phải khác email ra sao?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRAMEWORK",
+    "keyConcepts": [
+      "controlled_uncontrolled",
+      "real_time_validation",
+      "react_hook_form_uncontrolled",
+      "field_dependency",
+      "async_validation"
+    ],
+    "depthExpected": "form architecture, library choice, complex validation"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "frontend",
+      "typescript"
+    ],
+    "text": "Trong TypeScript, phân biệt interface và type alias. Generic constraint dùng để làm gì? Hãy viết một generic function pick dưới T, K extends keyof T trên và giải thích.",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "LANGUAGE_SPECIFIC",
+    "keyConcepts": [
+      "interface_vs_type",
+      "generic_constraint",
+      "keyof_operator",
+      "utility_types",
+      "type_inference"
+    ],
+    "depthExpected": "interface vs type, generic example, utility types"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "frontend",
+      "security",
+      "xss"
+    ],
+    "text": "XSS xảy ra ở frontend ra sao? Phân biệt reflected, stored, DOM-based qua ví dụ React. Vì sao dangerouslySetInnerHTML nguy hiểm và làm sao xử lý khi buộc phải render HTML từ server?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "SECURITY",
+    "keyConcepts": [
+      "reflected_stored_DOM_xss",
+      "react_default_escape",
+      "dangerouslySetInnerHTML_risk",
+      "DOMPurify_sanitization",
+      "CSP_directive"
+    ],
+    "depthExpected": "three XSS variants, React's default safety, sanitization libs"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "frontend",
+      "storage"
+    ],
+    "text": "Phân biệt cookie, localStorage, sessionStorage, IndexedDB. Khi lưu auth token cho SPA, bạn chọn cái nào và đánh đổi giữa XSS exposure và CSRF exposure ra sao?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRONTEND_DEV",
+    "keyConcepts": [
+      "cookie_attributes",
+      "localStorage_sessionStorage",
+      "indexeddb_async",
+      "xss_vs_csrf_tradeoff",
+      "httponly_cookie"
+    ],
+    "depthExpected": "storage comparison, security trade-offs, real choice"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "frontend",
+      "react",
+      "concurrent"
+    ],
+    "text": "Concurrent React và Suspense thay đổi mô hình rendering ra sao? useTransition và useDeferredValue khác nhau như thế nào? Hãy lấy ví dụ search-as-you-type: bạn chọn cái nào và lý do?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRAMEWORK",
+    "keyConcepts": [
+      "interruptible_rendering",
+      "suspense_boundary",
+      "useTransition_non_urgent",
+      "useDeferredValue",
+      "search_as_you_type_example"
+    ],
+    "depthExpected": "concurrent model, transition vs deferred, real use case"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "frontend",
+      "react",
+      "rsc"
+    ],
+    "text": "React Server Components khác SSR truyền thống ra sao? Phân biệt use client và server component. Khi nào dùng server component và khi nào buộc phải dùng client component?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRAMEWORK",
+    "keyConcepts": [
+      "server_components",
+      "client_boundary",
+      "use_client_directive",
+      "no_state_on_server",
+      "streamed_payload"
+    ],
+    "depthExpected": "RSC architecture, boundaries, payload streaming"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "frontend",
+      "perf",
+      "scenario"
+    ],
+    "text": "Trang dashboard React có 200 row table, mỗi row có form inline, scroll bị giật. Bạn debug và tối ưu theo những bước nào? Khi nào dùng virtualization (react-window) và đánh đổi của nó là gì?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRONTEND_DEV",
+    "keyConcepts": [
+      "virtual_scrolling",
+      "react_window",
+      "memo_per_row",
+      "form_state_isolation",
+      "uncontrolled_for_perf"
+    ],
+    "depthExpected": "diagnosis flow, virtualization mechanics, trade-offs"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "frontend",
+      "bundler"
+    ],
+    "text": "Webpack so với Vite so với Turbopack tiếp cận bundling khác nhau ra sao? Vì sao Vite cho dev server gần như tức thì nhờ ESM của trình duyệt? Production build thì sao?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRAMEWORK",
+    "keyConcepts": [
+      "bundle_then_serve_webpack",
+      "esm_native_dev_vite",
+      "rollup_for_prod",
+      "esbuild_pre_bundle",
+      "turbopack_rust_based"
+    ],
+    "depthExpected": "build vs no-build dev model, prod pipeline, modern tooling"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "frontend",
+      "design-system"
+    ],
+    "text": "Bạn xây dựng design system cho 5 product team. Bạn cấu trúc package thế nào (token, primitive, composite)? Versioning theo semver ra sao và làm sao đảm bảo backward compat khi đổi token?",
+    "targetRoles": [
+      "FRONTEND"
+    ],
+    "domain": "FRONTEND_DEV",
+    "keyConcepts": [
+      "design_token_layer",
+      "primitive_vs_composite",
+      "monorepo_versioning",
+      "semver_breaking",
+      "deprecation_strategy"
+    ],
+    "depthExpected": "package architecture, versioning strategy, migration path"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "fullstack",
+      "api-contract"
+    ],
+    "text": "Khi FE và BE phát triển song song, bạn align API contract ra sao trước khi code? OpenAPI hoặc Swagger, GraphQL schema, tRPC: bạn chọn cái nào trong các tình huống khác nhau?",
+    "targetRoles": [
+      "FULLSTACK"
+    ],
+    "domain": "SYSTEM_DESIGN",
+    "keyConcepts": [
+      "api_contract_first",
+      "openapi_swagger",
+      "graphql_schema",
+      "trpc_typescript_first",
+      "mock_server"
+    ],
+    "depthExpected": "contract-first workflow, tooling comparison, mock-driven dev"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "fullstack",
+      "type-share"
+    ],
+    "text": "Trong project TypeScript fullstack, bạn share type giữa FE và BE ra sao? Monorepo + shared package, code generation từ OpenAPI, hay tRPC? Đánh đổi của mỗi cách là gì?",
+    "targetRoles": [
+      "FULLSTACK"
+    ],
+    "domain": "SYSTEM_DESIGN",
+    "keyConcepts": [
+      "shared_package_monorepo",
+      "openapi_codegen",
+      "trpc_inferred_types",
+      "build_complexity",
+      "deployment_independence"
+    ],
+    "depthExpected": "three approaches, trade-offs, tooling overhead"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "fullstack",
+      "auth-flow"
+    ],
+    "text": "Hãy đi qua end-to-end auth flow của một SPA + REST API: login, access token, refresh, logout. Bạn lưu token ở đâu (cookie HttpOnly so với localStorage), refresh thế nào, và xử lý logout ở mọi tab ra sao?",
+    "targetRoles": [
+      "FULLSTACK"
+    ],
+    "domain": "SECURITY",
+    "keyConcepts": [
+      "access_refresh_token",
+      "httponly_cookie_storage",
+      "silent_refresh",
+      "logout_broadcast_storage_event",
+      "csrf_with_cookie"
+    ],
+    "depthExpected": "full auth flow, storage choice, multi-tab logout"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "fullstack",
+      "upload"
+    ],
+    "text": "Thiết kế tính năng upload file lớn, ví dụ video 500 MB end-to-end. Bạn dùng pre-signed URL với S3 hay upload qua server? Multipart và resumable hoạt động ra sao? Hiển thị progress bar phía FE thế nào?",
+    "targetRoles": [
+      "FULLSTACK"
+    ],
+    "domain": "SYSTEM_DESIGN",
+    "keyConcepts": [
+      "presigned_url_direct_to_s3",
+      "multipart_upload",
+      "resumable_upload",
+      "client_upload_progress",
+      "checksum_verification"
+    ],
+    "depthExpected": "upload protocol, server load offload, progress UX"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "fullstack",
+      "realtime"
+    ],
+    "text": "Tính năng chat real-time: bạn chọn WebSocket, SSE hay long polling? Lấy ví dụ kiến trúc cho 10K concurrent user: load balancer xử lý sticky session ra sao và scale horizontal thế nào?",
+    "targetRoles": [
+      "FULLSTACK"
+    ],
+    "domain": "SYSTEM_DESIGN",
+    "keyConcepts": [
+      "websocket_full_duplex",
+      "sse_unidirectional",
+      "long_polling_fallback",
+      "sticky_session",
+      "redis_pubsub_for_fanout"
+    ],
+    "depthExpected": "transport choice, scaling stateful connections, fan-out"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "fullstack",
+      "optimistic-ui"
+    ],
+    "text": "Optimistic UI update là gì? Hãy mô tả cho thao tác like trên một post: client update ngay, sau đó nếu API fail thì rollback. Bạn xử lý conflict, ví dụ liked đồng thời ở nhiều device ra sao?",
+    "targetRoles": [
+      "FULLSTACK"
+    ],
+    "domain": "SYSTEM_DESIGN",
+    "keyConcepts": [
+      "optimistic_update",
+      "rollback_on_failure",
+      "queue_pending_actions",
+      "conflict_resolution",
+      "react_query_mutation"
+    ],
+    "depthExpected": "UX pattern, rollback flow, conflict handling"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "fullstack",
+      "error"
+    ],
+    "text": "Một bug không lưu được dữ liệu báo từ user. Bạn debug từ client (network tab, console) sang server (log, trace) sang DB ra sao để xác định layer nào fail? Bạn thiết kế error logging xuyên stack thế nào để dễ correlate?",
+    "targetRoles": [
+      "FULLSTACK"
+    ],
+    "domain": "SYSTEM_DESIGN",
+    "keyConcepts": [
+      "request_id_correlation",
+      "client_error_reporting",
+      "structured_log",
+      "distributed_trace",
+      "user_facing_error_message"
+    ],
+    "depthExpected": "debug flow across stack, correlation strategy, logging design"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "fullstack",
+      "bff"
+    ],
+    "text": "Backend for Frontend (BFF) pattern là gì? Khi nào nên có BFF riêng cho web so với mobile thay vì dùng chung một API? Đánh đổi của việc thêm tầng BFF là gì?",
+    "targetRoles": [
+      "FULLSTACK"
+    ],
+    "domain": "SYSTEM_DESIGN",
+    "keyConcepts": [
+      "bff_pattern",
+      "client_specific_aggregation",
+      "graphql_alternative",
+      "extra_layer_complexity",
+      "team_ownership"
+    ],
+    "depthExpected": "pattern, when each client needs own BFF, trade-offs"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "fullstack",
+      "graphql"
+    ],
+    "text": "GraphQL khác REST ở đâu? Vì sao GraphQL giải quyết over fetching và under fetching nhưng có thể tệ hơn REST về caching và performance? Khi nào bạn chọn GraphQL?",
+    "targetRoles": [
+      "FULLSTACK"
+    ],
+    "domain": "NETWORKING",
+    "keyConcepts": [
+      "query_language",
+      "over_under_fetching",
+      "n_plus_1_in_resolver",
+      "caching_complexity",
+      "rest_simplicity"
+    ],
+    "depthExpected": "GraphQL pros/cons, N+1 in resolvers, choice criteria"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "fullstack",
+      "monorepo"
+    ],
+    "text": "Setup monorepo cho project có FE (Next.js), BE (NestJS), shared packages (types, utils). Bạn dùng pnpm workspace, Turborepo, Nx: chọn cái nào? CI CD chỉ build hoặc test phần thay đổi ra sao?",
+    "targetRoles": [
+      "FULLSTACK"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "pnpm_workspace",
+      "turborepo_caching",
+      "nx_full_features",
+      "affected_only_ci",
+      "shared_package_versioning"
+    ],
+    "depthExpected": "tooling comparison, CI optimization, structure"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "fullstack",
+      "architecture"
+    ],
+    "text": "Bạn được giao thiết kế kiến trúc cho ứng dụng SaaS multi-tenant đa khu vực (Việt Nam, Singapore và Mỹ). Bạn quyết định tech stack, cách tổ chức code, deploy, và database isolation per tenant ra sao? Đâu là rủi ro lớn nhất bạn sẽ flag?",
+    "targetRoles": [
+      "FULLSTACK"
+    ],
+    "domain": "SYSTEM_DESIGN",
+    "keyConcepts": [
+      "multi_tenant_isolation",
+      "regional_deployment",
+      "data_residency",
+      "shared_vs_dedicated_db",
+      "stack_choice_rationale"
+    ],
+    "depthExpected": "architecture decisions, isolation model, regional strategy"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "fullstack",
+      "migration"
+    ],
+    "text": "Hãy đi qua chiến lược migrate một feature từ monolith sang microservice mà không downtime. Strangler fig pattern là gì? Bạn handle session, transaction xuyên service ra sao trong giai đoạn dual-running?",
+    "targetRoles": [
+      "FULLSTACK"
+    ],
+    "domain": "DESIGN_PATTERN",
+    "keyConcepts": [
+      "strangler_fig_pattern",
+      "incremental_migration",
+      "session_consistency",
+      "dual_running_phase",
+      "rollback_per_route"
+    ],
+    "depthExpected": "migration strategy, dual-running challenges, safety net"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "mobile",
+      "lifecycle"
+    ],
+    "text": "Hãy mô tả app lifecycle trên iOS (didFinishLaunching, active, background, terminate) và Android (Activity lifecycle: onCreate, onStart, onResume, onPause, onStop, onDestroy). Bạn lưu state khi user chuyển background ra sao?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "ios_app_states",
+      "android_activity_lifecycle",
+      "state_save_restore",
+      "process_kill_recovery",
+      "configuration_change"
+    ],
+    "depthExpected": "two platforms, state preservation, edge cases"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "mobile",
+      "native-vs-cross"
+    ],
+    "text": "Phân biệt native (Swift hoặc Kotlin), React Native, Flutter, và hybrid (Cordova). Khi quyết định stack cho startup, bạn cân nhắc tiêu chí nào (UI fidelity, team skill, time to market, performance)?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "native_full_capability",
+      "react_native_jsi_bridge",
+      "flutter_dart_skia",
+      "hybrid_webview",
+      "decision_matrix"
+    ],
+    "depthExpected": "four approaches, decision criteria, real-world fit"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "mobile",
+      "navigation"
+    ],
+    "text": "Trong React Native (hoặc native), bạn implement navigation thế nào? Stack so với tab so với drawer navigator phù hợp khi nào? Deep link và universal link khác nhau ra sao?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "stack_tab_drawer",
+      "navigation_state",
+      "deep_link_url_scheme",
+      "universal_link_https",
+      "passing_params"
+    ],
+    "depthExpected": "navigator types, deep linking, parameter passing"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "mobile",
+      "storage"
+    ],
+    "text": "Phân biệt UserDefaults và SharedPreferences, SQLite, Room, Realm, AsyncStorage, và Keychain và Keystore. Khi lưu auth token, bạn dùng cái nào và lý do?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "userdefaults_simple_kv",
+      "room_realm_db",
+      "asyncstorage_react_native",
+      "keychain_secure_storage",
+      "encryption_at_rest"
+    ],
+    "depthExpected": "storage comparison, secure storage for tokens, threat model"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "mobile",
+      "state"
+    ],
+    "text": "Trong React Native, bạn quản lý state thế nào với Redux, MobX, Zustand, hay React Query? Khi nào server state nên ở React Query và client state ở Zustand?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "client_state_vs_server_state",
+      "react_query_cache",
+      "zustand_minimal",
+      "redux_complex_app",
+      "stale_while_revalidate"
+    ],
+    "depthExpected": "library comparison, state separation, caching"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "mobile",
+      "offline"
+    ],
+    "text": "Thiết kế feature offline-first cho app ghi chú: user viết note khi không có mạng, sync khi online. Bạn xử lý conflict resolution (note bị sửa ở 2 device) ra sao?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "local_db_first",
+      "queue_pending_changes",
+      "sync_on_reconnect",
+      "conflict_resolution_lww_or_merge",
+      "network_state_listener"
+    ],
+    "depthExpected": "offline architecture, sync flow, conflict strategy"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "mobile",
+      "push"
+    ],
+    "text": "Push notification trên iOS (APNS) và Android (FCM) hoạt động ra sao? Bạn xử lý device token registration, refresh, và unregister (logout) ra sao? Silent push để background sync khác alert push thế nào?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "apns_fcm",
+      "device_token_lifecycle",
+      "silent_push_background",
+      "rich_push_extension",
+      "notification_grouping"
+    ],
+    "depthExpected": "two platforms, token management, push types"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "mobile",
+      "memory"
+    ],
+    "text": "App iOS và Android tiêu tốn nhiều RAM và bị hệ thống kill khi user chuyển sang app khác. Bạn debug ra sao và tối ưu retain cycle (Swift) hoặc memory leak (Java, Kotlin hoặc React Native)?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "arc_retain_cycle",
+      "weak_unowned_swift",
+      "leakcanary_android",
+      "image_memory_optimization",
+      "background_eviction"
+    ],
+    "depthExpected": "tooling per platform, retain cycle examples, optimization"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "mobile",
+      "battery"
+    ],
+    "text": "App của bạn bị user kêu hao pin. Bạn audit ra sao những thủ phạm thường gặp (location liên tục, wake lock, network polling, animation 60fps không cần thiết)? Bạn tối ưu thế nào mà không hy sinh UX?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "background_location",
+      "wake_lock_doze",
+      "network_batching",
+      "frame_rate_throttling",
+      "battery_profiler"
+    ],
+    "depthExpected": "common culprits, tooling, optimization without UX loss"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "mobile",
+      "size"
+    ],
+    "text": "App size 150 MB và team yêu cầu giảm xuống dưới 50 MB để tăng install rate. Bạn áp dụng kỹ thuật nào (App Bundle và AAB, asset compression, lazy load resources, on-demand resource)?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "android_app_bundle",
+      "ios_on_demand_resources",
+      "asset_compression",
+      "code_minification",
+      "dynamic_feature_module"
+    ],
+    "depthExpected": "size optimization techniques, platform-specific tools"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "mobile",
+      "permission"
+    ],
+    "text": "User từ chối permission camera trong app gọi video. Bạn handle UX ra sao: explain trước khi xin permission, deeplink tới settings, hay graceful degrade? Phân biệt iOS so với Android cách user đổi permission.",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "permission_priming",
+      "rationale_dialog",
+      "permanent_deny_handling",
+      "settings_deeplink",
+      "graceful_degradation"
+    ],
+    "depthExpected": "permission UX, priming pattern, fallback flow"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "mobile",
+      "deeplink"
+    ],
+    "text": "App của bạn cần handle deep link từ email và share: iOS Universal Link và Android App Link hoạt động ra sao? Bạn xử lý case app chưa cài (fallback web) thế nào?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "universal_link_apple_app_site_association",
+      "android_app_link_assetlinks",
+      "deferred_deep_link",
+      "fallback_web",
+      "campaign_attribution"
+    ],
+    "depthExpected": "two platforms, fallback strategy, attribution"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "mobile",
+      "ci-cd"
+    ],
+    "text": "CI CD cho mobile khác web ra sao? Bạn tự động build, sign, distribute (TestFlight, Firebase App Distribution) thế nào? Versioning (semver so với build number) và release lane (Fastlane) hoạt động ra sao?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "fastlane_lanes",
+      "code_signing_provisioning",
+      "testflight_internal_external",
+      "firebase_app_distribution",
+      "build_number_strategy"
+    ],
+    "depthExpected": "mobile CI specifics, signing complexity, distribution"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "mobile",
+      "crash"
+    ],
+    "text": "App crash trong production và bạn không reproduce được trên dev. Bạn tích hợp crash reporting (Crashlytics, Sentry) ra sao để có dSYM hoặc ProGuard mapping cho stacktrace có ý nghĩa? Bạn triage crash report theo tiêu chí nào?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "crashlytics_sentry",
+      "dsym_symbolication",
+      "proguard_mapping",
+      "crash_free_users_metric",
+      "triage_severity_users_affected"
+    ],
+    "depthExpected": "crash reporting setup, symbolication, triage process"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "mobile",
+      "react-native",
+      "bridge"
+    ],
+    "text": "React Native bridge cũ (JSI so với Old bridge) hoạt động ra sao? Vì sao một số animation và scroll giật và new architecture (Fabric, TurboModules) cải thiện ra sao?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "old_bridge_async_serialization",
+      "jsi_synchronous",
+      "fabric_renderer",
+      "turbomodules",
+      "concurrent_react"
+    ],
+    "depthExpected": "bridge architecture, performance bottleneck, new architecture"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "mobile",
+      "security"
+    ],
+    "text": "App của bạn xử lý dữ liệu nhạy cảm. Bạn chống reverse engineering (obfuscation), root hoặc jailbreak detection, certificate pinning, và secure storage ra sao? Đánh đổi giữa security và development complexity là gì?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "proguard_r8_obfuscation",
+      "jailbreak_root_detection",
+      "certificate_pinning",
+      "keychain_keystore",
+      "anti_debug"
+    ],
+    "depthExpected": "security layers, trade-offs, real-world threat model"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "mobile",
+      "perf"
+    ],
+    "text": "List 1000 item trong React Native bị scroll giật. Bạn tối ưu bằng VirtualizedList, FlashList, hay native module? Khi nào dùng getItemLayout giúp được, và bạn debug frame drop ra sao?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "virtualized_list",
+      "flashlist_recycling",
+      "getItemLayout_optimization",
+      "native_driver_animation",
+      "perf_monitor"
+    ],
+    "depthExpected": "list virtualization, optimization techniques, profiling"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "mobile",
+      "release"
+    ],
+    "text": "App của bạn deploy lên App Store và Google Play. Bạn xử lý phased rollout, force update khi có bug nghiêm trọng, và A B test feature flag ra sao mà không cần resubmit?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "staged_rollout",
+      "force_update_min_version",
+      "remote_config_firebase",
+      "feature_flag",
+      "in_app_review_prompt"
+    ],
+    "depthExpected": "release strategy, force update flow, feature flag pattern"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "mobile",
+      "ota"
+    ],
+    "text": "OTA update với CodePush (RN) hoặc Expo Updates: bạn deploy JS bundle update mà không qua App Store. Đâu là giới hạn (không thể update native code), risk (bypass review), và best practice version pinning?",
+    "targetRoles": [
+      "MOBILE"
+    ],
+    "domain": "MOBILE_DEV",
+    "keyConcepts": [
+      "codepush_expo_updates",
+      "js_only_update_limit",
+      "store_review_bypass_risk",
+      "rollback_strategy",
+      "version_pinning_per_native"
+    ],
+    "depthExpected": "OTA mechanism, limits, best practices"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "devops",
+      "docker"
+    ],
+    "text": "Phân biệt Docker image và container. Hãy giải thích layer structure và vì sao một Dockerfile sai thứ tự, ví dụ COPY trước khi cài dep làm build chậm hơn nhiều.",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "image_layer_caching",
+      "container_runtime",
+      "layer_ordering",
+      "cache_invalidation",
+      "build_speed_optimization"
+    ],
+    "depthExpected": "image vs container, layer caching, optimal ordering"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "devops",
+      "docker"
+    ],
+    "text": "Hãy nêu best practices viết Dockerfile production-ready: multi-stage build, base image nhỏ, non-root user, file dockerignore, không hardcode secret. Một image 1.2 GB thường có thể giảm xuống dưới 300 MB bằng cách nào?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "multi_stage_build",
+      "alpine_distroless",
+      "non_root_user",
+      "dockerignore_audit",
+      "secret_at_runtime"
+    ],
+    "depthExpected": "best practices, size reduction, security hardening"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "devops",
+      "k8s"
+    ],
+    "text": "Phân biệt Pod, ReplicaSet, Deployment, StatefulSet trong Kubernetes. Khi deploy web service stateless, bạn dùng Deployment hay StatefulSet và lý do?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "pod_unit_of_deploy",
+      "replicaset_replica_count",
+      "deployment_rolling_update",
+      "statefulset_stable_identity",
+      "stateless_workload_default"
+    ],
+    "depthExpected": "object hierarchy, when each fits"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "devops",
+      "k8s"
+    ],
+    "text": "Phân biệt ConfigMap và Secret trong Kubernetes. Vì sao K8s Secret chỉ là base64-encoded chứ không phải encrypted, và bạn integrate với external secret manager (Vault, AWS Secrets Manager) thế nào?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "configmap_for_config",
+      "secret_base64_encoded",
+      "etcd_at_rest_encryption",
+      "external_secret_operator",
+      "rotation_audit"
+    ],
+    "depthExpected": "two object types, K8s secret limitations, external integration"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "devops",
+      "k8s",
+      "service"
+    ],
+    "text": "Phân biệt ClusterIP, NodePort, LoadBalancer Service và Ingress. Khi expose 10 microservice ra Internet, bạn chọn 10 LoadBalancer hay 1 Ingress và lý do? Ingress controller (Nginx, Traefik) làm gì?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "clusterip_internal",
+      "nodeport_external_basic",
+      "loadbalancer_cloud_provided",
+      "ingress_l7_routing",
+      "ingress_controller_implementation"
+    ],
+    "depthExpected": "service types, Ingress benefits, controller role"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "devops",
+      "k8s",
+      "probes"
+    ],
+    "text": "Phân biệt liveness, readiness, startup probe. Hãy lấy ví dụ một Spring Boot app cần 30s để khởi động và đôi lúc bị stuck: bạn config 3 probe ra sao? Một liveness probe quá nghiêm gây loop restart như thế nào?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "liveness_restart",
+      "readiness_traffic_gate",
+      "startup_for_slow_boot",
+      "false_positive_kill_loop",
+      "probe_timing_tuning"
+    ],
+    "depthExpected": "three probes, real config, restart loop pitfall"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "devops",
+      "k8s",
+      "scenario"
+    ],
+    "text": "Pod liên tục CrashLoopBackOff sau deploy. Bạn debug theo các bước nào: kubectl logs, describe, events? Liệt kê 5 nguyên nhân phổ biến (OOMKilled, missing env, init container fail, image pull error, exit code).",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "kubectl_logs_previous",
+      "describe_events",
+      "OOMKilled_signal",
+      "init_container_failure",
+      "image_pull_backoff"
+    ],
+    "depthExpected": "debug flow, common causes, resolution per cause"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "devops",
+      "k8s",
+      "hpa"
+    ],
+    "text": "Horizontal Pod Autoscaler hoạt động ra sao? Vì sao chỉ scale theo CPU đôi khi không đủ và bạn dùng custom metric (RPS, queue length) thế nào? Khác Vertical Pod Autoscaler ra sao?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "target_metric",
+      "cpu_utilization",
+      "custom_metric_adapter",
+      "stabilization_window",
+      "vpa_resource_recommendation"
+    ],
+    "depthExpected": "HPA mechanism, custom metrics, VPA comparison"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "devops",
+      "k8s",
+      "deploy"
+    ],
+    "text": "So sánh rolling update, blue-green, canary deployment trong K8s. Cho ví dụ team bạn đang ship feature mới có rủi ro: bạn chọn chiến lược nào và config Argo Rollouts hay Flagger ra sao?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "rolling_update_default",
+      "blue_green_full_swap",
+      "canary_gradual_traffic",
+      "argo_rollouts_flagger",
+      "automated_rollback"
+    ],
+    "depthExpected": "three strategies, choice for risky feature, tooling"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "devops",
+      "helm"
+    ],
+    "text": "Helm chart dùng để làm gì? Khi nào nên viết chart riêng so với fork chart upstream so với dùng subchart? Bạn handle environment-specific values (dev, staging, prod) thế nào?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "chart_template",
+      "values_yaml_layering",
+      "fork_vs_subchart",
+      "values_per_env",
+      "helm_release_history"
+    ],
+    "depthExpected": "Helm purpose, customization choices, env management"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "devops",
+      "ci-cd"
+    ],
+    "text": "Hãy thiết kế CI CD pipeline cho microservice: build, test, security scan, deploy staging, smoke test, deploy prod. Bạn handle secret, artifact, và promote giữa env ra sao?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "pipeline_stages",
+      "artifact_registry",
+      "secret_in_ci",
+      "env_promotion",
+      "approval_gate"
+    ],
+    "depthExpected": "pipeline stages, secret/artifact management, promotion flow"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "devops",
+      "iac",
+      "terraform"
+    ],
+    "text": "Terraform so với Pulumi so với CloudFormation khác nhau ra sao? State file của Terraform hoạt động thế nào và vì sao remote state với locking là bắt buộc cho team? Bạn handle drift detection ra sao?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "declarative_iac",
+      "terraform_state_file",
+      "remote_state_locking",
+      "drift_detection",
+      "module_reuse"
+    ],
+    "depthExpected": "tooling comparison, state management, drift handling"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "devops",
+      "monitoring"
+    ],
+    "text": "Prometheus dùng pull thay vì push. Vì sao thiết kế như vậy và Push Gateway xuất hiện trong tình huống nào (ephemeral job, batch)? Bạn handle cardinality explosion ra sao?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "pull_based_scrape",
+      "service_discovery",
+      "push_gateway_ephemeral",
+      "label_cardinality_limit",
+      "alertmanager_integration"
+    ],
+    "depthExpected": "pull rationale, push gateway use, cardinality management"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "devops",
+      "logging"
+    ],
+    "text": "Hãy thiết kế logging pipeline cho 50 microservice: structured log, ship, store, query. Bạn dùng EFK (Elasticsearch+Fluentd+Kibana), Loki+Grafana, hay cloud-native (CloudWatch)? Đánh đổi và cost ra sao?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "structured_json_log",
+      "fluentd_fluentbit_shipper",
+      "elasticsearch_vs_loki",
+      "log_indexing_cost",
+      "retention_tiering"
+    ],
+    "depthExpected": "pipeline architecture, tooling comparison, cost trade-offs"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "devops",
+      "sre"
+    ],
+    "text": "SLI, SLO, SLA và error budget khác nhau ra sao? Hãy đặt SLO cho một payment API, ví dụ 99.9 phần trăm available và mô tả cách bạn dùng error budget để quyết định release feature mới so với freeze để ổn định.",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "sli_indicator",
+      "slo_objective",
+      "sla_agreement",
+      "error_budget_policy",
+      "freeze_when_burn_high"
+    ],
+    "depthExpected": "four concepts, real SLO, error budget decision"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "devops",
+      "incident"
+    ],
+    "text": "Hệ thống production bị xuống lúc 3 sáng. Bạn là người on-call. Quy trình IR (incident response) bạn theo gồm những bước gì: từ acknowledge, triage, mitigate, communicate, post-mortem?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "incident_acknowledgement",
+      "severity_classification",
+      "communication_cadence",
+      "mitigate_before_root_cause",
+      "blameless_post_mortem"
+    ],
+    "depthExpected": "IR steps, communication flow, post-mortem culture"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "devops",
+      "linux"
+    ],
+    "text": "Server Linux của bạn báo CPU 100 phần trăm nhưng không rõ process nào. Bạn dùng những lệnh nào theo thứ tự (top, htop, vmstat, iostat, perf, strace)? Phân biệt load average với CPU utilization.",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "OS",
+    "keyConcepts": [
+      "top_htop_per_process",
+      "vmstat_system_wide",
+      "iostat_disk_bottleneck",
+      "load_average_meaning",
+      "perf_strace_deep_dive"
+    ],
+    "depthExpected": "Linux toolbox, ordered investigation, load vs CPU"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "devops",
+      "network"
+    ],
+    "text": "Service A trong K8s không gọi được service B. Bạn debug theo những bước nào: kubectl exec curl, dns lookup, NetworkPolicy, service mesh? Phân biệt vấn đề DNS với vấn đề routing.",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "k8s_dns_coredns",
+      "service_endpoint",
+      "networkpolicy_blocking",
+      "service_mesh_mtls_block",
+      "kubectl_exec_curl_test"
+    ],
+    "depthExpected": "debug flow, DNS vs routing, network policy"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "devops",
+      "cloud"
+    ],
+    "text": "Bạn deploy app trên AWS. Phân biệt EC2, ECS, EKS, Lambda. Khi nào nên chọn serverless (Lambda) so với container (EKS)? Cost model khác nhau ra sao?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "ec2_vm",
+      "ecs_aws_managed_container",
+      "eks_kubernetes",
+      "lambda_serverless",
+      "cost_per_request_vs_uptime"
+    ],
+    "depthExpected": "compute options, choice criteria, cost model"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "devops",
+      "service-mesh"
+    ],
+    "text": "Istio service mesh đem lại giá trị gì (mTLS, traffic policy, observability)? Sidecar overhead là gì và khi nào team không nên áp service mesh? Phân biệt với API gateway.",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "sidecar_envoy",
+      "mtls_automatic",
+      "traffic_splitting",
+      "observability_built_in",
+      "api_gateway_vs_mesh"
+    ],
+    "depthExpected": "value proposition, overhead, when not to use"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "devops",
+      "tracing"
+    ],
+    "text": "Distributed tracing với OpenTelemetry hoặc Jaeger: bạn integrate vào 30 microservice ra sao mà không phải sửa code mỗi service? Auto-instrumentation hoạt động thế nào và sampling strategy nào (head so với tail) phù hợp cho prod?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "opentelemetry_sdk",
+      "auto_instrumentation_agent",
+      "head_based_sampling",
+      "tail_based_sampling",
+      "trace_storage_cost"
+    ],
+    "depthExpected": "integration approach, sampling strategy, cost"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "devops",
+      "dr"
+    ],
+    "text": "Hãy thiết kế disaster recovery cho hệ thống production. Phân biệt RPO và RTO. Bạn xây active-passive so với active-active cross-region thế nào? DR drill diễn ra ra sao trong thực tế?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "rpo_rto",
+      "active_passive_replication",
+      "active_active_multi_region",
+      "dns_failover",
+      "dr_drill_chaos_engineering"
+    ],
+    "depthExpected": "DR architecture, RPO/RTO targets, drill cadence"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "devops",
+      "cost"
+    ],
+    "text": "Bill cloud của bạn tăng 50 phần trăm so với năm ngoái nhưng traffic chỉ tăng 20 phần trăm. Bạn audit ra sao: orphan resource, oversized instance, unused snapshot, data transfer cost? Tool nào giúp (CUR, Cost Explorer, infracost)?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "cost_anomaly_detection",
+      "rightsizing",
+      "reserved_instance_savings_plan",
+      "data_transfer_egress",
+      "infracost_iac_estimation"
+    ],
+    "depthExpected": "cost audit methodology, common waste, tooling"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "devops",
+      "k8s",
+      "cluster"
+    ],
+    "text": "Hãy thiết kế K8s cluster production-grade: control plane HA, worker node pool, networking (CNI), storage (CSI), RBAC, network policy. Đâu là điểm bạn outsource cho managed K8s (EKS hoặc GKE) và đâu là điểm bạn vẫn phải tự lo?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "control_plane_ha",
+      "node_pool_taint_toleration",
+      "cni_calico_cilium",
+      "csi_dynamic_provisioning",
+      "rbac_least_privilege"
+    ],
+    "depthExpected": "production cluster design, managed vs self-managed boundary"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "devops",
+      "secret"
+    ],
+    "text": "Hãy thiết kế secret rotation cho fleet 50 microservice. Bạn dùng Vault hay cloud-native (AWS Secrets Manager). Dual-key rollover hoạt động ra sao để zero downtime? Audit trail và least privilege thế nào?",
+    "targetRoles": [
+      "DEVOPS"
+    ],
+    "domain": "DEVOPS_TOOLS",
+    "keyConcepts": [
+      "vault_dynamic_secret",
+      "rotation_policy",
+      "dual_key_rollover",
+      "audit_log",
+      "least_privilege_iam"
+    ],
+    "depthExpected": "rotation lifecycle, zero-downtime rollover, audit"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "qa",
+      "test-types"
+    ],
+    "text": "Phân biệt smoke test, sanity test, regression test, exploratory test. Sau release lớn, bạn chạy loại test nào trước và lý do?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "smoke_critical_path",
+      "sanity_after_minor_change",
+      "regression_full_suite",
+      "exploratory_human_judgment",
+      "test_order_post_release"
+    ],
+    "depthExpected": "four test types, when each fits, post-release order"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "qa",
+      "bug"
+    ],
+    "text": "Một bug report chất lượng tốt cần những thông tin gì? Phân biệt severity và priority qua ví dụ: một bug có severity cao nhưng priority thấp có khả năng không?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "bug_report_template",
+      "steps_to_reproduce",
+      "severity_vs_priority",
+      "environment_info",
+      "screenshot_log_attachment"
+    ],
+    "depthExpected": "bug report essentials, severity vs priority matrix"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "qa",
+      "test-design"
+    ],
+    "text": "Hãy nêu các kỹ thuật test design (boundary value analysis, equivalence partitioning, decision table, state transition). Cho input tuổi từ 0-150, bạn liệt kê test case bằng kỹ thuật nào?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "boundary_value",
+      "equivalence_partition",
+      "decision_table",
+      "state_transition",
+      "concrete_test_cases"
+    ],
+    "depthExpected": "techniques inventory, applied to age input, test case enumeration"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "qa",
+      "test-plan"
+    ],
+    "text": "Test plan và test strategy khác nhau ra sao? Khi PM giao bạn feature mới, ví dụ thanh toán bằng QR, bạn xây test plan như thế nào: entry và exit criteria, scope, rủi ro?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "test_plan_per_release",
+      "test_strategy_long_term",
+      "entry_exit_criteria",
+      "scope_in_out",
+      "risk_based_priority"
+    ],
+    "depthExpected": "two artefacts, real plan structure, risk identification"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "qa",
+      "automation"
+    ],
+    "text": "Khi nào nên automate một test case và khi nào không? Hãy đưa ra tiêu chí ROI quyết định: không phải case nào cũng đáng automate. Bạn handle test data, môi trường, và flakiness ra sao?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "roi_of_automation",
+      "stable_repetitive_tests",
+      "test_data_management",
+      "env_consistency",
+      "flakiness_root_causes"
+    ],
+    "depthExpected": "automation ROI criteria, infrastructure, flakiness handling"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "qa",
+      "selenium-cypress"
+    ],
+    "text": "Phân biệt Selenium, Cypress, Playwright cho UI automation. Cypress chỉ chạy được trong browser context, vậy hạn chế của nó là gì? Playwright khắc phục thế nào và bạn chọn tool nào cho project mới?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "selenium_webdriver",
+      "cypress_in_browser",
+      "playwright_cross_browser",
+      "iframe_multi_tab_support",
+      "auto_wait"
+    ],
+    "depthExpected": "tool comparison, Cypress limits, modern choice"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "qa",
+      "api-test"
+    ],
+    "text": "API testing với Postman hoặc Newman, RestAssured hay Karate. Bạn organize test suite ra sao? Contract testing với Pact hoạt động thế nào và khi nào cần?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "postman_collection",
+      "restassured_java",
+      "karate_dsl",
+      "pact_consumer_provider",
+      "contract_breaking_detection"
+    ],
+    "depthExpected": "API tooling, suite structure, contract testing"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "qa",
+      "perf-test"
+    ],
+    "text": "Phân biệt load testing, stress testing, soak testing, spike testing. Cho hệ thống thanh toán cần handle 1000 RPS: bạn thiết kế kịch bản test nào với JMeter, k6 hoặc Gatling?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "load_normal_traffic",
+      "stress_beyond_capacity",
+      "soak_long_duration",
+      "spike_sudden_surge",
+      "k6_jmeter_gatling"
+    ],
+    "depthExpected": "four test types, real scenario, tooling"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "qa",
+      "flaky"
+    ],
+    "text": "Test suite của team bạn có flaky test (đôi lúc pass, đôi lúc fail). Bạn approach ra sao: disable, fix, hay rerun? Liệt kê 4 nguyên nhân phổ biến (timing, shared state, env, third-party) và cách fix.",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "flaky_root_causes",
+      "timing_race_condition",
+      "test_isolation",
+      "third_party_dependency",
+      "quarantine_strategy"
+    ],
+    "depthExpected": "flakiness handling, root causes, quarantine flow"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "qa",
+      "coverage"
+    ],
+    "text": "Code coverage 90 phần trăm có đảm bảo chất lượng không? Phân biệt line coverage, branch coverage, mutation testing. Vì sao mutation testing tàn khốc hơn nhiều so với coverage thông thường?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "line_branch_coverage",
+      "mutation_testing",
+      "coverage_vs_quality",
+      "test_assertion_strength",
+      "pitest_stryker"
+    ],
+    "depthExpected": "coverage metrics, mutation testing rationale, quality vs %"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "qa",
+      "bdd"
+    ],
+    "text": "BDD với Cucumber và Gherkin (Given When Then) khác TDD ra sao? Khi nào BDD thực sự đem lại giá trị (collaboration với BA hoặc PM) và khi nào nó trở thành overhead doc không ai đọc?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "gherkin_format",
+      "shared_understanding",
+      "tdd_developer_focused",
+      "bdd_collaboration",
+      "anti_pattern_unread_features"
+    ],
+    "depthExpected": "BDD vs TDD, real value, common failure modes"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "qa",
+      "mock"
+    ],
+    "text": "Phân biệt stub, mock, spy, fake. Khi nào dùng cái nào trong unit test? Một test over-mocked (mock quá nhiều thứ) bị vấn đề gì và làm sao tránh?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "stub_canned_response",
+      "mock_with_expectations",
+      "spy_record_calls",
+      "fake_simplified_impl",
+      "over_mock_anti_pattern"
+    ],
+    "depthExpected": "test double types, when each fits, over-mocking pitfall"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "qa",
+      "security-test"
+    ],
+    "text": "Security testing trong QA gồm những gì? Phân biệt SAST, DAST, IAST. Bạn integrate OWASP ZAP hoặc Burp Suite vào pipeline ra sao và xử lý false positive thế nào?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "sast_static_analysis",
+      "dast_runtime_scan",
+      "iast_instrumented",
+      "owasp_zap_burp",
+      "false_positive_triage"
+    ],
+    "depthExpected": "three approaches, tooling, false positive handling"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "qa",
+      "test-data"
+    ],
+    "text": "Test data management cho 100 test case end-to-end. Bạn dùng fixed data, factory (faker.js), hay snapshot từ prod? Đảm bảo test isolation (test này không phá test khác) ra sao?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "fixed_seed_data",
+      "factory_pattern_faker",
+      "prod_snapshot_anonymized",
+      "test_isolation_per_test",
+      "tear_down_strategy"
+    ],
+    "depthExpected": "data strategies, isolation patterns, anonymization"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "qa",
+      "regression"
+    ],
+    "text": "Regression suite chạy 4 giờ và blocking deploy. Bạn tối ưu ra sao: parallel, sharding, smart selection (chỉ chạy test ảnh hưởng bởi change)? Tool nào giúp (Test Impact Analysis)?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "parallel_execution",
+      "test_sharding",
+      "test_impact_analysis",
+      "risk_based_selection",
+      "ci_optimization"
+    ],
+    "depthExpected": "optimization techniques, smart selection, tooling"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "qa",
+      "exploratory"
+    ],
+    "text": "Exploratory testing có cấu trúc thế nào? Bạn dùng tour hoặc session-based test management (SBTM) ra sao? Khi nào exploratory tìm ra bug mà automation bỏ sót?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "session_based_testing",
+      "test_charter",
+      "tour_metaphor",
+      "human_intuition",
+      "scripted_blind_spot"
+    ],
+    "depthExpected": "structured exploratory, charter format, value vs scripted"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "qa",
+      "mobile-test"
+    ],
+    "text": "Test app mobile khác test web ở những điểm nào? Bạn handle device fragmentation (Android), permission, network condition, deep link, push notification ra sao? Tool nào (Appium, Detox, BrowserStack)?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "device_fragmentation",
+      "appium_cross_platform",
+      "detox_react_native",
+      "browserstack_cloud_device",
+      "network_condition_simulation"
+    ],
+    "depthExpected": "mobile-specific challenges, tooling, real device vs emulator"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "qa",
+      "shift-left"
+    ],
+    "text": "Shift-left testing nghĩa là gì? Bạn vào dự án từ giai đoạn requirement ra sao. 3 amigos, three amigos session: và đóng góp gì để bug được phát hiện sớm thay vì cuối sprint?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "shift_left_principle",
+      "three_amigos_session",
+      "ba_dev_qa_collaboration",
+      "early_bug_detection",
+      "definition_of_ready_input"
+    ],
+    "depthExpected": "shift-left philosophy, ceremonies, early QA value"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "qa",
+      "ci-integration"
+    ],
+    "text": "Bạn xây CI CD pipeline với test ở mỗi tầng (unit sang integration sang E2E sang security). Quy trình quality gate ra sao: khi nào fail build và khi nào chỉ warn? Báo cáo cho team ra sao để team không tê liệt với thông báo?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "quality_gate",
+      "fail_fast_strategy",
+      "pipeline_test_layering",
+      "alert_fatigue_management",
+      "dashboard_visibility"
+    ],
+    "depthExpected": "gate strategy, pipeline structure, communication"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "qa",
+      "performance"
+    ],
+    "text": "Bạn được giao test load cho hệ thống cần 10K RPS với P99 dưới 200 ms. Bạn thiết kế test scenario, ramp-up, think time, và environment ra sao để kết quả khả thi cho prod? Bottleneck thường nằm ở đâu (DB? cache? network)?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "realistic_traffic_pattern",
+      "ramp_up_think_time",
+      "production_like_env",
+      "bottleneck_db_cache_network",
+      "result_correlation_with_metrics"
+    ],
+    "depthExpected": "scenario design, environment fidelity, bottleneck analysis"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "qa",
+      "chaos"
+    ],
+    "text": "Chaos engineering (Chaos Monkey, Litmus) là gì và khác load testing thế nào? Bạn run chaos experiment đầu tiên trong staging ra sao: define steady state, hypothesis, blast radius?",
+    "targetRoles": [
+      "QA"
+    ],
+    "domain": "TESTING",
+    "keyConcepts": [
+      "steady_state_definition",
+      "hypothesis_driven",
+      "blast_radius_minimal",
+      "chaos_monkey_litmus",
+      "production_chaos_with_safety"
+    ],
+    "depthExpected": "chaos engineering principles, experiment design, safety"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "data",
+      "etl-elt"
+    ],
+    "text": "Phân biệt ETL và ELT. Khi nào ELT là lựa chọn tốt hơn (data warehouse cloud-native như Snowflake hoặc BigQuery)? Tool nào điển hình cho mỗi cách (Airflow so với dbt)?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "transform_then_load",
+      "load_then_transform",
+      "compute_in_warehouse",
+      "airflow_orchestration",
+      "dbt_in_warehouse_transform"
+    ],
+    "depthExpected": "ETL vs ELT, modern preference for ELT, tooling per approach"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "data",
+      "warehouse-lake"
+    ],
+    "text": "Phân biệt data warehouse, data lake, data lakehouse. Star schema so với snowflake schema khác nhau ra sao và bạn chọn cái nào cho báo cáo doanh thu hàng quý?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "warehouse_structured",
+      "lake_raw_schema_on_read",
+      "lakehouse_delta_iceberg",
+      "star_simple_query",
+      "snowflake_normalized_dim"
+    ],
+    "depthExpected": "three storage paradigms, schema choice, real use case"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "data",
+      "olap-oltp"
+    ],
+    "text": "Phân biệt OLAP và OLTP về mục đích, query pattern, và storage layout. Vì sao columnar store (Parquet, Snowflake) phù hợp cho OLAP còn row store cho OLTP?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "transactional_vs_analytical",
+      "row_vs_columnar",
+      "compression_columnar",
+      "wide_table_scan_efficiency",
+      "real_examples"
+    ],
+    "depthExpected": "two paradigms, layout rationale, examples"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "data",
+      "modeling"
+    ],
+    "text": "Slowly Changing Dimension (SCD) là gì? Phân biệt SCD Type 1, Type 2, Type 3 qua ví dụ bảng customer khi địa chỉ đổi.",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "scd_type_1_overwrite",
+      "scd_type_2_history_row",
+      "scd_type_3_previous_column",
+      "effective_dates",
+      "use_case_per_type"
+    ],
+    "depthExpected": "three SCD types, real example, when each fits"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "data",
+      "spark"
+    ],
+    "text": "Apache Spark có những concept chính nào (RDD, DataFrame, Dataset, lazy evaluation, DAG)? Bạn debug một job Spark chạy 4 giờ thay vì 30 phút như expected ra sao. Spark UI cho bạn biết gì?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "rdd_dataframe",
+      "lazy_evaluation_dag",
+      "spark_ui_stages",
+      "shuffle_bottleneck",
+      "skew_partitioning"
+    ],
+    "depthExpected": "Spark fundamentals, debugging workflow, common bottlenecks"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "data",
+      "spark",
+      "shuffle"
+    ],
+    "text": "Shuffle trong Spark là gì và vì sao nó tốn kém? Phân biệt narrow so với wide transformation. Bạn tránh hoặc tối ưu shuffle thế nào (broadcast join, salting, partition tuning)?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "narrow_wide_transformation",
+      "shuffle_disk_network_io",
+      "broadcast_join_for_small_table",
+      "salting_for_skew",
+      "partition_count_tuning"
+    ],
+    "depthExpected": "shuffle mechanics, optimization techniques"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "data",
+      "airflow"
+    ],
+    "text": "Apache Airflow tổ chức DAG ra sao? Phân biệt operator, task, sensor, hook. Bạn handle backfill cho 30 ngày dữ liệu bị thiếu thế nào và đảm bảo task idempotent?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "dag_definition",
+      "operator_task_unit",
+      "sensor_wait_for_event",
+      "hook_external_connection",
+      "backfill_idempotency"
+    ],
+    "depthExpected": "Airflow concepts, backfill flow, idempotency"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "data",
+      "kafka"
+    ],
+    "text": "Kafka khác RabbitMQ ở chỗ nào? Phân biệt topic, partition, offset, consumer group. Vì sao số consumer trong group bị giới hạn bởi số partition?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "MESSAGING",
+    "keyConcepts": [
+      "log_based_kafka",
+      "queue_based_rabbit",
+      "partition_unit_of_parallelism",
+      "consumer_group_id",
+      "one_partition_one_consumer"
+    ],
+    "depthExpected": "log vs queue, partition mechanics, scaling cap"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "data",
+      "stream-batch"
+    ],
+    "text": "Phân biệt stream processing (Kafka Streams, Flink) và batch processing (Spark, Hadoop). Lambda architecture và Kappa architecture khác nhau ra sao?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "stream_continuous",
+      "batch_periodic",
+      "lambda_dual_pipeline",
+      "kappa_streaming_only",
+      "modern_choice_kappa"
+    ],
+    "depthExpected": "two paradigms, architecture comparison, modern preference"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "data",
+      "schema-evolution"
+    ],
+    "text": "Schema evolution với Avro, Protobuf, JSON Schema. Khi producer thêm field mới, consumer cũ xử lý ra sao? Phân biệt backward, forward, full compatibility.",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "avro_schema_registry",
+      "protobuf_field_number",
+      "backward_compatibility",
+      "forward_compatibility",
+      "full_compatibility"
+    ],
+    "depthExpected": "schema formats, compatibility types, real usage"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "data",
+      "cdc"
+    ],
+    "text": "Change Data Capture (CDC) với Debezium hoạt động ra sao? Vì sao CDC tốt hơn dual-write từ ứng dụng? Bạn handle initial snapshot và schema change downstream thế nào?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "wal_log_tailing",
+      "debezium_kafka_connect",
+      "no_dual_write",
+      "initial_snapshot",
+      "schema_change_propagation"
+    ],
+    "depthExpected": "CDC mechanism, vs dual-write, snapshot handling"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "data",
+      "partitioning"
+    ],
+    "text": "Partitioning strategy cho table 1 TB trong data warehouse: bạn partition theo date, region, hay user_id? Đánh đổi giữa partition pruning hiệu quả và partition skew ra sao?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "partition_pruning",
+      "partition_skew",
+      "date_partition_common",
+      "high_cardinality_pitfall",
+      "clustering_vs_partitioning"
+    ],
+    "depthExpected": "partition strategies, trade-offs, real choice"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "data",
+      "quality"
+    ],
+    "text": "Data quality framework cho pipeline: bạn check completeness, accuracy, timeliness, consistency ra sao? Tool nào (Great Expectations, dbt tests, Soda)? Bạn xử lý data quality issue ra sao trước khi nó tới downstream?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "completeness_accuracy_timeliness",
+      "great_expectations",
+      "dbt_tests",
+      "circuit_breaker_data",
+      "alerting_quality_failure"
+    ],
+    "depthExpected": "quality dimensions, tooling, failure handling"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "data",
+      "lineage"
+    ],
+    "text": "Data lineage là gì và vì sao quan trọng cho compliance + debug? Bạn track lineage từ source, transformation, consumption ra sao? Tool nào (DataHub, OpenLineage, Marquez)?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "column_level_lineage",
+      "openlineage_standard",
+      "datahub_amundsen",
+      "impact_analysis",
+      "compliance_traceability"
+    ],
+    "depthExpected": "lineage purpose, tracking approach, tooling"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "data",
+      "dbt"
+    ],
+    "text": "dbt (data build tool) thay đổi cách team data làm việc ra sao? Phân biệt model, test, snapshot, seed. Vì sao dbt khuyến khích analytics engineer role?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "sql_first_transformation",
+      "dbt_model_ref",
+      "dbt_test_in_yaml",
+      "incremental_model",
+      "analytics_engineer_role"
+    ],
+    "depthExpected": "dbt philosophy, building blocks, role evolution"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "data",
+      "sql-perf"
+    ],
+    "text": "Query Snowflake hoặc BigQuery của bạn cost 50 đô mỗi lần chạy. Bạn tối ưu thế nào: partition pruning, cluster, materialized view, query rewrite? Bạn đo cost-per-query ra sao?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATABASE",
+    "keyConcepts": [
+      "partition_pruning",
+      "clustering_keys",
+      "materialized_view",
+      "query_history_cost",
+      "warehouse_size_tuning"
+    ],
+    "depthExpected": "optimization techniques, cost monitoring, trade-offs"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "data",
+      "idempotent"
+    ],
+    "text": "Pipeline data của bạn đôi lúc bị retry và sinh ra duplicate. Bạn thiết kế idempotent pipeline ra sao: natural key + UPSERT, watermark, dedup at write? Lưu offset và state ra sao?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "natural_key_upsert",
+      "watermark_high_water_mark",
+      "dedup_window",
+      "checkpoint_state",
+      "exactly_once_effective"
+    ],
+    "depthExpected": "idempotency patterns, state management, dedup strategies"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "data",
+      "lakehouse"
+    ],
+    "text": "Delta Lake, Iceberg, Hudi đem lại gì cho data lake mà raw Parquet không có? ACID transaction trên data lake hoạt động ra sao và bạn handle time travel + schema evolution ra sao?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "acid_on_lake",
+      "delta_log_metadata",
+      "time_travel",
+      "schema_evolution_safe",
+      "compaction_optimize"
+    ],
+    "depthExpected": "lakehouse features, ACID mechanism, advanced features"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "data",
+      "streaming-architecture"
+    ],
+    "text": "Thiết kế streaming pipeline real-time fraud detection: Kafka, Flink, Redis, Postgres. Bạn handle late-arriving event, exactly-once, và recovery khi job fail ra sao?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "flink_event_time",
+      "watermark_late_data",
+      "checkpoint_savepoint",
+      "exactly_once_two_phase_commit",
+      "stateful_processing"
+    ],
+    "depthExpected": "streaming architecture, late-data handling, fault tolerance"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "data",
+      "governance"
+    ],
+    "text": "Data governance bao gồm những gì (catalog, classification, access control, retention, compliance)? Bạn xử lý GDPR right to be forgotten trong data warehouse có lineage 5 năm ra sao?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "data_catalog",
+      "pii_classification",
+      "rbac_data_access",
+      "gdpr_right_to_erasure",
+      "audit_trail"
+    ],
+    "depthExpected": "governance pillars, GDPR practical implementation"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "data",
+      "scale"
+    ],
+    "text": "Pipeline xử lý một terabyte mỗi ngày, dự kiến tăng lên mười terabyte mỗi ngày trong 6 tháng. Bạn scale ra sao: partition lại, chuyển từ Spark sang Flink, dùng managed service như Databricks hoặc EMR? Đâu là chi phí ẩn?",
+    "targetRoles": [
+      "DATA_ENGINEER"
+    ],
+    "domain": "DATA_ENGINEERING",
+    "keyConcepts": [
+      "scale_up_data_volume",
+      "spark_vs_flink_choice",
+      "managed_databricks_emr",
+      "cost_at_scale",
+      "operational_burden"
+    ],
+    "depthExpected": "scaling strategy, tooling decision, hidden costs"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "ai",
+      "ml-types"
+    ],
+    "text": "Phân biệt supervised, unsupervised, và reinforcement learning. Cho 3 use case (phân loại spam email, gom cụm khách hàng, dạy bot chơi game), bạn map sang loại nào và lý do?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "supervised_labeled",
+      "unsupervised_no_label",
+      "reinforcement_reward",
+      "use_case_mapping",
+      "semi_supervised"
+    ],
+    "depthExpected": "three paradigms, use case mapping"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "ai",
+      "overfitting"
+    ],
+    "text": "Overfitting và underfitting là gì? Hãy giải thích bias-variance tradeoff. Bạn detect overfitting bằng những kỹ thuật nào (validation curve, learning curve)?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "overfit_train_high_test_low",
+      "underfit_both_low",
+      "bias_variance",
+      "validation_curve",
+      "regularization_dropout"
+    ],
+    "depthExpected": "two failure modes, bias-variance, detection techniques"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "ai",
+      "evaluation"
+    ],
+    "text": "Phân biệt accuracy, precision, recall, F1-score. Khi xây model phát hiện gian lận (fraud rất hiếm), tại sao accuracy gây hiểu lầm và bạn nhìn metric nào?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "confusion_matrix",
+      "precision_recall_tradeoff",
+      "f1_harmonic_mean",
+      "imbalanced_dataset",
+      "auc_roc_pr"
+    ],
+    "depthExpected": "metrics definition, fraud use case, AUC vs PR-AUC"
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "ai",
+      "feature"
+    ],
+    "text": "Feature engineering là gì và tại sao thường quan trọng hơn việc chọn algorithm? Hãy lấy ví dụ predict giá nhà: bạn extract feature gì từ raw data?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "feature_extraction",
+      "domain_knowledge_value",
+      "encoding_categorical",
+      "scaling_normalization",
+      "feature_interaction"
+    ],
+    "depthExpected": "feature engineering value, real example, encoding techniques"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ai",
+      "validation"
+    ],
+    "text": "Phân biệt hold-out, k-fold, stratified k-fold, time-series split. Khi data có time component (forecasting), vì sao random split bị sai về mặt khoa học?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "holdout_simple",
+      "k_fold_robust",
+      "stratified_for_imbalanced",
+      "time_series_split",
+      "data_leakage_prevention"
+    ],
+    "depthExpected": "validation strategies, time-series caveat, leakage"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ai",
+      "neural"
+    ],
+    "text": "Phân biệt CNN, RNN hoặc LSTM, và Transformer. Vì sao Transformer thay thế RNN trong NLP? Self-attention hoạt động ra sao ở mức intuition?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "cnn_image",
+      "rnn_sequential",
+      "transformer_parallel",
+      "self_attention_intuition",
+      "long_range_dependency"
+    ],
+    "depthExpected": "three architectures, transformer advantages, attention intuition"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ai",
+      "llm"
+    ],
+    "text": "Hãy giải thích các khái niệm token, context window, temperature, top-p sampling khi làm việc với LLM. Khi nào bạn set temperature 0 và khi nào temperature cao?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "tokenization",
+      "context_window_limit",
+      "temperature_sampling",
+      "top_p_nucleus",
+      "deterministic_vs_creative"
+    ],
+    "depthExpected": "LLM parameters, sampling strategies, use cases"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ai",
+      "prompt"
+    ],
+    "text": "Prompt engineering có những kỹ thuật phổ biến nào (zero-shot, few-shot, chain-of-thought, ReAct)? Hãy lấy ví dụ một task phân loại email và viết prompt theo từng style.",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "zero_shot",
+      "few_shot_examples",
+      "chain_of_thought",
+      "react_reason_act",
+      "prompt_template"
+    ],
+    "depthExpected": "techniques inventory, applied to email classification"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ai",
+      "rag"
+    ],
+    "text": "Retrieval Augmented Generation (RAG) hoạt động ra sao? Pipeline gồm những bước nào (chunking, embedding, vector search, generation)? Khi nào RAG tốt hơn fine-tuning?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "chunking_strategy",
+      "embedding_model",
+      "vector_db",
+      "retrieval_then_generate",
+      "rag_vs_finetune"
+    ],
+    "depthExpected": "RAG pipeline, when each step matters, vs fine-tuning"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ai",
+      "embedding"
+    ],
+    "text": "Vector embedding là gì? Phân biệt sparse so với dense embedding. Cosine similarity so với Euclidean distance: khi nào dùng cái nào? Hybrid search (vector + keyword) đem lại gì?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "dense_vector",
+      "sparse_bm25",
+      "cosine_similarity",
+      "euclidean_distance",
+      "hybrid_search"
+    ],
+    "depthExpected": "embedding types, similarity metrics, hybrid retrieval"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ai",
+      "vectordb"
+    ],
+    "text": "Phân biệt Pinecone, Weaviate, Qdrant, pgvector, Milvus. Khi chọn vector DB cho startup, tiêu chí nào quan trọng (managed so với self-host, ANN algorithm, hybrid search, metadata filter)?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "managed_vs_self_host",
+      "hnsw_ivf_algorithm",
+      "metadata_filtering",
+      "scalability",
+      "cost_per_vector"
+    ],
+    "depthExpected": "vector DB comparison, decision criteria"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ai",
+      "finetune"
+    ],
+    "text": "Khi nào fine-tune một LLM thay vì dùng prompt engineering hoặc RAG? Phân biệt full fine-tune so với LoRA hoặc QLoRA. Chi phí và data requirement ra sao?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "full_finetune_costly",
+      "lora_low_rank",
+      "qlora_quantized",
+      "data_requirement",
+      "use_case_for_finetune"
+    ],
+    "depthExpected": "fine-tune vs alternatives, LoRA mechanism, cost"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ai",
+      "hallucination"
+    ],
+    "text": "LLM hallucination là gì và vì sao xảy ra? Bạn giảm thiểu hallucination bằng những kỹ thuật nào (RAG, structured output, self-consistency, validator)?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "hallucination_definition",
+      "rag_grounding",
+      "structured_output_json",
+      "self_consistency_voting",
+      "external_validator"
+    ],
+    "depthExpected": "hallucination causes, mitigation techniques"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ai",
+      "mlops"
+    ],
+    "text": "MLOps lifecycle gồm những giai đoạn nào (data prep, train, eval, deploy, monitor)? Phân biệt model registry, feature store, model serving. Tool điển hình cho mỗi giai đoạn?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "mlops_lifecycle",
+      "mlflow_registry",
+      "feast_feature_store",
+      "kserve_seldon_serving",
+      "monitoring_drift"
+    ],
+    "depthExpected": "MLOps stages, tooling per stage"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ai",
+      "drift"
+    ],
+    "text": "Model drift và data drift là gì? Bạn detect drift trong production ra sao (PSI, KL divergence)? Khi phát hiện drift, bạn retrain ngay hay điều tra trước?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "concept_drift",
+      "data_drift_distribution",
+      "psi_kl_divergence",
+      "automated_retraining",
+      "investigate_before_retrain"
+    ],
+    "depthExpected": "drift types, detection metrics, response strategy"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ai",
+      "serving"
+    ],
+    "text": "Bạn serve model ML production: REST API (Flask hoặc FastAPI), TF Serving, TorchServe, hay batch prediction? Khi nào online serving cần và khi nào batch là đủ? Latency P99 dưới 100 ms achievable thế nào?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "online_vs_batch",
+      "fastapi_simple",
+      "tf_serving_optimized",
+      "model_quantization",
+      "gpu_inference"
+    ],
+    "depthExpected": "serving choices, latency optimization"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ai",
+      "ab-test"
+    ],
+    "text": "A B test cho ML model thế nào: shadow mode, canary, multi-armed bandit? Bạn handle bias trong assignment và đo statistical significance thế nào?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "shadow_mode_no_impact",
+      "canary_gradual",
+      "multi_armed_bandit",
+      "statistical_significance",
+      "guard_rail_metric"
+    ],
+    "depthExpected": "experimentation strategies, statistical rigor"
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "ai",
+      "prompt-eval"
+    ],
+    "text": "Đánh giá chất lượng prompt + LLM output ra sao khi không có ground truth? Bạn dùng LLM-as-judge, human eval, hay metric tự động (BLEU, ROUGE)? Trade-off của mỗi cách?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "llm_as_judge",
+      "human_evaluation",
+      "bleu_rouge_for_translation",
+      "evaluation_dataset",
+      "evaluation_drift"
+    ],
+    "depthExpected": "evaluation strategies, trade-offs, dataset creation"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "ai",
+      "agent"
+    ],
+    "text": "AI Agent với tool calling (function calling) hoạt động ra sao? Phân biệt single-agent loop, multi-agent collaboration, và planning. Bạn handle infinite loop và context window overflow ra sao?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "function_calling",
+      "react_loop",
+      "multi_agent_orchestration",
+      "context_summarization",
+      "loop_detection"
+    ],
+    "depthExpected": "agent architecture, multi-agent patterns, safety"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "ai",
+      "rag-advanced"
+    ],
+    "text": "RAG cơ bản trả lời sai khi câu hỏi cần multi-hop reasoning hoặc tổng hợp nhiều document. Bạn cải tiến ra sao: query rewriting, reranking, multi-query, hierarchical retrieval, GraphRAG?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "query_rewriting",
+      "reranking_cross_encoder",
+      "multi_query_fusion",
+      "hierarchical_retrieval",
+      "graph_rag"
+    ],
+    "depthExpected": "advanced RAG techniques, multi-hop handling"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "ai",
+      "training"
+    ],
+    "text": "Train một deep learning model trên 1 TB data với 8 GPU. Phân biệt data parallelism, model parallelism, tensor parallelism, pipeline parallelism. Khi nào dùng cái nào?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "data_parallel_each_gpu_full_model",
+      "model_parallel_split_layers",
+      "tensor_parallel_split_within_layer",
+      "pipeline_parallel_microbatches",
+      "deepspeed_fsdp"
+    ],
+    "depthExpected": "parallelism types, when each fits, frameworks"
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "ai",
+      "production"
+    ],
+    "text": "Bạn ship LLM-powered feature lên production, ví dụ chatbot hỗ trợ khách hàng. Bạn handle prompt injection, PII leakage, cost control, và fallback khi LLM provider down ra sao?",
+    "targetRoles": [
+      "AI"
+    ],
+    "domain": "AI_ML",
+    "keyConcepts": [
+      "prompt_injection_defense",
+      "pii_redaction",
+      "rate_limit_cost_cap",
+      "provider_fallback",
+      "guardrails_input_output"
+    ],
+    "depthExpected": "production safety, cost, reliability concerns"
+  }
+]

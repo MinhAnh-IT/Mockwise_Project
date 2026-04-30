@@ -1,0 +1,1471 @@
+[
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "disagreement",
+      "peer",
+      "recent"
+    ],
+    "text": "Trong 6 đến 12 tháng gần nhất, hãy chọn một lần bạn bất đồng với đồng nghiệp về một quyết định kỹ thuật cụ thể, ví dụ cách thiết kế API, chọn thư viện, cách handle error. Bối cảnh là gì, lập trường mỗi bên ra sao, và cuối cùng đi đến kết luận như thế nào? Tôi muốn nghe rõ vai trò và lập luận cụ thể của bạn: không phải kết luận chung chung kiểu rồi cả hai cùng đồng ý.",
+    "competency": "CONFLICT_RESOLUTION",
+    "expectedSignals": [
+      "specific_recent_example",
+      "articulates_both_positions_fairly",
+      "fact_based_argument",
+      "clear_resolution",
+      "names_own_role_clearly"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "code-review",
+      "feedback"
+    ],
+    "text": "Hãy kể về một code review mà người được review không đồng ý với góp ý của bạn: hoặc ngược lại, bạn không đồng ý với reviewer. Bạn đã làm gì để đi tới điểm chung mà không khiến không khí xấu đi? Có khi nào sau review bạn vẫn nghĩ mình đúng nhưng vẫn quyết định bỏ qua không?",
+    "competency": "CONFLICT_RESOLUTION",
+    "expectedSignals": [
+      "separates_person_from_code",
+      "principle_based_reasoning",
+      "open_to_being_wrong",
+      "preserves_relationship",
+      "knows_when_to_let_go"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "priorities",
+      "negotiation"
+    ],
+    "text": "Có lúc bạn và một đồng đội cùng làm một feature nhưng có ưu tiên khác nhau, ví dụ bạn ưu tiên test coverage, họ ưu tiên ship nhanh; hoặc bạn muốn refactor trước, họ muốn build trên nền cũ. Hãy kể một ví dụ cụ thể, và bạn đã thương lượng tới mức nào để cả hai cùng đi tiếp được mà không phải bên nào nhường hết.",
+    "competency": "CONFLICT_RESOLUTION",
+    "expectedSignals": [
+      "aligns_on_shared_goal",
+      "explains_tradeoff_clearly",
+      "willingness_to_compromise",
+      "no_passive_aggression",
+      "outcome_oriented"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "manager",
+      "disagreement"
+    ],
+    "text": "Hãy kể về một lần bạn bất đồng quan điểm với quản lý của mình về một vấn đề kỹ thuật hoặc cách tiếp cận một dự án. Bạn đã chuẩn bị thế nào trước cuộc trao đổi, đưa ra lập luận ra sao, và kết quả thế nào? Nếu cuối cùng phải làm theo manager dù bạn không đồng tình, bạn đã xử lý phần commit đó ra sao trước team?",
+    "competency": "CONFLICT_RESOLUTION",
+    "expectedSignals": [
+      "shows_autonomy",
+      "respectful_disagreement",
+      "data_driven_approach",
+      "disagree_and_commit",
+      "no_undermining_team"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "design",
+      "team-split"
+    ],
+    "text": "Trong một thiết kế hệ thống, team chia làm hai phe rõ rệt, ví dụ một bên muốn đơn giản, một bên muốn linh hoạt cho tương lai; hoặc microservice so với monolith. Hãy kể một tình huống cụ thể: vấn đề là gì, các phương án trên bàn, vai trò của bạn (championing hay facilitating), và làm thế nào team đi tới quyết định cuối cùng?",
+    "competency": "CONFLICT_RESOLUTION",
+    "expectedSignals": [
+      "surfaces_explicit_tradeoffs",
+      "encourages_dissent",
+      "facilitates_decision",
+      "documents_outcome",
+      "respects_minority_view"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "deadlines",
+      "peer-blocker"
+    ],
+    "text": "Một đồng nghiệp liên tục trễ phần việc gắn với bạn (PR review, doc, contract API), khiến deadline chung của bạn bị ảnh hưởng. Bạn đã trao đổi với họ thế nào ban đầu? Bạn có escalate lên manager không, và nếu có thì ở thời điểm nào? Có cân nhắc khả năng họ đang gặp vấn đề ngoài công việc không?",
+    "competency": "CONFLICT_RESOLUTION",
+    "expectedSignals": [
+      "private_first_conversation",
+      "investigates_root_cause",
+      "shows_empathy",
+      "calibrated_escalation",
+      "no_blame_in_team_chat"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "stakeholder",
+      "pushback",
+      "product"
+    ],
+    "text": "Một stakeholder (PM, sales, business) yêu cầu một feature mà bạn nghĩ về kỹ thuật là sai hướng: vd nợ kỹ thuật lớn, không scale, đi ngược roadmap, hoặc giải quyết sai bài toán user thật. Hãy mô tả tình huống cụ thể và cách bạn xử lý từ lúc nhận yêu cầu cho tới kết luận. Bạn frame cuộc nói chuyện thế nào để không bị xem là developer ngại làm việc khó?",
+    "competency": "CONFLICT_RESOLUTION",
+    "expectedSignals": [
+      "asks_for_underlying_user_need",
+      "frames_in_business_terms",
+      "proposes_alternatives",
+      "documents_risks_clearly",
+      "preserves_partnership"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "peer-behavior",
+      "team-health"
+    ],
+    "text": "Hãy kể về một lần hành vi của một đồng đội ảnh hưởng xấu đến team: vd hay phán xét trong meeting, deflect trách nhiệm, lười code review, hoặc lan toả negative khi gặp khó. Bạn đã trao đổi trực tiếp ra sao? Bạn cân nhắc gì trước khi (hoặc trước khi không) nhờ manager can thiệp?",
+    "competency": "CONFLICT_RESOLUTION",
+    "expectedSignals": [
+      "direct_conversation_first",
+      "behavior_focused_not_personality",
+      "considers_their_perspective",
+      "avoids_gossip",
+      "calibrated_escalation"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "senior",
+      "data-driven",
+      "right"
+    ],
+    "text": "Hãy kể một lần bạn phản biện một kỹ sư senior hoặc tech lead về một quyết định kỹ thuật, và sau đó bạn được chứng minh là đúng. Bạn đã trình bày lập luận ra sao trước người có nhiều kinh nghiệm hơn? Sau khi mọi việc rõ ràng, bạn xử lý mối quan hệ với họ thế nào: đặc biệt nếu họ không tự nhận sai?",
+    "competency": "CONFLICT_RESOLUTION",
+    "expectedSignals": [
+      "data_driven_argument",
+      "respectful_framing_to_senior",
+      "humility_after_being_right",
+      "preserves_relationship",
+      "no_i_told_you_so"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "heated",
+      "self-control"
+    ],
+    "text": "Hãy kể cuộc tranh luận căng nhất bạn từng tham gia ở chỗ làm: căng tới mức bạn cảm thấy giận hoặc bị tổn thương. Lúc đó bạn cảm thấy thế nào trong người, đã làm gì để tránh leo thang, và sau cuộc trao đổi bạn có theo dõi gì để hàn gắn quan hệ không?",
+    "competency": "CONFLICT_RESOLUTION",
+    "expectedSignals": [
+      "self_awareness_under_pressure",
+      "calm_intervention",
+      "names_emotional_dimension_honestly",
+      "post_conflict_repair",
+      "lesson_extracted_about_self"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "disagree-commit",
+      "implementation"
+    ],
+    "text": "Đã bao giờ team hoặc quản lý đưa ra một quyết định mà bạn cực kỳ không đồng tình, nhưng bạn vẫn phải thực thi và dẫn dắt người khác làm theo? Hãy mô tả tình huống và cách bạn cân bằng giữa việc trung thực với team về cảm nhận cá nhân và việc commit hoàn toàn cho hướng đi đã chọn. Có khi nào bạn từ chối làm không, và bạn vẽ ranh giới đó ở đâu?",
+    "competency": "CONFLICT_RESOLUTION",
+    "expectedSignals": [
+      "disagree_and_commit",
+      "honest_without_complaining_publicly",
+      "leads_team_through_change",
+      "knows_when_to_refuse",
+      "professional_loyalty"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "long-running",
+      "stalemate"
+    ],
+    "text": "Hãy kể về một xung đột không giải quyết được trong một meeting: nó kéo dài qua nhiều tuần thậm chí nhiều sprint, đi vòng quanh mãi không kết. Bạn đã làm gì để cuối cùng đưa nó tới chỗ kết, hay nó vẫn còn dây dưa? Nếu nhìn lại, có điều gì bạn sẽ làm khác từ sớm hơn không: vd ép quyết định, escalate, hay loại bỏ một bên ra khỏi thảo luận?",
+    "competency": "CONFLICT_RESOLUTION",
+    "expectedSignals": [
+      "recognizes_drift_pattern",
+      "creates_forcing_function",
+      "escalates_to_decision_maker",
+      "honest_self_critique",
+      "long_term_lesson_about_meetings"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "proud-project",
+      "ownership"
+    ],
+    "text": "Hãy kể về một dự án bạn tự hào nhất trong 1 đến 2 năm gần đây. Cụ thể đóng góp của bạn là gì khác với phần của team? Điều gì khiến nó khó về mặt kỹ thuật hoặc về mặt collaboration, và bạn thúc đẩy nó qua những giai đoạn khó khăn ra sao?",
+    "competency": "LEADERSHIP",
+    "expectedSignals": [
+      "clear_personal_contribution",
+      "named_specific_difficulty",
+      "shows_initiative",
+      "credits_team_appropriately",
+      "concrete_outcome"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "onboarding",
+      "mentoring"
+    ],
+    "text": "Khi có một đồng nghiệp mới gia nhập team: đặc biệt là người mới ra trường hoặc đến từ stack khác: bạn thường làm gì trong 30 ngày đầu để giúp họ vào guồng? Hãy kể một ví dụ cụ thể của một người bạn từng onboard, không phải lý thuyết chung. Bạn đo họ đã sẵn sàng qua tín hiệu nào?",
+    "competency": "LEADERSHIP",
+    "expectedSignals": [
+      "structured_30_60_90_plan",
+      "tailored_to_individual",
+      "regular_check_ins",
+      "creates_safe_space_to_ask",
+      "tracks_growth_signals"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "influence",
+      "no-authority"
+    ],
+    "text": "Hãy kể về một dự án mà bạn dẫn dắt mặc dù không có chức danh tech lead hay manager. Bạn đã giành được sự đồng thuận từ team ra sao mà không có quyền hạn chính thức? Có lúc nào bạn không thuyết phục được ai đó và bạn xử lý ra sao?",
+    "competency": "LEADERSHIP",
+    "expectedSignals": [
+      "influence_through_clarity",
+      "earns_trust_via_competence",
+      "credits_others",
+      "drives_decisions",
+      "handles_resistance_gracefully"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "technical-direction",
+      "greenfield"
+    ],
+    "text": "Khi bạn được giao thiết kế một dự án từ đầu: tự do về tech choice, kiến trúc: bạn đã đi từ requirement tới quyết định kỹ thuật ra sao? Bạn đưa team vào quá trình đó như thế nào để tránh áp đặt kiến trúc của tôi, và bạn xử lý ý kiến trái chiều ra sao trong giai đoạn này?",
+    "competency": "LEADERSHIP",
+    "expectedSignals": [
+      "starts_with_constraints_and_goals",
+      "considers_multiple_options",
+      "involves_team_early",
+      "documents_decisions",
+      "open_to_pushback"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "motivation",
+      "burnout-signal"
+    ],
+    "text": "Một thành viên trong team có dấu hiệu disengaged hoặc burnout: code review chậm, không phát biểu trong meeting, performance giảm. Bạn (dù không phải manager) đã làm gì? Hãy kể một ví dụ cụ thể, kể cả nếu kết quả không hoàn hảo. Bạn cân bằng việc quan tâm với việc không xâm phạm sự riêng tư của họ ra sao?",
+    "competency": "LEADERSHIP",
+    "expectedSignals": [
+      "notices_subtle_signals",
+      "private_compassionate_conversation",
+      "concrete_offered_help",
+      "respects_their_autonomy",
+      "appropriate_escalation"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "process-change",
+      "buy-in"
+    ],
+    "text": "Hãy kể về một quy trình mà bạn nghĩ đang gây hại cho team, ví dụ quá nhiều meeting, code review quy định lỏng, on-call quá mệt, retro hình thức và bạn đã vận động thay đổi. Bạn lấy bằng chứng từ đâu? Làm thế nào để team buy-in chứ không cảm thấy bị áp đặt, và sau khi thay đổi bạn đo nó có thực sự tốt hơn không?",
+    "competency": "LEADERSHIP",
+    "expectedSignals": [
+      "evidence_based_proposal",
+      "addresses_objections",
+      "iterates_based_on_feedback",
+      "measures_after_change",
+      "wins_skeptics_over"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "delegation",
+      "trust"
+    ],
+    "text": "Đã có lúc bạn cần giao một việc quan trọng mà bạn có thể tự làm nhanh hơn cho người khác. Bạn chọn người đó ra sao, set up họ để thành công thế nào, và bạn buông tay đến mức nào trong quá trình họ làm? Có lần nào họ làm khác cách bạn nghĩ và bạn vẫn để họ tiếp tục không?",
+    "competency": "LEADERSHIP",
+    "expectedSignals": [
+      "picks_growth_opportunity",
+      "clear_expectations_and_outcomes",
+      "available_without_micromanaging",
+      "tolerates_different_approach",
+      "credits_them_for_success"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "managing-up",
+      "influence"
+    ],
+    "text": "Hãy kể về một lần bạn cần ảnh hưởng tới quyết định của manager hoặc senior leadership: không phải bất đồng đối đầu, mà là chủ động đưa thông tin để họ ra quyết định tốt hơn. Bạn chuẩn bị ra sao về thời điểm, format và độ dài? Bạn xử lý thế nào nếu họ vẫn quyết khác?",
+    "competency": "LEADERSHIP",
+    "expectedSignals": [
+      "thinks_about_their_priorities",
+      "concise_framing",
+      "data_with_clear_recommendation",
+      "respects_their_decision_space",
+      "follows_up_appropriately"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "incident",
+      "command"
+    ],
+    "text": "Hãy kể về một sự cố production lớn mà bạn dẫn dắt việc xử lý. Đi qua giúp tôi: 30 phút đầu bạn làm gì, ai bạn kéo vào, bạn delegate ra sao, bạn truyền thông với stakeholder thế nào trong khi vẫn debug? Sau đó bạn dẫn dắt post-mortem thế nào để team rút ra bài học mà không sa vào blame, và đảm bảo action items thực sự được close?",
+    "competency": "LEADERSHIP",
+    "expectedSignals": [
+      "calm_command_under_pressure",
+      "deliberate_delegation",
+      "stakeholder_communication_cadence",
+      "blameless_post_mortem",
+      "drives_action_items_to_close"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "unpopular-decision"
+    ],
+    "text": "Đã có lúc bạn phải đưa ra một quyết định mà bạn biết phần lớn team sẽ không thích: vd dừng một dự án đang đầu tư, viết lại một phần code đẹp, từ chối một feature đang được hứa hẹn với khách. Bạn cân nhắc ra sao trước khi quyết, truyền đạt với team thế nào, và xử lý pushback sau đó ra sao?",
+    "competency": "LEADERSHIP",
+    "expectedSignals": [
+      "weighs_costs_clearly",
+      "owns_decision_publicly",
+      "honest_about_tradeoffs",
+      "absorbs_pushback_without_defensiveness",
+      "follows_up_on_outcome"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "cross-functional",
+      "no-direct-authority"
+    ],
+    "text": "Hãy kể về một sáng kiến cross-functional bạn dẫn dắt qua nhiều team (engineering + product + design, hoặc nhiều team kỹ thuật). Đâu là phần khó nhất khi không ai báo cáo trực tiếp cho bạn? Bạn duy trì momentum ra sao trong các tuần thấp năng lượng, và xử lý team đi chậm so với plan thế nào?",
+    "competency": "LEADERSHIP",
+    "expectedSignals": [
+      "aligns_on_shared_goal_early",
+      "manages_competing_priorities_visibly",
+      "creates_forcing_functions",
+      "celebrates_milestones",
+      "delivers_measurable_outcome"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "turnaround",
+      "diagnosis"
+    ],
+    "text": "Hãy kể về việc tham gia một team đang yếu: moral thấp, delivery chậm, người rời team: và bạn đã đóng vai trò gì để cải thiện. 30, 60 và 90 ngày đầu của bạn trông như thế nào? Bạn chẩn đoán được vấn đề thật sự là gì (so với những vấn đề bề mặt), và đâu là first move bạn chọn để tạo niềm tin nhanh?",
+    "competency": "LEADERSHIP",
+    "expectedSignals": [
+      "accurate_diagnosis_before_acting",
+      "early_quick_wins",
+      "addresses_systemic_issues",
+      "rebuilds_trust_through_consistency",
+      "measurable_change"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "outside-scope",
+      "initiative"
+    ],
+    "text": "Hãy kể về một lần bạn nhận trách nhiệm cho một vấn đề mà nó không nằm trong phạm vi công việc chính thức của bạn: và không ai yêu cầu bạn làm. Bạn nhận biết vấn đề ra sao, và đi từ phát hiện tới giải quyết như thế nào? Tại sao bạn quyết định bỏ thời gian cho nó thay vì để someone elses problem?",
+    "competency": "OWNERSHIP",
+    "expectedSignals": [
+      "spots_problem_proactively",
+      "no_passive_thats_not_my_job",
+      "communicates_what_im_doing",
+      "stays_engaged_through_resolution",
+      "judgment_about_when_to_step_in"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "legacy-bug",
+      "no-blame"
+    ],
+    "text": "Khi gặp một bug trong phần code không phải bạn viết: đặc biệt là phần legacy nhiều người đã đi qua: bạn xử lý ra sao? Hãy kể một ví dụ gần đây cụ thể. Bạn dành bao nhiêu thời gian hiểu code trước khi sửa, và bạn có cải thiện gì khu vực đó hơn ngoài việc fix bug không?",
+    "competency": "OWNERSHIP",
+    "expectedSignals": [
+      "no_blame_to_original_author",
+      "understands_before_changing",
+      "improves_area_beyond_bug",
+      "documents_for_next_person"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "self-improvement",
+      "measurable"
+    ],
+    "text": "Hãy kể về một cải tiến nhỏ: không ai yêu cầu: mà bạn quyết định làm trong 6 tháng gần đây, ví dụ cải thiện build time, fix một flaky test, viết runbook cho service hay flap. Tại sao bạn nghĩ nó đáng làm, và sau khi merge nó có thực sự tạo khác biệt không (đo bằng cách nào)?",
+    "competency": "OWNERSHIP",
+    "expectedSignals": [
+      "self_motivated_improvement",
+      "thinks_about_impact_first",
+      "measures_outcome",
+      "got_buy_in_when_needed",
+      "no_visibility_seeking"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "long-standing",
+      "fix-it"
+    ],
+    "text": "Có một loại vấn đề mà mọi người trong team đều biết là dở, ví dụ build chậm, deploy lằng nhằng, một service hay flap, một tài liệu lỗi thời nhưng không ai sửa vì chi phí. Hãy kể về một lần bạn quyết định sửa cho xong. Tại sao nó đã bị bỏ qua trước đó? Bạn xử lý từ đề xuất tới deploy như thế nào, và làm sao đảm bảo nó không hồi sinh?",
+    "competency": "OWNERSHIP",
+    "expectedSignals": [
+      "understands_why_it_persisted",
+      "weighs_cost_vs_payoff",
+      "drives_through_deployment",
+      "verifies_lasting_fix",
+      "no_grandstanding"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "incident",
+      "end-to-end"
+    ],
+    "text": "Hãy kể về một sự cố mà bạn nhận trách nhiệm sở hữu từ lúc detect tới hoàn thành post-mortem và action items. Đi qua: lúc đầu bạn biết được gì, bạn quyết định mitigate trước hay tìm root cause trước, action items ai đảm bảo close, và làm sao đảm bảo bài học thực sự được áp dụng chứ không chỉ ghi vào doc rồi quên?",
+    "competency": "OWNERSHIP",
+    "expectedSignals": [
+      "accountability_without_panic",
+      "drives_post_mortem_with_focus",
+      "tracks_action_items_to_close",
+      "shares_learning_widely",
+      "follows_up_weeks_later"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "slipping-project",
+      "step-up"
+    ],
+    "text": "Một dự án bạn đang ở trong đó có dấu hiệu slip: không phải bạn đứng đầu, nhưng bạn nhận thấy timeline đi sai. Bạn đã làm gì? Có lúc nào bạn step up nhận thêm trách nhiệm hay tự gánh thêm scope để giúp dự án về đích, và bạn cân bằng điều đó với việc không đè lên tech lead không?",
+    "competency": "OWNERSHIP",
+    "expectedSignals": [
+      "early_signal_recognition",
+      "raises_risk_to_team_lead",
+      "proposes_concrete_recovery",
+      "selectively_picks_up_extra",
+      "preserves_lead_authority"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "tech-debt",
+      "business-case"
+    ],
+    "text": "Tech debt thường khó được ưu tiên hơn feature mới. Hãy kể về một khoản nợ kỹ thuật cụ thể bạn đã vận động để được trả. Bạn quantify cost ra sao (latency? on-call burden? velocity?), kể câu chuyện business thế nào, và làm sao đảm bảo team thực sự dành thời gian cho nó chứ không sẽ làm sau?",
+    "competency": "OWNERSHIP",
+    "expectedSignals": [
+      "quantifies_real_cost",
+      "frames_in_business_terms",
+      "negotiates_capacity_explicitly",
+      "delivers_measurable_improvement"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "speak-up",
+      "judgment"
+    ],
+    "text": "Có những lần bạn thấy điều gì đó không ổn: code dở đang chuẩn bị merge, security smell, decision tệ trong meeting: và bạn đứng trước lựa chọn lên tiếng hay im. Hãy kể một lần bạn lên tiếng dù không có lợi cho bạn về chính trị. Bạn cân nhắc gì trước khi mở lời, và phản ứng của những người liên quan ra sao?",
+    "competency": "OWNERSHIP",
+    "expectedSignals": [
+      "weighs_speak_up_decision",
+      "frames_constructively",
+      "no_political_calculation",
+      "stays_engaged_after_speaking",
+      "owns_consequences"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "migration",
+      "production-risk"
+    ],
+    "text": "Hãy đi qua một migration production lớn bạn sở hữu: vd đổi DB engine, đổi message broker, đổi auth provider, hoặc rewrite một service. Phần lập kế hoạch có gì, bạn xử lý rollback strategy ở từng phase ra sao? Cuối cùng có gì xảy ra ngoài kế hoạch trong production và bạn xử lý ra sao tại thời điểm thật?",
+    "competency": "OWNERSHIP",
+    "expectedSignals": [
+      "phased_plan_with_checkpoints",
+      "rollback_at_every_phase",
+      "stakeholder_communication_plan",
+      "real_world_adaptation",
+      "long_tail_engagement_until_done"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "sustained-focus",
+      "long-haul"
+    ],
+    "text": "Một số dự án không có phần thưởng nhanh và đòi hỏi sustained focus 6 đến 12 tháng: vd refactor lớn, compliance, cải thiện reliability, platform migration. Hãy kể một dự án như vậy bạn sở hữu. Bạn duy trì động lực và sự quan tâm của stakeholder ra sao trong những tháng dữ liệu chưa rõ ràng? Có lúc nào bạn muốn bỏ và bạn vượt qua thế nào?",
+    "competency": "OWNERSHIP",
+    "expectedSignals": [
+      "maintains_momentum_without_quick_wins",
+      "regular_visible_progress",
+      "stakeholder_education",
+      "perseveres_through_setbacks",
+      "delivers_durable_outcome"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "customer-escalation",
+      "balance"
+    ],
+    "text": "Hãy kể về một lần bạn nhận một customer escalation lớn: khách giận, ROI cao, hoặc một bug ảnh hưởng nhiều người dùng. Bạn cân bằng giữa fix nhanh để giảm tổn hại và fix đúng để không tái diễn ra sao? Vai trò bạn trong việc giao tiếp lại với khách là gì, và bạn xử lý phần rút bài học ở mức tổ chức thế nào?",
+    "competency": "OWNERSHIP",
+    "expectedSignals": [
+      "customer_first_mindset",
+      "balances_speed_vs_root_cause",
+      "transparent_with_customer",
+      "drives_systemic_fix",
+      "documents_for_org_learning"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "long-term-system",
+      "stewardship"
+    ],
+    "text": "Hãy mô tả một hệ thống bạn vận hành trong nhiều năm. Bạn track health của nó qua những tín hiệu nào, quyết định khi nào đầu tư cải tiến so với khi nào để nó tự chạy? Có lúc nào bạn phải đưa ra quyết định replace thay vì incrementally fix, và bạn build case đó ra sao?",
+    "competency": "OWNERSHIP",
+    "expectedSignals": [
+      "operational_health_ownership",
+      "long_term_thinking",
+      "knows_when_to_replace",
+      "balances_investment_decisions",
+      "transfers_knowledge_well"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "best-team",
+      "dynamics"
+    ],
+    "text": "Hãy kể về một team bạn từng làm việc thấy hiệu quả nhất: về mặt kết quả, không khí làm việc, hay cả hai. Cụ thể điều gì khiến team đó hoạt động tốt (rituals? trust? skill mix?), và bạn đóng góp gì cụ thể vào dynamics đó? Có gì bạn đã học từ team đó và mang đi nơi khác không?",
+    "competency": "TEAMWORK",
+    "expectedSignals": [
+      "specific_team_dynamics",
+      "names_their_contribution",
+      "credits_team_culture",
+      "shows_self_awareness",
+      "transferable_lesson"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "support",
+      "stress"
+    ],
+    "text": "Trong một sprint hoặc giai đoạn căng thẳng (release, demo lớn, incident chuỗi), hãy kể một lần bạn chủ động hỗ trợ một đồng đội: không phải làm hộ mà thực sự giúp họ vượt qua. Bạn nhận ra họ cần giúp ra sao và đề xuất giúp như thế nào để không bị từ chối hay khiến họ tự ái?",
+    "competency": "TEAMWORK",
+    "expectedSignals": [
+      "proactive_observation",
+      "non_imposing_offer",
+      "concrete_actionable_help",
+      "respects_their_competence",
+      "no_credit_seeking"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "help-peer",
+      "trade-off"
+    ],
+    "text": "Hãy kể về lần bạn dành thời gian giúp một đồng nghiệp đẩy được PR hoặc feature lên line: debug giúp, pair programming, review nhanh: dù việc của riêng bạn cũng đang gấp. Bạn cân nhắc đánh đổi đó ra sao, và làm thế nào để vẫn giữ commitment cá nhân?",
+    "competency": "TEAMWORK",
+    "expectedSignals": [
+      "team_first_thinking",
+      "still_protects_own_commitments",
+      "concrete_help_not_just_advice",
+      "no_visibility_seeking"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "tight-collaboration",
+      "interface"
+    ],
+    "text": "Hãy kể về một dự án bạn cộng tác đặc biệt chặt với một engineer khác: pair programming hàng ngày, owner mảng giáp ranh, hoặc cùng giải một bài rất khó. Đâu là phần khó nhất khi cộng tác sát thế (style, pace, tranh luận về detail)? Bạn xử lý friction ra sao trước khi nó leo thang thành conflict?",
+    "competency": "TEAMWORK",
+    "expectedSignals": [
+      "clear_interface_alignment",
+      "frequent_communication_rhythm",
+      "respect_for_other_strengths",
+      "handles_friction_directly",
+      "shared_credit"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "different-style",
+      "adapt"
+    ],
+    "text": "Hãy kể về việc làm với một đồng đội có phong cách rất khác bạn: vd họ rất thận trọng còn bạn thích thử nhanh, hoặc họ thích doc còn bạn thích nói chuyện, hoặc họ introvert còn bạn extrovert. Bạn đã thích nghi ra sao và họ đã thích nghi với bạn ra sao? Có gì bạn đã học từ phong cách của họ?",
+    "competency": "TEAMWORK",
+    "expectedSignals": [
+      "adapts_communication_style",
+      "names_difference_without_judgment",
+      "finds_common_ground",
+      "learns_from_difference",
+      "long_term_partnership"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "difficult-teammate",
+      "team-drag"
+    ],
+    "text": "Có người trong team mà bạn nghĩ đang kéo team xuống: thiếu tin cậy về deliverable, năng suất thấp, hoặc gây không khí xấu trong meeting. Bạn (không phải manager) đã làm gì với họ trực tiếp? Đến mức nào thì bạn đưa lên manager, và bạn phân biệt phong cách khác với thực sự kéo team ra sao?",
+    "competency": "TEAMWORK",
+    "expectedSignals": [
+      "direct_help_first",
+      "uses_appropriate_channels",
+      "behavior_focused_feedback",
+      "considers_their_perspective",
+      "calibrated_escalation"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "disagree-commit",
+      "post-decision"
+    ],
+    "text": "Hãy kể về một quyết định team mà bạn ban đầu không đồng ý nhưng cuối cùng phải làm theo. Bạn đã làm gì để commit thật sự: không underminer, không mỉa mai sau cuộc họp? Có khi nào quyết định đó hóa ra đúng và bạn đã rút ra bài học gì về việc đánh giá quyết định team?",
+    "competency": "TEAMWORK",
+    "expectedSignals": [
+      "voiced_dissent_first",
+      "committed_fully_after",
+      "no_undermining_behavior",
+      "open_to_being_wrong",
+      "extracts_lesson"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "balance",
+      "individual-vs-team"
+    ],
+    "text": "Là engineer, bạn vừa có deliverable cá nhân, vừa có tax cho team: code review, mentoring, on-call, doc, meeting. Bạn cân bằng ra sao và có lúc nào bạn cảm thấy bị mất cân bằng nghiêng về một phía (hoặc làm quá nhiều team work mà thiếu deliverable, hoặc ngược lại)? Bạn điều chỉnh thế nào và có nói chuyện với manager không?",
+    "competency": "TEAMWORK",
+    "expectedSignals": [
+      "concrete_heuristic",
+      "sees_team_work_as_part_of_job",
+      "self_aware_about_throughput",
+      "rebalances_when_needed",
+      "negotiates_with_manager"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "crunch",
+      "morale"
+    ],
+    "text": "Hãy kể về việc dẫn team qua một crunch period (release lớn, deadline khắc nghiệt, hoặc giai đoạn nhiều incident). Bạn làm gì để giữ năng lượng team mà không đẩy mọi người tới burnout? Sau crunch bạn xử lý recovery của team ra sao, và làm gì để lần tới ít crunch hơn?",
+    "competency": "TEAMWORK",
+    "expectedSignals": [
+      "protects_team_where_possible",
+      "honest_about_costs_to_management",
+      "explicit_recovery_plan",
+      "recognition_after_crunch",
+      "learns_for_next_time"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "cross-culture",
+      "trust"
+    ],
+    "text": "Hãy kể về một dự án collab với team ở văn hóa khác: khu vực địa lý, công ty, ví dụ làm với vendor hoặc đối tác, hoặc nội bộ với một team có culture khác hẳn. Phần khó nhất về giao tiếp là gì? Bạn xây dựng trust ra sao xuyên qua khoảng cách đó, và đâu là sai lầm bạn từng mắc?",
+    "competency": "TEAMWORK",
+    "expectedSignals": [
+      "adapts_communication_style",
+      "deliberate_trust_building",
+      "respects_difference_without_stereotype",
+      "delivers_joint_outcome",
+      "honest_about_mistakes"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "rebuild-trust",
+      "after-failure"
+    ],
+    "text": "Đã có lúc team bị mất tin cậy: với nhau hoặc với org bên ngoài: sau một sự cố lớn (incident lớn, miss lớn, conflict công khai). Bạn đóng vai trò gì trong việc tái thiết, và bạn đo trust được phục hồi qua tín hiệu nào? Có lúc nào bạn nghĩ không cứu được và bạn xử lý ra sao?",
+    "competency": "TEAMWORK",
+    "expectedSignals": [
+      "acknowledges_what_happened",
+      "consistent_visible_actions",
+      "creates_early_wins",
+      "patient_with_skepticism",
+      "measures_trust_recovery"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "dysfunctional-team",
+      "joining"
+    ],
+    "text": "Bạn gia nhập một team đang dysfunctional: silo cao, ít tin nhau, năng suất thấp, có thể đang hostile. Trong 60-90 ngày đầu bạn làm gì? Khi nào bạn lắng nghe và khi nào bạn bắt đầu đề xuất thay đổi mà không khiến mọi người nghĩ người mới đến biết gì?",
+    "competency": "TEAMWORK",
+    "expectedSignals": [
+      "listens_before_acting",
+      "diagnoses_root_cause",
+      "small_visible_improvements",
+      "respects_existing_culture",
+      "knows_when_to_push"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "recent-mistake",
+      "real"
+    ],
+    "text": "Hãy kể về một sai lầm bạn mắc phải trong 6 tháng gần đây: không phải tôi quá cầu toàn kiểu né, mà sai lầm thật. Bạn nhận ra ra sao (tự bạn hay người khác chỉ ra), sửa thế nào, và quan trọng hơn: bạn đã thay đổi cách làm việc nào sau đó để không lặp lại?",
+    "competency": "FAILURE",
+    "expectedSignals": [
+      "genuine_mistake_not_humble_brag",
+      "clear_self_recognition",
+      "concrete_behavior_change",
+      "applies_lesson_since"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "bug-prod",
+      "first-hours"
+    ],
+    "text": "Hãy kể về một bug bạn đẩy lên production: kể cả nhỏ: và phản ứng của bạn trong vài giờ đầu. Có thể là tự bạn fix, có thể là gọi người khác giúp. Bạn truyền đạt với stakeholder và team ra sao trong khi vẫn đang bối rối, và sau khi mitigate xong bạn làm gì để không bị quên?",
+    "competency": "FAILURE",
+    "expectedSignals": [
+      "immediate_mitigation_focus",
+      "transparent_communication",
+      "no_blame_deflection",
+      "improves_safeguards_after"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "plan-deviation",
+      "pivot"
+    ],
+    "text": "Hãy kể về một việc lúc đầu bạn nghĩ sẽ thẳng thắn, ví dụ làm trong 1 tuần, pattern này sẽ ổn nhưng kết quả khác xa kế hoạch. Lúc nào bạn nhận ra nó đang đi sai, và bạn đã pivot ra sao thay vì cứ bám vào plan ban đầu?",
+    "competency": "FAILURE",
+    "expectedSignals": [
+      "honest_about_what_went_wrong",
+      "early_signal_recognition",
+      "willingness_to_pivot",
+      "salvages_value",
+      "lesson_extracted"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "project-fail",
+      "self-critique"
+    ],
+    "text": "Hãy kể về một dự án bạn tham gia mà rõ ràng đã thất bại: bị huỷ, không deploy, hoặc deploy nhưng không tạo giá trị. Vai trò bạn trong đó là gì? Đâu là dấu hiệu sớm bạn nhận ra nhưng không hành động đủ mạnh, và bạn rút ra điều gì cho lần sau khi gặp dấu hiệu tương tự?",
+    "competency": "FAILURE",
+    "expectedSignals": [
+      "honest_role_scope",
+      "names_specific_failure_causes",
+      "self_critique_not_just_blame",
+      "concrete_lesson_applied"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "technical-regret"
+    ],
+    "text": "Một quyết định kỹ thuật mà bạn từng champion nhưng nay nhìn lại bạn nghĩ là sai: vd chọn framework sai, kiến trúc quá phức tạp, premature optimization, hoặc không invest đủ vào testing và monitoring. Tại sao lúc đó bạn nghĩ nó đúng, sai ở đâu, và bạn đã thay đổi cách ra quyết định ra sao?",
+    "competency": "FAILURE",
+    "expectedSignals": [
+      "specific_decision_context",
+      "honest_about_what_was_missed",
+      "improved_decision_framework",
+      "no_excuse_making"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "scope-misjudge",
+      "estimation"
+    ],
+    "text": "Hãy kể về một lần bạn ước lượng scope sai nghiêm trọng: vd ước 1 tuần thành 4 tuần, hoặc ngược lại. Tại sao ước sai (thiếu gì, giả định gì sai), lúc nào bạn nhận ra, và bạn xử lý truyền đạt cho stakeholder ra sao mà không đánh mất uy tín?",
+    "competency": "FAILURE",
+    "expectedSignals": [
+      "names_specific_blind_spot",
+      "early_signal_to_team",
+      "improved_estimation_habits",
+      "transparent_recalibration"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "feature-no-traction"
+    ],
+    "text": "Hãy kể về một feature bạn build mà người dùng không dùng (hoặc dùng khác hẳn ý định ban đầu). Bạn điều tra ra sao? Tự bạn có dấu hiệu nghi ngờ trước khi data rõ không, và đó có phải lúc bạn nên lên tiếng nhưng không lên tiếng? Bạn rút ra gì cho việc validate trước khi build?",
+    "competency": "FAILURE",
+    "expectedSignals": [
+      "data_driven_investigation",
+      "considers_user_perspective",
+      "self_critique_about_silence",
+      "feeds_lesson_into_process"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "broke-commitment",
+      "deadline"
+    ],
+    "text": "Đã bao giờ bạn cam kết một timeline với manager hoặc khách mà sau đó không giữ được? Bạn xử lý cuộc trò chuyện thông báo trễ ra sao: với ai, lúc nào, format thế nào? Bạn đã thay đổi cách commit thế nào sau đó để giảm xác suất tái diễn?",
+    "competency": "FAILURE",
+    "expectedSignals": [
+      "accountability_no_blame",
+      "early_communication",
+      "buffer_in_future_estimates",
+      "improved_breakdown_practice"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "worst-incident",
+      "you-caused"
+    ],
+    "text": "Hãy kể về sự cố production tệ nhất do bạn gây ra: code, config, hoặc decision. Đi qua giúp tôi: bạn làm gì sai, lúc nào nhận ra, hậu quả thực tế (downtime, data, user impact), và bạn đã làm gì cá nhân + đã thay đổi gì ở mức hệ thống để không lặp lại? Phản ứng của manager và team ra sao và bạn xử lý cảm xúc của mình thế nào?",
+    "competency": "FAILURE",
+    "expectedSignals": [
+      "full_accountability",
+      "deep_mechanical_understanding",
+      "no_defensiveness",
+      "drives_systemic_improvements",
+      "shared_learning"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "sunk-cost",
+      "wrong-direction"
+    ],
+    "text": "Hãy kể về một lần bạn theo đuổi một hướng tiếp cận quá lâu trước khi nhận ra nó sai: vd cố tối ưu một kiến trúc thay vì rewrite, cố sửa một bug thay vì refactor lớn hơn, cố làm việc với một thư viện không phù hợp. Tín hiệu nào bạn đã bỏ qua, ai đã cảnh báo bạn, và bạn đã thay đổi pivot threshold của mình ra sao?",
+    "competency": "FAILURE",
+    "expectedSignals": [
+      "recognizes_sunk_cost_trap",
+      "names_signals_missed",
+      "acknowledges_warnings_ignored",
+      "adjusts_decision_threshold"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "public-admission",
+      "course-correct"
+    ],
+    "text": "Đã có lúc bạn phải công khai nói cách tiếp cận của chúng ta không khả thi với cả team hoặc cấp trên: sau khi đã đầu tư thời gian và uy tín vào nó. Bạn chuẩn bị cho cuộc đó ra sao, đề xuất hướng đi tiếp như thế nào, và làm gì để không bốc hơi uy tín cho lần đề xuất sau?",
+    "competency": "FAILURE",
+    "expectedSignals": [
+      "timely_admission_not_late",
+      "comes_with_alternatives",
+      "no_excuse_making",
+      "preserves_team_trust",
+      "rebuilds_credibility"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "career-setback",
+      "recovery"
+    ],
+    "text": "Hãy kể về một thời điểm trong sự nghiệp bạn cảm thấy đang đi xuống: không được promote dù đã expect, performance review xấu, mất uy tín trong team, hoặc bị nói thẳng là không phù hợp với role. Bạn chẩn đoán nguyên nhân thật ra sao (không đổ tại môi trường), và xây dựng lại từ đó như thế nào?",
+    "competency": "FAILURE",
+    "expectedSignals": [
+      "non_defensive_reflection",
+      "extracts_real_diagnosis",
+      "concrete_change_plan",
+      "evidence_of_recovery",
+      "growth_mindset"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "new-skill",
+      "method"
+    ],
+    "text": "Hãy kể về một kỹ năng kỹ thuật bạn học được trong 6 đến 12 tháng gần đây và đã thực sự dùng vào công việc. Lý do nào khiến bạn chọn skill đó (chứ không phải skill khác đang hot), và bạn học theo cách nào: sách, side project, mentor, learn-by-doing? Bạn đo bản thân đã biết đủ bằng tín hiệu gì?",
+    "competency": "GROWTH",
+    "expectedSignals": [
+      "specific_skill_with_context",
+      "deliberate_choice_rationale",
+      "concrete_learning_method",
+      "applied_in_real_work",
+      "self_assessment_signals"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "feedback-changed-me"
+    ],
+    "text": "Hãy kể về một phản hồi bạn nhận được: có thể từ peer review, manager, hoặc thậm chí critique công khai trong meeting: đã thực sự thay đổi cách bạn làm việc. Phản hồi đó là gì cụ thể? Ban đầu bạn cảm thấy thế nào (defensive? đồng ý ngay?), và sau đó bạn thay đổi cụ thể ra sao?",
+    "competency": "GROWTH",
+    "expectedSignals": [
+      "acknowledges_initial_emotion",
+      "internalized_not_rejected",
+      "concrete_behavior_change",
+      "still_applies_today"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "staying-current",
+      "habits"
+    ],
+    "text": "Trong một ngành thay đổi nhanh, bạn cập nhật những công nghệ nào và bằng cách nào? Tôi không hỏi sources lý thuyết: hỏi cụ thể bạn đọc gì tuần qua, công cụ nào bạn vừa thử, và quyết định nào trong công việc gần đây đến từ thông tin bạn đọc hoặc học?",
+    "competency": "GROWTH",
+    "expectedSignals": [
+      "concrete_recent_examples",
+      "real_habit_not_aspirational",
+      "filters_signal_from_noise",
+      "connects_to_current_work"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "influential-resource"
+    ],
+    "text": "Hãy kể về một quyển sách, talk, paper, blog post hay tutorial đã ảnh hưởng tới cách bạn nghĩ về kỹ thuật trong 1 đến 2 năm gần đây. Cụ thể nó thay đổi gì trong cách bạn code, design, hay collaborate? Bạn đã giới thiệu nó cho ai khác chưa và phản ứng của họ thế nào?",
+    "competency": "GROWTH",
+    "expectedSignals": [
+      "names_real_resource",
+      "articulates_specific_takeaway",
+      "evidence_in_practice",
+      "shares_with_others"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "weak-to-competent"
+    ],
+    "text": "Hãy kể về một điểm yếu bạn từng có ở vai trò technical, ví dụ code review chậm, không quen viết doc, sợ public speaking, viết code khó đọc, không biết debug production: và bạn đã đi từ yếu sang competent ra sao. Cụ thể những bước nào bạn làm khác, và mất bao lâu để bạn nhìn thấy bản thân thay đổi?",
+    "competency": "GROWTH",
+    "expectedSignals": [
+      "acknowledges_real_weakness",
+      "deliberate_practice_plan",
+      "evidence_of_improvement",
+      "still_growing_humility"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "sought-mentor"
+    ],
+    "text": "Hãy kể về một lần bạn chủ động tìm mentor hoặc coach: không phải vì công ty assign, mà vì bạn nhận ra mình cần. Bạn xác định ai phù hợp ra sao, tiếp cận họ thế nào (cold ask khá ngại), và quan hệ đó diễn ra như thế nào? Cuối cùng có thay đổi gì đo được?",
+    "competency": "GROWTH",
+    "expectedSignals": [
+      "clear_growth_target",
+      "respectful_specific_ask",
+      "follows_through_on_advice",
+      "shows_what_changed"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "habit-changed"
+    ],
+    "text": "Trong 1 đến 2 năm gần đây, có thói quen làm việc nào bạn đã chủ động thay đổi, ví dụ cách bạn plan ngày, viết note, communicate trong slack, cách bạn debug, cách bạn nghỉ ngơi? Tại sao bạn nghĩ thói quen cũ đang fail bạn, và quá trình thay đổi có khó không?",
+    "competency": "GROWTH",
+    "expectedSignals": [
+      "specific_old_vs_new_habit",
+      "why_old_was_failing",
+      "honest_about_difficulty",
+      "sustained_change"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "bad-review",
+      "action-plan"
+    ],
+    "text": "Đã bao giờ bạn nhận một performance review hoặc 360 feedback không tốt? Phản ứng đầu tiên (cảm xúc, không phải lý trí) là gì? Bạn đi từ đó tới một plan hành động cụ thể ra sao, và 6 tháng sau có gì thay đổi đo được?",
+    "competency": "GROWTH",
+    "expectedSignals": [
+      "acknowledges_initial_defensiveness",
+      "translates_feedback_to_behaviors",
+      "tracks_progress",
+      "evidence_of_change"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "multi-year-strength"
+    ],
+    "text": "Hãy kể về một strength bạn xây dựng trong nhiều năm: không phải skill ngắn hạn mà là một capacity, ví dụ system design, mentoring, technical writing, debugging production, architectural thinking. Bạn đầu tư ra sao qua các năm và làm sao biết bạn đã đến level mới? Đâu là gap còn lại bạn nhận thức được?",
+    "competency": "GROWTH",
+    "expectedSignals": [
+      "multi_year_commitment",
+      "deliberate_steps_over_time",
+      "evidence_of_mastery",
+      "self_aware_about_remaining_gaps"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "worldview-shift"
+    ],
+    "text": "Hãy kể về một niềm tin kỹ thuật bạn từng giữ vững nhưng sau đó thay đổi căn bản: vd về testing (TDD so với không), microservices, OOP, agile, code style, hay đúng cách quản lý team. Lý do nào khiến bạn đổi (kinh nghiệm? sách? thất bại?), và việc bỏ rơi niềm tin cũ có khó không?",
+    "competency": "GROWTH",
+    "expectedSignals": [
+      "names_prior_belief_clearly",
+      "specific_trigger_for_change",
+      "intellectual_humility",
+      "behavior_change_in_real_work"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "stretch",
+      "uncertainty"
+    ],
+    "text": "Hãy kể về một dự án bạn nhận mà lúc bắt đầu bạn chưa biết liệu mình có làm được không. Bạn đối mặt với uncertainty đó ra sao trong tuần đầu: chia nhỏ thế nào, ai bạn hỏi, làm sao tránh paralysis? Đâu là moment tôi sẽ fail và bạn đã đi qua nó như thế nào?",
+    "competency": "GROWTH",
+    "expectedSignals": [
+      "genuine_stretch_not_familiar",
+      "named_uncertainty",
+      "specific_fear_moments",
+      "lasting_capability_gain"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "comeback",
+      "rebuild"
+    ],
+    "text": "Hãy kể về một thời gian bạn phải quay lại và xây lại: sau gap năm, sau ốm dài, sau đổi domain hoàn toàn, ví dụ backend sang ML, hoặc IC sang quản lý rồi quay lại IC, sau project burnout. Bạn diagnose mình đang ở đâu so với industry và xây kế hoạch ramp up cụ thể ra sao? Bạn xin giúp đỡ ai và xin thế nào?",
+    "competency": "GROWTH",
+    "expectedSignals": [
+      "honest_self_assessment",
+      "concrete_ramp_up_plan",
+      "asks_for_help_appropriately",
+      "evidence_of_full_recovery"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "non-technical-audience"
+    ],
+    "text": "Hãy kể về một lần bạn phải giải thích một concept kỹ thuật phức tạp cho non-tech (PM, sales, exec, hoặc khách hàng). Bạn chuẩn bị ra sao? Có analogy hay visual nào bạn dùng và bạn check xem họ hiểu thật chưa bằng cách nào (không phải hỏi có hiểu không)?",
+    "competency": "COMMUNICATION",
+    "expectedSignals": [
+      "audience_aware_framing",
+      "uses_concrete_analogy",
+      "checks_understanding_actively",
+      "iterates_when_unclear"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "status-update",
+      "format"
+    ],
+    "text": "Bạn viết status update hàng tuần (hoặc bi-weekly) thế nào? Hãy mô tả cấu trúc bạn dùng và một ví dụ thật bạn vừa gửi gần đây: gồm cách bạn nêu progress, risk và ask. Tại sao format đó hơn cách liệt kê những gì đã làm?",
+    "competency": "COMMUNICATION",
+    "expectedSignals": [
+      "bottom_line_up_front",
+      "explicit_risks_and_asks",
+      "audience_tailored",
+      "uses_consistent_format"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "docs-that-helped"
+    ],
+    "text": "Hãy kể về một tài liệu bạn viết: runbook, design doc, onboarding guide: đã thực sự được sử dụng bởi người khác. Tại sao bạn nghĩ tài liệu đó hữu dụng (so với những doc bị bỏ rơi sau 1 tuần), và bạn maintain nó ra sao theo thời gian?",
+    "competency": "COMMUNICATION",
+    "expectedSignals": [
+      "identifies_real_reader_need",
+      "writes_for_reader_not_self",
+      "stays_maintained",
+      "concrete_evidence_of_usage"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "meeting-prep"
+    ],
+    "text": "Khi bạn host hoặc trình bày trong một meeting quan trọng, bạn chuẩn bị thế nào trước đó? Bạn anticipate câu hỏi khó ra sao, và làm gì khi câu trả lời là tôi không biết để không tỏ ra mất uy tín?",
+    "competency": "COMMUNICATION",
+    "expectedSignals": [
+      "clear_meeting_goal",
+      "anticipates_questions",
+      "comfortable_saying_dont_know",
+      "follows_up_on_unanswered"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "bad-news",
+      "stakeholder"
+    ],
+    "text": "Hãy kể về một lần bạn phải truyền đạt tin xấu cho stakeholder: trễ deadline, scope cut, từ chối yêu cầu, dự án bị huỷ, hoặc bug ảnh hưởng customer. Bạn chuẩn bị thông điệp ra sao, deliver thế nào (in person? viết?), và xử lý phản ứng tiêu cực ra sao mà không vừa xin lỗi vừa ấp úng?",
+    "competency": "COMMUNICATION",
+    "expectedSignals": [
+      "direct_no_burying",
+      "leads_with_facts_then_options",
+      "empathy_for_stakeholder",
+      "comes_with_path_forward"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "complex-writeup",
+      "multi-audience"
+    ],
+    "text": "Hãy kể về một chủ đề kỹ thuật phức tạp bạn phải viết doc cho audience đa dạng: vd vừa engineer vừa non-engineer, hoặc engineer mới + senior. Bạn chia abstraction levels ra sao trong doc, và làm sao tránh over-explain với người biết nhưng vẫn accessible cho người mới?",
+    "competency": "COMMUNICATION",
+    "expectedSignals": [
+      "layered_abstraction_levels",
+      "uses_visuals_diagrams",
+      "tldr_at_top",
+      "links_to_deeper_detail"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "meeting-trainwreck"
+    ],
+    "text": "Đã có lúc bạn ngồi trong meeting mà nó đang trật bánh: đi lan man, có người dominate, hoặc team chia rẽ không đi đâu. Bạn (không phải facilitator) đã can thiệp ra sao mà không làm cứng tình huống hoặc tỏ ra lên mặt với người chủ trì?",
+    "competency": "COMMUNICATION",
+    "expectedSignals": [
+      "recognizes_drift_signal",
+      "polite_constructive_intervention",
+      "redirects_without_blame",
+      "follows_up_offline_if_needed"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "written-influence",
+      "rfc"
+    ],
+    "text": "Hãy kể về một lần bạn dùng một văn bản (RFC, design doc, proposal, email dài) để ảnh hưởng tới một quyết định quan trọng. Bạn cấu trúc nó ra sao để thuyết phục người đọc bận, và đối phó với counter-argument ngay trong văn bản như thế nào? Có phản hồi nào khiến bạn phải edit lại đáng kể không?",
+    "competency": "COMMUNICATION",
+    "expectedSignals": [
+      "clear_thesis_up_front",
+      "anticipates_counterarguments",
+      "evidence_for_each_claim",
+      "closes_with_specific_recommendation",
+      "iterates_on_feedback"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "miscommunication-cost"
+    ],
+    "text": "Hãy kể về một lần miscommunication trong team gây ra hậu quả thật: bug, conflict, mất thời gian, hoặc tổn hại uy tín. Bạn diagnose root cause ra sao? Đó là vấn đề channel, ngữ cảnh, hay giả định ngầm? Bạn đã thay đổi quy ước hoặc process gì để tránh tái diễn?",
+    "competency": "COMMUNICATION",
+    "expectedSignals": [
+      "honest_about_role_in_miscom",
+      "investigates_root_cause",
+      "concrete_process_change",
+      "improves_team_norms"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "executive-presentation"
+    ],
+    "text": "Hãy kể về một bài thuyết trình quan trọng cho exec hoặc senior leadership. Bạn phải nén nội dung kỹ thuật như thế nào để fit time limit (10 phút thay vì 60), làm sao tailor cho họ (họ chỉ quan tâm output và risk, không phải tech detail), và xử lý câu hỏi khó hoặc pushback dưới áp lực ra sao?",
+    "competency": "COMMUNICATION",
+    "expectedSignals": [
+      "audience_level_appropriate",
+      "bottom_line_up_front",
+      "ruthless_compression",
+      "handles_pushback_calm"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "incident-comms"
+    ],
+    "text": "Trong một sự cố production đang diễn ra, bạn vừa phải debug vừa phải truyền thông cho stakeholder. Cadence cập nhật của bạn ra sao? Bạn truyền đạt unknown so với known thế nào để không gây hoang mang nhưng cũng không cover up? Sau incident bạn viết summary ra sao cho từng audience (eng team so với business)?",
+    "competency": "COMMUNICATION",
+    "expectedSignals": [
+      "regular_cadence",
+      "separates_unknowns_from_facts",
+      "right_audience_at_right_time",
+      "post_incident_summary"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "hard-conversation",
+      "self-fault"
+    ],
+    "text": "Hãy kể về một cuộc nói chuyện khó nhất bạn từng có: bạn phải đi tới một đồng nghiệp hoặc cấp trên để thừa nhận mình đã sai hoặc làm hỏng việc gì đó, hoặc giao tiếp một thông tin nhạy cảm về chính bạn. Bạn chuẩn bị ra sao và quản lý cảm xúc của mình thế nào trong cuộc đó? Sau cuộc trao đổi bạn đã làm gì để rebuild trust?",
+    "competency": "COMMUNICATION",
+    "expectedSignals": [
+      "takes_full_responsibility_openly",
+      "no_excuse_making",
+      "listens_more_than_talks",
+      "rebuilds_trust_through_action"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "overload",
+      "rebalance"
+    ],
+    "text": "Hãy kể về một lần bạn nhận ra mình đã ôm quá nhiều: sprint quá đầy, on-call cộng feature work, hoặc nhiều task nhỏ chiếm hết deep work. Bạn nhận ra dấu hiệu lúc nào, và đã làm gì để rebalance? Bạn nói chuyện với manager ra sao mà không có vẻ không chịu được áp lực?",
+    "competency": "PRIORITIZATION",
+    "expectedSignals": [
+      "recognizes_overload_signals",
+      "renegotiates_proactively",
+      "transparent_with_manager",
+      "no_silent_suffering"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "weekly-plan"
+    ],
+    "text": "Hãy mô tả cách bạn plan một tuần làm việc điển hình. Bạn xếp việc theo thứ tự nào, dành bao nhiêu cho deep work so với collab, dành bao nhiêu buffer cho việc bất ngờ? Khi reality khác plan đáng kể, bạn điều chỉnh giữa tuần ra sao?",
+    "competency": "PRIORITIZATION",
+    "expectedSignals": [
+      "concrete_planning_habit",
+      "explicit_deep_work_protection",
+      "buffer_for_uncertainty",
+      "adapts_when_priorities_shift"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "daily-decision"
+    ],
+    "text": "Mỗi sáng, bạn quyết định việc gì làm đầu tiên dựa trên gì? Có phải việc urgent luôn thắng việc important, hay bạn có quy tắc khác? Hãy kể một ngày gần đây cụ thể bạn đã quyết định ra sao.",
+    "competency": "PRIORITIZATION",
+    "expectedSignals": [
+      "clear_decision_rule",
+      "urgent_vs_important_awareness",
+      "considers_blockers_for_team",
+      "avoids_low_value_busywork"
+    ]
+  },
+  {
+    "difficulty": "EASY",
+    "tags": [
+      "delayed-correctly"
+    ],
+    "text": "Hãy kể về một việc bạn cố tình trì hoãn dù có người yêu cầu: và sau đó hóa ra trì hoãn là quyết định đúng. Bạn cân nhắc gì khi nói chưa làm bây giờ, và truyền đạt điều đó ra sao mà không có vẻ tránh việc?",
+    "competency": "PRIORITIZATION",
+    "expectedSignals": [
+      "conscious_choice_not_avoidance",
+      "explained_reasoning",
+      "outcome_validated_call",
+      "no_dropping_silently"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "competing-stakeholders"
+    ],
+    "text": "Hãy kể về một lần nhiều stakeholder cùng đẩy ưu tiên khác nhau lên bạn: vd PM muốn feature A, support muốn fix B, infra muốn migration C. Bạn không thể làm hết. Bạn surface conflict ra sao, ai trong cuộc đó để quyết, và bạn truyền đạt với phía bị hoãn ra sao mà không phá vỡ quan hệ?",
+    "competency": "PRIORITIZATION",
+    "expectedSignals": [
+      "surfaces_conflict_explicitly",
+      "uses_shared_criteria",
+      "involves_decision_maker_appropriately",
+      "transparent_with_those_deferred"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "said-no",
+      "important-request"
+    ],
+    "text": "Hãy kể về một lần bạn nói không với một yêu cầu quan trọng: từ manager, peer team, hoặc senior. Bạn frame cuộc nói chuyện ra sao và đề xuất alternative gì? Có lúc nào sau đó bạn bị nghi ngờ là không hợp tác và bạn xử lý perception đó thế nào?",
+    "competency": "PRIORITIZATION",
+    "expectedSignals": [
+      "explains_tradeoff_clearly",
+      "offers_alternatives",
+      "holds_line_with_respect",
+      "manages_perception_actively"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "scope-cut"
+    ],
+    "text": "Hãy kể về một dự án bạn phải cắt scope để hit deadline. Tiêu chí cắt là gì (giá trị user? rủi ro? phụ thuộc?), ai trong cuộc đó để có buy-in, và bạn truyền đạt với người mất feature ra sao? Sau khi ship, có ai nhìn lại và tiếc cái đã cắt không?",
+    "competency": "PRIORITIZATION",
+    "expectedSignals": [
+      "clear_cutting_criteria",
+      "involves_stakeholders_early",
+      "preserves_core_value",
+      "transparent_about_what_didnt_make_it"
+    ]
+  },
+  {
+    "difficulty": "MEDIUM",
+    "tags": [
+      "features-vs-debt"
+    ],
+    "text": "Hãy mô tả cách bạn cân bằng feature work và tech debt và maintenance trong quy mô team. Có công thức cụ thể nào, ví dụ 70 phần trăm 20 phần trăm 10 phần trăm hay heuristic? Trong những giai đoạn áp lực delivery, bạn bảo vệ tech debt budget ra sao mà không bị xem là engineer ngại làm việc business?",
+    "competency": "PRIORITIZATION",
+    "expectedSignals": [
+      "concrete_framework",
+      "quantifies_debt_impact",
+      "explicit_negotiation_with_PM",
+      "examples_of_protected_capacity"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "incident-week-triage"
+    ],
+    "text": "Hãy kể về một tuần đặc biệt: release lớn cộng incident cộng deadline khác: bạn buộc phải triage ruthlessly. Bạn dropping gì, delegate gì, và lúc đó truyền đạt với manager về việc bạn drop ra sao? Sau tuần đó bạn rút ra bài học gì về over-commitment?",
+    "competency": "PRIORITIZATION",
+    "expectedSignals": [
+      "focus_on_highest_impact",
+      "decisive_drops",
+      "transparent_communication",
+      "learns_from_overcommitment"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "mid-stream-pivot"
+    ],
+    "text": "Hãy kể về một lần bạn nhận ra giữa chừng dự án rằng chúng ta đang đi sai hướng hoặc không quan trọng nữa và phải đề xuất re-prioritize. Tín hiệu nào khiến bạn nghi ngờ, bạn đề xuất ra sao (timing, audience, evidence), và team phản ứng thế nào: đặc biệt người đã đầu tư nhiều vào hướng cũ?",
+    "competency": "PRIORITIZATION",
+    "expectedSignals": [
+      "spots_signal_early",
+      "decisive_recommendation",
+      "evidence_based_case",
+      "team_alignment_after"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "aggressive-cuts",
+      "lead-team"
+    ],
+    "text": "Đã có lúc bạn dẫn team qua một giai đoạn phải cắt mạnh: sau khi org thay đổi roadmap, sau funding cut, sau strategic pivot. Bạn xử lý tradeoff visible với team ra sao, giữ team engaged thế nào, và quản lý kỳ vọng với những người thấy việc của họ bị huỷ bỏ?",
+    "competency": "PRIORITIZATION",
+    "expectedSignals": [
+      "visible_tradeoffs_to_team",
+      "preserves_individual_dignity",
+      "honest_communication",
+      "sustains_engagement_through_change"
+    ]
+  },
+  {
+    "difficulty": "HARD",
+    "tags": [
+      "long-vs-short",
+      "tension"
+    ],
+    "text": "Hãy kể về một tension cụ thể giữa việc tốt cho dài hạn, ví dụ refactor lớn, platform investment, security hardening và việc cần ship ngắn hạn. Bạn đã làm gì để giữ ground cho dài hạn mà không gây thiệt cho delivery ngắn hạn? Sau 6 đến 12 tháng, có evidence nào cho thấy đầu tư dài hạn đã trả lại không?",
+    "competency": "PRIORITIZATION",
+    "expectedSignals": [
+      "articulates_tension_clearly",
+      "concrete_examples_of_holding_ground",
+      "framework_for_balance",
+      "evidence_of_long_term_payoff"
+    ]
+  }
+]
