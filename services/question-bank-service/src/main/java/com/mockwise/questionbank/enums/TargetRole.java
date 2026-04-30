@@ -1,10 +1,13 @@
 package com.mockwise.questionbank.enums;
 
 public enum TargetRole {
+    BA,
     BACKEND,
     FRONTEND,
     FULLSTACK,
-    AI,
+    MOBILE,
     DEVOPS,
-    MOBILE
+    QA,
+    DATA_ENGINEER,
+    AI
 }

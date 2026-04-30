@@ -41,7 +41,6 @@ public class QuestionService {
     BehavioralQuestionRepository behavioralRepository;
     CoreQuestionRepository coreRepository;
     CodingQuestionRepository codingRepository;
-
     BehavioralMapper behavioralMapper;
     CoreMapper coreMapper;
     CodingMapper codingMapper;
