@@ -415,7 +415,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/v1/storage/uploads/avatars/me:
+  /api/v1/storage/avatars/me:
     get:
       tags: [Uploads]
       summary: Stream the authenticated user's latest avatar
