@@ -3,10 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ChevronDown, LogOut, UserCircle } from 'lucide-react';
 import { useAuth } from '@/auth/useAuth';
 import Logo from '@/components/ui/Logo';
-import { HEADER_NAV_ITEMS } from '@/data/navigation';
+import { HEADER_NAV_GUEST, HEADER_NAV_USER, type NavItem } from '@/data/navigation';
 
 export default function Header() {
   const { status, profile, signOut } = useAuth();
+  const isAuthenticated = status === 'authenticated' && !!profile;
+  const navItems = isAuthenticated ? HEADER_NAV_USER : HEADER_NAV_GUEST;
 
   return (
     <header className="fixed top-0 w-full flex justify-between items-center px-6 md:px-12 h-16 bg-surface-container-lowest/80 backdrop-blur-md border-b border-outline-variant/30 z-50">
@@ -15,19 +17,13 @@ export default function Header() {
       </Link>
 
       <nav className="hidden md:flex gap-8 items-center">
-        {HEADER_NAV_ITEMS.map((item) => (
-          <a
-            key={item.label}
-            href={`/${item.href}`}
-            className="text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors"
-          >
-            {item.label}
-          </a>
+        {navItems.map((item) => (
+          <NavLink key={item.label} item={item} />
         ))}
       </nav>
 
       <div className="flex items-center gap-2 md:gap-4">
-        {status === 'authenticated' && profile ? (
+        {isAuthenticated ? (
           <UserMenu fullName={profile.fullName} onSignOut={signOut} />
         ) : (
           <>
@@ -48,6 +44,19 @@ export default function Header() {
       </div>
     </header>
   );
+}
+
+// Anchor links inside the homepage (e.g. /#pricing) need a plain <a> so the
+// browser scrolls to the section. Pure paths (e.g. /practice) use react-router's
+// <Link> for client-side navigation without a full page reload.
+function NavLink({ item }: { item: NavItem }) {
+  const className =
+    'text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors';
+
+  if (item.href.includes('#')) {
+    return <a href={item.href} className={className}>{item.label}</a>;
+  }
+  return <Link to={item.href} className={className}>{item.label}</Link>;
 }
 
 type UserMenuProps = {
