@@ -113,23 +113,15 @@ components:
         position:   { $ref: '#/components/schemas/PositionResponse' }
         city:       { type: string, example: "Ho Chi Minh" }
         experience: { type: integer, example: 2 }
-        avatarObjectKey:
-          type: string
-          nullable: true
-          description: Storage object key — null means no avatar uploaded.
-          example: "avatars/u-7f3a/8f1c3a4d-9a2b-4e7f-8c1d-2a4b6c8e0f12"
         avatarUrl:
           type: string
-          format: uri
           nullable: true
           description: |
-            Short-lived presigned GET URL for the avatar image. Re-fetch the
-            profile to get a fresh URL once `avatarUrlExpiresAt` is reached.
-            Null when no avatar is set or storage-service is unavailable.
-        avatarUrlExpiresAt:
-          type: string
-          format: date-time
-          nullable: true
+            Same-origin path served by storage-service that streams the avatar
+            bytes (`/api/v1/storage/avatars/me?v=<key-suffix>`). Includes a
+            cache-busting query so a re-upload bypasses the browser cache.
+            Null when no avatar is uploaded.
+          example: "/api/v1/storage/avatars/me?v=8f1c3a4d-9a2b-4e7f-8c1d-2a4b6c8e0f12"
 
     UserProfileWrapped:
       type: object

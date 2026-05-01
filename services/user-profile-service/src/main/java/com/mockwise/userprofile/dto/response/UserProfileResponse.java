@@ -8,7 +8,6 @@ public record UserProfileResponse(
         PositionResponse position,
         String city,
         Integer experience,
-        String avatarObjectKey,
         String avatarUrl,
         OffsetDateTime avatarUrlExpiresAt
 ) {}

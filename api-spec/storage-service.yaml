@@ -415,6 +415,36 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /api/v1/storage/uploads/avatars/me:
+    get:
+      tags: [Uploads]
+      summary: Stream the authenticated user's latest avatar
+      description: |
+        Returns the bytes of the authenticated user's latest READY avatar.
+        Server-side proxy to MinIO so the browser, which loads the app over
+        HTTPS, never sees the HTTP-only MinIO host (avoids mixed-content
+        blocking).
+
+        Frontend builds a blob URL from this response and binds it to an
+        `<img>`. A `?v=<key-suffix>` query string is appended by the profile
+        API as a cache-buster — re-uploading produces a new key, hence a new
+        URL, hence the browser refetches.
+
+        Cache-Control: `private, max-age=600`.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Avatar bytes
+          content:
+            image/jpeg: { schema: { type: string, format: binary } }
+            image/png:  { schema: { type: string, format: binary } }
+            image/webp: { schema: { type: string, format: binary } }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/v1/storage/internal/question-audio:
     post:
       tags: [Internal]

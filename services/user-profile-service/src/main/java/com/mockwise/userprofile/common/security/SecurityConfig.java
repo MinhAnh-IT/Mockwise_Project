@@ -26,8 +26,10 @@ public class SecurityConfig {
                         // User Profile APIs
                         .requestMatchers(HttpMethod.POST, "/profiles/**").hasAuthority("ROLE_SERVICE")
                         .requestMatchers(HttpMethod.GET, "/profiles/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN", "ROLE_SERVICE")
-                        .requestMatchers(HttpMethod.PATCH, "/profiles/**").hasAuthority("ROLE_USER")
-                        .requestMatchers(HttpMethod.PUT, "/profiles/**").hasAuthority("ROLE_USER")
+                        // Admins can update their own profile too — owner check happens
+                        // in the service layer via currentUser.equals(userId).
+                        .requestMatchers(HttpMethod.PATCH, "/profiles/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/profiles/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
                         
                         // Admin-only endpoints
                         .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")

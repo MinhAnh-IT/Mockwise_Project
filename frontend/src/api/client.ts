@@ -92,7 +92,7 @@ async function rawRequest(
   });
 }
 
-export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function authedFetch(path: string, options: RequestOptions): Promise<Response> {
   const useAuth = options.auth ?? true;
   const token = useAuth ? accessor?.getAccessToken() ?? null : null;
 
@@ -107,6 +107,12 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     response = await rawRequest(path, options, renewed);
   }
 
+  return response;
+}
+
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const response = await authedFetch(path, options);
+
   if (!response.ok) {
     throw await parseError(response);
   }
@@ -116,6 +122,22 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
 
   return (await response.json()) as T;
+}
+
+/**
+ * Same auth + auto-refresh plumbing as `request`, but returns the raw
+ * Response so callers can stream binary data (e.g. avatar image bytes that
+ * become a blob URL bound to an `<img>` tag).
+ */
+export async function requestRaw(
+  path: string,
+  options: RequestOptions = {},
+): Promise<Response> {
+  const response = await authedFetch(path, options);
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return response;
 }
 
 export async function unwrap<T>(path: string, options?: RequestOptions): Promise<T> {

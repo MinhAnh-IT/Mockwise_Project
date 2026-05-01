@@ -4,6 +4,8 @@ import com.mockwise.storage.common.config.MinioClientConfig;
 import com.mockwise.storage.common.config.MinioProperties;
 import com.mockwise.storage.common.exception.BusinessException;
 import com.mockwise.storage.common.exception.StatusCode;
+import io.minio.GetObjectArgs;
+import io.minio.GetObjectResponse;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -102,6 +104,26 @@ public class MinioStorageGateway {
                  | java.security.NoSuchAlgorithmException
                  | java.security.InvalidKeyException e) {
             log.error("Stat failed for {}/{}: {}", bucket, objectKey, e.getMessage());
+            throw new BusinessException(StatusCode.STORAGE_BACKEND_ERROR);
+        }
+    }
+
+    /**
+     * Open an InputStream on a stored object for server-side proxying back to
+     * the client. Used by the avatar-streaming endpoint so the browser never
+     * sees the MinIO host (avoids HTTPS-app + HTTP-MinIO mixed-content blocks).
+     */
+    public GetObjectResponse getObject(String bucket, String objectKey) {
+        try {
+            return minioClient.getObject(
+                    GetObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(objectKey)
+                            .build());
+        } catch (MinioException | java.io.IOException
+                 | java.security.NoSuchAlgorithmException
+                 | java.security.InvalidKeyException e) {
+            log.error("Get failed for {}/{}: {}", bucket, objectKey, e.getMessage());
             throw new BusinessException(StatusCode.STORAGE_BACKEND_ERROR);
         }
     }
