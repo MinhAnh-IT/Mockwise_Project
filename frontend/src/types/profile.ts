@@ -12,6 +12,9 @@ export type UserProfile = {
   position: Position;
   city: string;
   experience: number;
+  avatarObjectKey?: string | null;
+  avatarUrl?: string | null;
+  avatarUrlExpiresAt?: string | null;
 };
 
 export type UserProfileUpdateRequest = {
@@ -20,6 +23,7 @@ export type UserProfileUpdateRequest = {
   levelId?: string;
   city?: string;
   experience?: number;
+  avatarObjectKey?: string;
 };
 
 export type PositionTrack = {

@@ -37,6 +37,7 @@ public class UserProfileService {
     UserProfileMapper userProfileMapper;
     PositionService positionService;
     IamUserService iamUserService;
+    StorageAvatarService storageAvatarService;
 
     @Transactional
     public UserProfileResponse createProfile(String userId, UserProfileRequest request) {
@@ -61,7 +62,28 @@ public class UserProfileService {
         UserProfile profile = userProfileRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ResponseCode.NOT_FOUND,
                         "Profile not found for user: " + userId));
-        return userProfileMapper.toResponse(profile);
+        return toEnrichedResponse(profile);
+    }
+
+    /**
+     * Calls the mapper for the static fields, then asks storage-service for a
+     * short-lived presigned URL when the profile has an avatar. Storage failures
+     * fall back to the base response with no avatarUrl — see
+     * {@link StorageAvatarService#mintAvatarUrl}.
+     */
+    private UserProfileResponse toEnrichedResponse(UserProfile profile) {
+        UserProfileResponse base = userProfileMapper.toResponse(profile);
+        return storageAvatarService.mintAvatarUrl(profile.getAvatarObjectKey())
+                .map(url -> new UserProfileResponse(
+                        base.userId(),
+                        base.fullName(),
+                        base.position(),
+                        base.city(),
+                        base.experience(),
+                        base.avatarObjectKey(),
+                        url.url(),
+                        url.expiresAt()))
+                .orElse(base);
     }
 
     @Transactional
@@ -80,7 +102,7 @@ public class UserProfileService {
         UserProfile saved = userProfileRepository.save(profile);
         log.info("Updated user profile for userId={}", userId);
 
-        return userProfileMapper.toResponse(saved);
+        return toEnrichedResponse(saved);
     }
 
     /**
@@ -155,7 +177,7 @@ public class UserProfileService {
 
         UserProfile saved = userProfileRepository.save(profile);
         log.info("Admin updated user profile for userId={}", userId);
-        return userProfileMapper.toResponse(saved);
+        return toEnrichedResponse(saved);
     }
 
     public ProfileStatsResponse getProfileStats() {

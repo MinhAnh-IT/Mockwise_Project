@@ -26,6 +26,14 @@ server:
 mockwise:
   iam:
     base-url: ${IAM_BASE_URL:http://localhost:8081/api/v1/iam}
+  storage:
+    # Internal-network base URL for storage-service. /internal/** endpoints are
+    # gated by the X-Internal-Auth header injected by StorageFeignConfig.
+    base-url: ${STORAGE_SERVICE_INTERNAL_URL:http://localhost:8085/api/v1/storage}
+    internal-api-key: ${INTERNAL_API_KEY:}
+    # TTL we ask storage-service to mint avatar GET URLs for. Storage caps it
+    # at avatar-ttl-seconds (10 min by default) regardless of what we request.
+    avatar-ttl-seconds: ${STORAGE_AVATAR_TTL_SECONDS:600}
 
 api:
   response:

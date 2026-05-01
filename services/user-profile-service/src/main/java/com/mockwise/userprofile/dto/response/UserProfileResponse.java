@@ -1,9 +1,14 @@
 package com.mockwise.userprofile.dto.response;
 
-public record UserProfileResponse (
+import java.time.OffsetDateTime;
+
+public record UserProfileResponse(
         String userId,
         String fullName,
         PositionResponse position,
         String city,
-        Integer experience
-){ }
+        Integer experience,
+        String avatarObjectKey,
+        String avatarUrl,
+        OffsetDateTime avatarUrlExpiresAt
+) {}

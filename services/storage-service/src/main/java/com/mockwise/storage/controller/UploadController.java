@@ -2,7 +2,9 @@ package com.mockwise.storage.controller;
 
 import com.core.apiresponse.response.ApiResponse;
 import com.mockwise.storage.common.security.CustomUserDetails;
+import com.mockwise.storage.dto.request.CreateAvatarUploadRequest;
 import com.mockwise.storage.dto.request.CreateVideoUploadRequest;
+import com.mockwise.storage.dto.response.AvatarUploadResponse;
 import com.mockwise.storage.dto.response.StorageObjectResponse;
 import com.mockwise.storage.dto.response.VideoUploadResponse;
 import com.mockwise.storage.service.StorageService;
@@ -40,5 +42,23 @@ public class UploadController {
             @AuthenticationPrincipal CustomUserDetails user) {
         return ResponseEntity.ok(ApiResponse.success(
                 storageService.completeVideoUpload(objectId, user.getUserId())));
+    }
+
+    /** Step 1 (avatar): same flow as video — reserve a slot, get a presigned PUT URL. */
+    @PostMapping("/avatars")
+    public ResponseEntity<ApiResponse<AvatarUploadResponse>> createAvatarUpload(
+            @Valid @RequestBody CreateAvatarUploadRequest req,
+            @AuthenticationPrincipal CustomUserDetails user) {
+        return ResponseEntity.ok(ApiResponse.success(
+                storageService.createAvatarUpload(req, user.getUserId())));
+    }
+
+    /** Step 2 (avatar): confirm bytes landed and flip status to READY. */
+    @PostMapping("/avatars/{objectId}/complete")
+    public ResponseEntity<ApiResponse<StorageObjectResponse>> completeAvatarUpload(
+            @PathVariable String objectId,
+            @AuthenticationPrincipal CustomUserDetails user) {
+        return ResponseEntity.ok(ApiResponse.success(
+                storageService.completeAvatarUpload(objectId, user.getUserId())));
     }
 }

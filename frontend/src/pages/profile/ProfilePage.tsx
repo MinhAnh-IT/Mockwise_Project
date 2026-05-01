@@ -1,6 +1,7 @@
 import { Pencil, Mail, MapPin, Briefcase, GraduationCap, Calendar, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/auth/useAuth';
+import Avatar from '@/components/ui/Avatar';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
 
@@ -8,8 +9,6 @@ export default function ProfilePage() {
   const { profile } = useAuth();
 
   if (!profile) return null;
-
-  const initial = profile.fullName.trim().charAt(0).toUpperCase() || '?';
 
   return (
     <div className="min-h-screen flex flex-col bg-surface">
@@ -19,9 +18,12 @@ export default function ProfilePage() {
         <div className="max-w-3xl mx-auto">
           <div className="bg-surface-container-lowest border border-outline-variant rounded-3xl p-8 md:p-10 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-start gap-6 mb-10">
-              <div className="w-20 h-20 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center text-3xl font-bold flex-shrink-0 mx-auto sm:mx-0">
-                {initial}
-              </div>
+              <Avatar
+                src={profile.avatarUrl}
+                fullName={profile.fullName}
+                size="lg"
+                className="mx-auto sm:mx-0"
+              />
               <div className="flex-1 text-center sm:text-left">
                 <h1 className="text-2xl md:text-3xl font-bold text-on-surface mb-1">
                   {profile.fullName}

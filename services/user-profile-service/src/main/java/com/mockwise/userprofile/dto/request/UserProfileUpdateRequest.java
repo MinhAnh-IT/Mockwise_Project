@@ -9,5 +9,11 @@ public record UserProfileUpdateRequest(
         String city,
 
         @Min(value = 0, message = "Experience must be >= 0")
-        Integer experience
+        Integer experience,
+
+        /**
+         * Storage object key returned by storage-service after a successful avatar
+         * upload. Pass an empty string to clear the avatar.
+         */
+        String avatarObjectKey
 ) {}

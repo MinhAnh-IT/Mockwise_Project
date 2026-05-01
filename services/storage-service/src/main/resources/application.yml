@@ -57,13 +57,16 @@ minio:
   buckets:
     interview-video: ${MINIO_BUCKET_INTERVIEW_VIDEO:interview-videos}
     question-audio: ${MINIO_BUCKET_QUESTION_AUDIO:question-audio}
+    user-avatar: ${MINIO_BUCKET_USER_AVATAR:user-avatars}
   presign:
-    upload-ttl-seconds: 600     # 10 min — PUT video
+    upload-ttl-seconds: 600     # 10 min — PUT video / avatar
     download-ttl-seconds: 1800  # 30 min — GET video
     audio-ttl-seconds: 60       # 60s — GET question audio
+    avatar-ttl-seconds: 600     # 10 min — GET user avatar (long enough to cache in UI)
   upload-limits:
     video-max-bytes: 524288000  # 500 MB
     audio-max-bytes: 26214400   # 25 MB
+    avatar-max-bytes: 5242880   # 5 MB
 
 internal:
   auth:
