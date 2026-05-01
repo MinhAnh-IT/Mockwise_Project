@@ -29,7 +29,7 @@ export default function ProfilePage() {
     <div className="min-h-screen flex flex-col bg-surface">
       <header className="px-6 md:px-12 h-16 flex items-center justify-between border-b border-outline-variant/30 bg-surface-container-lowest">
         <Link to="/" aria-label={`${SITE.name} — Trang chủ`} className="flex items-center">
-          <Logo className="h-9 w-auto" />
+          <Logo className="h-12 w-auto" />
         </Link>
         <Button variant="secondary" onClick={handleSignOut} loading={signingOut}>
           <LogOut className="w-4 h-4" />

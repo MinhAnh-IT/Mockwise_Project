@@ -15,7 +15,7 @@ export default function Footer() {
               aria-label={`${SITE.name} — Trang chủ`}
               className="inline-flex items-center mb-4"
             >
-              <Logo className="h-10 w-auto" />
+              <Logo className="h-14 w-auto" />
             </a>
             <p className="text-on-surface-variant text-sm leading-relaxed max-w-sm mb-6">
               {SITE.tagline}
