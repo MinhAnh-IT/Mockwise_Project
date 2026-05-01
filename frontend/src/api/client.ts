@@ -15,7 +15,7 @@ export class ApiError extends Error {
 
 export type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-  body?: unknown;
+  body?: unknown | FormData;
   query?: Record<string, string | number | undefined>;
   auth?: boolean;
   signal?: AbortSignal;
@@ -67,18 +67,27 @@ async function rawRequest(
   const headers: Record<string, string> = {
     Accept: 'application/json',
   };
-  if (options.body !== undefined) {
+  // FormData uploads must NOT carry an explicit Content-Type — the browser
+  // appends the multipart boundary parameter for us. JSON bodies are
+  // serialised here.
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  if (options.body !== undefined && !isFormData) {
     headers['Content-Type'] = 'application/json';
   }
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
 
+  let body: BodyInit | undefined;
+  if (options.body !== undefined) {
+    body = isFormData ? (options.body as FormData) : JSON.stringify(options.body);
+  }
+
   return fetch(buildUrl(path, options.query), {
     method: options.method ?? 'GET',
     headers,
     credentials: 'include',
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    body,
     signal: options.signal,
   });
 }

@@ -2,9 +2,7 @@ package com.mockwise.storage.controller;
 
 import com.core.apiresponse.response.ApiResponse;
 import com.mockwise.storage.common.security.CustomUserDetails;
-import com.mockwise.storage.dto.request.CreateAvatarUploadRequest;
 import com.mockwise.storage.dto.request.CreateVideoUploadRequest;
-import com.mockwise.storage.dto.response.AvatarUploadResponse;
 import com.mockwise.storage.dto.response.StorageObjectResponse;
 import com.mockwise.storage.dto.response.VideoUploadResponse;
 import com.mockwise.storage.service.StorageService;
@@ -13,9 +11,11 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @RestController
@@ -44,21 +44,18 @@ public class UploadController {
                 storageService.completeVideoUpload(objectId, user.getUserId())));
     }
 
-    /** Step 1 (avatar): same flow as video — reserve a slot, get a presigned PUT URL. */
-    @PostMapping("/avatars")
-    public ResponseEntity<ApiResponse<AvatarUploadResponse>> createAvatarUpload(
-            @Valid @RequestBody CreateAvatarUploadRequest req,
+    /**
+     * Multipart avatar upload. The browser POSTs the file to this endpoint and
+     * we stream it through to MinIO server-side, sidestepping the mixed-content
+     * + CORS issues that came with the previous browser-direct presigned PUT
+     * (HTTPS app → HTTP MinIO host). Avatars are capped at 5 MB so the extra
+     * server hop is cheap.
+     */
+    @PostMapping(value = "/avatars", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<StorageObjectResponse>> uploadAvatar(
+            @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal CustomUserDetails user) {
         return ResponseEntity.ok(ApiResponse.success(
-                storageService.createAvatarUpload(req, user.getUserId())));
-    }
-
-    /** Step 2 (avatar): confirm bytes landed and flip status to READY. */
-    @PostMapping("/avatars/{objectId}/complete")
-    public ResponseEntity<ApiResponse<StorageObjectResponse>> completeAvatarUpload(
-            @PathVariable String objectId,
-            @AuthenticationPrincipal CustomUserDetails user) {
-        return ResponseEntity.ok(ApiResponse.success(
-                storageService.completeAvatarUpload(objectId, user.getUserId())));
+                storageService.uploadAvatar(file, user.getUserId())));
     }
 }
