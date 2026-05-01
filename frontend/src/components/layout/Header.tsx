@@ -24,8 +24,8 @@ const USER_MENU_ICONS: Record<string, ReactNode> = {
 
 export default function Header() {
   const { status, profile, signOut } = useAuth();
+  const isLoading = status === 'loading';
   const isAuthenticated = status === 'authenticated' && !!profile;
-  const navItems = isAuthenticated ? HEADER_NAV_USER : HEADER_NAV_GUEST;
 
   return (
     <header className="fixed top-0 w-full flex justify-between items-center px-6 md:px-12 h-16 bg-surface-container-lowest/80 backdrop-blur-md border-b border-outline-variant/30 z-50">
@@ -33,14 +33,20 @@ export default function Header() {
         <Logo className="h-12 w-auto" />
       </Link>
 
+      {/* Hide nav while we're still confirming the session — rendering a guest
+          nav and then swapping to the user nav (or vice versa) causes a visible
+          flash on every refresh. */}
       <nav className="hidden md:flex gap-8 items-center">
-        {navItems.map((item) => (
-          <NavLink key={item.label} item={item} />
-        ))}
+        {!isLoading &&
+          (isAuthenticated ? HEADER_NAV_USER : HEADER_NAV_GUEST).map((item) => (
+            <NavLink key={item.label} item={item} />
+          ))}
       </nav>
 
       <div className="flex items-center gap-2 md:gap-4">
-        {isAuthenticated ? (
+        {isLoading ? (
+          <AuthSlotSkeleton />
+        ) : isAuthenticated ? (
           <UserMenu fullName={profile.fullName} onSignOut={signOut} />
         ) : (
           <>
@@ -60,6 +66,17 @@ export default function Header() {
         )}
       </div>
     </header>
+  );
+}
+
+// Reserves the same width as the login/register buttons (≈ 220px) so the
+// header layout doesn't shift when the auth state resolves.
+function AuthSlotSkeleton() {
+  return (
+    <div
+      className="h-9 w-44 rounded-xl bg-surface-container-low animate-pulse"
+      aria-hidden="true"
+    />
   );
 }
 
