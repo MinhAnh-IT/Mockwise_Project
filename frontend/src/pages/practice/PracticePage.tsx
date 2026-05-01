@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Briefcase, Calendar, MapPin } from 'lucide-react';
+import { ArrowRight, Briefcase, Calendar, MapPin, Sparkles } from 'lucide-react';
 import { useAuth } from '@/auth/useAuth';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
@@ -7,14 +7,12 @@ import { PRACTICE_OPTIONS, type PracticeOption } from '@/data/practice';
 import type { UserProfile } from '@/types/profile';
 
 /**
- * Practice landing — three cards, the user only picks a type. A small
- * profile chip on the right reminds them which track / level / experience
- * the system will tailor questions to. Length, question count and difficulty
- * are decided on the readiness screen at /practice/:type.
+ * Practice landing — gradient hero with a profile chip on the right, then a
+ * 3-card grid. The user only picks a type; length / question count /
+ * difficulty are decided by the system on /practice/:type.
  */
 export default function PracticePage() {
   const { profile } = useAuth();
-  const greetingName = profile?.fullName.split(' ').pop() ?? null;
 
   return (
     <div className="min-h-screen flex flex-col bg-surface">
@@ -22,20 +20,9 @@ export default function PracticePage() {
 
       <main className="flex-1 px-6 pt-24 pb-16">
         <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-on-surface mb-2">
-                {greetingName ? `Chào ${greetingName}, bạn muốn luyện gì?` : 'Bạn muốn luyện gì?'}
-              </h1>
-              <p className="text-on-surface-variant text-sm max-w-xl">
-                Chọn một loại — hệ thống sẽ tự chọn câu hỏi phù hợp với hồ sơ của bạn.
-              </p>
-            </div>
+          <Hero profile={profile} />
 
-            {profile && <ProfileChip profile={profile} />}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-10">
             {PRACTICE_OPTIONS.map((option) => (
               <PracticeCard key={option.id} option={option} />
             ))}
@@ -45,6 +32,31 @@ export default function PracticePage() {
 
       <Footer />
     </div>
+  );
+}
+
+function Hero({ profile }: { profile: UserProfile | null }) {
+  const greetingName = profile?.fullName.split(' ').pop() ?? null;
+
+  return (
+    <section className="bg-gradient-to-br from-secondary/5 via-surface-container-lowest to-surface-container-low border border-outline-variant rounded-3xl p-8 md:p-10">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div>
+          <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary mb-3">
+            <Sparkles className="w-3.5 h-3.5" />
+            Trang luyện tập
+          </span>
+          <h1 className="text-2xl md:text-3xl font-bold text-on-surface mb-2">
+            {greetingName ? `Chào ${greetingName}, bạn muốn luyện gì?` : 'Bạn muốn luyện gì?'}
+          </h1>
+          <p className="text-on-surface-variant text-sm max-w-xl">
+            Chọn một loại — hệ thống sẽ tự chọn câu hỏi phù hợp với hồ sơ của bạn.
+          </p>
+        </div>
+
+        {profile && <ProfileChip profile={profile} />}
+      </div>
+    </section>
   );
 }
 
