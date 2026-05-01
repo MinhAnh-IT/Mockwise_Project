@@ -86,7 +86,11 @@ components:
 
     UserProfileUpdateRequest:
       type: object
-      description: All fields are optional — only provided fields will be updated.
+      description: |
+        All fields are optional — only provided fields will be updated, except
+        for `trackId` and `levelId` which must be sent **together**: position is
+        stored as a (track, level) pair, so omitting one while sending the other
+        returns 400 Bad Request.
       properties:
         fullName:   { type: string, example: "Nguyen Van B" }
         trackId:    { type: string, example: "track-uuid" }
