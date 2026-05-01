@@ -1,50 +1,28 @@
-import { LogOut, Mail, MapPin, Briefcase, GraduationCap, Calendar, User } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
-import Button from '@/components/form/Button';
-import Logo from '@/components/ui/Logo';
+import { Pencil, Mail, MapPin, Briefcase, GraduationCap, Calendar, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/auth/useAuth';
-import { SITE } from '@/data/site';
+import Footer from '@/components/layout/Footer';
+import Header from '@/components/layout/Header';
 
 export default function ProfilePage() {
-  const { profile, signOut } = useAuth();
-  const navigate = useNavigate();
-  const [signingOut, setSigningOut] = useState(false);
+  const { profile } = useAuth();
 
   if (!profile) return null;
 
   const initial = profile.fullName.trim().charAt(0).toUpperCase() || '?';
 
-  const handleSignOut = async () => {
-    setSigningOut(true);
-    try {
-      await signOut();
-      navigate('/', { replace: true });
-    } finally {
-      setSigningOut(false);
-    }
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-surface">
-      <header className="px-6 md:px-12 h-16 flex items-center justify-between border-b border-outline-variant/30 bg-surface-container-lowest">
-        <Link to="/" aria-label={`${SITE.name} — Trang chủ`} className="flex items-center">
-          <Logo className="h-12 w-auto" />
-        </Link>
-        <Button variant="secondary" onClick={handleSignOut} loading={signingOut}>
-          <LogOut className="w-4 h-4" />
-          Đăng xuất
-        </Button>
-      </header>
+      <Header />
 
-      <main className="flex-1 px-6 py-10 md:py-16">
+      <main className="flex-1 px-6 pt-24 pb-16">
         <div className="max-w-3xl mx-auto">
           <div className="bg-surface-container-lowest border border-outline-variant rounded-3xl p-8 md:p-10 shadow-sm">
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-10">
-              <div className="w-20 h-20 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center text-3xl font-bold flex-shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-6 mb-10">
+              <div className="w-20 h-20 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center text-3xl font-bold flex-shrink-0 mx-auto sm:mx-0">
                 {initial}
               </div>
-              <div className="text-center sm:text-left">
+              <div className="flex-1 text-center sm:text-left">
                 <h1 className="text-2xl md:text-3xl font-bold text-on-surface mb-1">
                   {profile.fullName}
                 </h1>
@@ -52,6 +30,13 @@ export default function ProfilePage() {
                   {profile.position.trackName} · {profile.position.levelName}
                 </p>
               </div>
+              <Link
+                to="/profile/edit"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-outline-variant text-on-surface text-sm font-semibold hover:bg-surface-container-low transition-all self-center sm:self-start"
+              >
+                <Pencil className="w-4 h-4" />
+                Chỉnh sửa
+              </Link>
             </div>
 
             <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
@@ -82,6 +67,8 @@ export default function ProfilePage() {
           </div>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import RegisterPage from '@/pages/auth/RegisterPage';
 import VerifyAccountPage from '@/pages/auth/VerifyAccountPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
+import EditProfilePage from '@/pages/profile/EditProfilePage';
 import ProfilePage from '@/pages/profile/ProfilePage';
 
 export default function App() {
@@ -29,6 +30,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/edit"
+            element={
+              <ProtectedRoute>
+                <EditProfilePage />
               </ProtectedRoute>
             }
           />

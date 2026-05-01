@@ -75,17 +75,32 @@ public class UserProfileService {
                         "Profile not found for user: " + userId));
 
         userProfileMapper.updateEntityFromDto(request, profile);
-
-        if (request.trackId() != null && !request.trackId().isBlank()
-                && request.levelId() != null && !request.levelId().isBlank()) {
-            Position newPosition = positionService.getOrCreatePosition(request.trackId(), request.levelId());
-            profile.setPosition(newPosition);
-        }
+        applyPositionUpdate(profile, request);
 
         UserProfile saved = userProfileRepository.save(profile);
         log.info("Updated user profile for userId={}", userId);
 
         return userProfileMapper.toResponse(saved);
+    }
+
+    /**
+     * Position is stored as a Position entity keyed by (track, level), so
+     * updating it requires both ids together. Reject partial input loudly
+     * instead of silently keeping the old position — that mismatch was
+     * previously hard for clients to spot (200 OK with stale data).
+     */
+    private void applyPositionUpdate(UserProfile profile, UserProfileUpdateRequest request) {
+        boolean trackProvided = request.trackId() != null && !request.trackId().isBlank();
+        boolean levelProvided = request.levelId() != null && !request.levelId().isBlank();
+
+        if (trackProvided ^ levelProvided) {
+            throw new BusinessException(ResponseCode.BAD_REQUEST,
+                    "trackId and levelId must be provided together");
+        }
+        if (trackProvided && levelProvided) {
+            Position newPosition = positionService.getOrCreatePosition(request.trackId(), request.levelId());
+            profile.setPosition(newPosition);
+        }
     }
 
     public Page<UserProfileResponse> searchProfiles(
@@ -136,12 +151,7 @@ public class UserProfileService {
                         "Profile not found for user: " + userId));
 
         userProfileMapper.updateEntityFromDto(request, profile);
-
-        if (request.trackId() != null && !request.trackId().isBlank()
-                && request.levelId() != null && !request.levelId().isBlank()) {
-            Position newPosition = positionService.getOrCreatePosition(request.trackId(), request.levelId());
-            profile.setPosition(newPosition);
-        }
+        applyPositionUpdate(profile, request);
 
         UserProfile saved = userProfileRepository.save(profile);
         log.info("Admin updated user profile for userId={}", userId);
