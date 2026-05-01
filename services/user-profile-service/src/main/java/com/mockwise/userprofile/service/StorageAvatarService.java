@@ -7,6 +7,7 @@ import com.mockwise.userprofile.client.dto.StorageDownloadUrlResponse;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,10 @@ public class StorageAvatarService {
 
     StorageClient storageClient;
 
+    // @FieldDefaults(makeFinal=true) would otherwise put this in the
+    // @RequiredArgsConstructor — Spring can't autowire a primitive int that way.
+    // @NonFinal keeps it non-final → field-injected from @Value.
+    @NonFinal
     @Value("${mockwise.storage.avatar-ttl-seconds:600}")
     int avatarTtlSeconds;
 
