@@ -29,8 +29,10 @@ public class SecurityConfig {
                         // Internal service-to-service endpoints — guarded by InternalAuthFilter
                         .requestMatchers("/internal/**").hasAuthority("ROLE_INTERNAL")
 
-                        // User-facing video upload flow — JWT propagated by api-gateway
+                        // User-facing video / avatar upload — JWT propagated by api-gateway
                         .requestMatchers("/uploads/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
+                        // Avatar download (server-side proxy back to MinIO)
+                        .requestMatchers("/avatars/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
 
                         .anyRequest().authenticated()
                 )
