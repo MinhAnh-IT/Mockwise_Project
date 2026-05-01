@@ -14,12 +14,20 @@ export const HEADER_NAV_GUEST: NavItem[] = [
   { label: 'Bảng giá', href: '/#pricing' },
 ];
 
-// Authenticated app navigation: top-level routes the user can move between.
+// Authenticated header nav: only the primary action (Luyện tập) and the
+// upgrade driver (Bảng giá). Account-related items (history, payment, profile)
+// live in the avatar dropdown — see USER_MENU_ITEMS.
 export const HEADER_NAV_USER: NavItem[] = [
   { label: 'Luyện tập', href: '/practice' },
-  { label: 'Lịch sử', href: '/history' },
-  { label: 'Thanh toán', href: '/payment' },
   { label: 'Bảng giá', href: '/#pricing' },
+];
+
+// Items shown in the avatar dropdown menu (in order). Sign-out is rendered
+// separately so it can sit below a divider.
+export const USER_MENU_ITEMS: NavItem[] = [
+  { label: 'Hồ sơ cá nhân', href: '/profile' },
+  { label: 'Lịch sử phỏng vấn', href: '/history' },
+  { label: 'Thanh toán', href: '/payment' },
 ];
 
 export const FOOTER_GROUPS: NavGroup[] = [

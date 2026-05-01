@@ -1,9 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronDown, LogOut, UserCircle } from 'lucide-react';
+import {
+  ChevronDown,
+  ClipboardList,
+  CreditCard,
+  LogOut,
+  UserCircle,
+} from 'lucide-react';
 import { useAuth } from '@/auth/useAuth';
 import Logo from '@/components/ui/Logo';
-import { HEADER_NAV_GUEST, HEADER_NAV_USER, type NavItem } from '@/data/navigation';
+import {
+  HEADER_NAV_GUEST,
+  HEADER_NAV_USER,
+  USER_MENU_ITEMS,
+  type NavItem,
+} from '@/data/navigation';
+
+const USER_MENU_ICONS: Record<string, ReactNode> = {
+  '/profile': <UserCircle className="w-4 h-4" />,
+  '/history': <ClipboardList className="w-4 h-4" />,
+  '/payment': <CreditCard className="w-4 h-4" />,
+};
 
 export default function Header() {
   const { status, profile, signOut } = useAuth();
@@ -110,15 +127,18 @@ function UserMenu({ fullName, onSignOut }: UserMenuProps) {
           role="menu"
           className="absolute right-0 mt-2 w-56 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg overflow-hidden"
         >
-          <Link
-            to="/profile"
-            role="menuitem"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-3 px-4 py-3 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
-          >
-            <UserCircle className="w-4 h-4" />
-            Hồ sơ cá nhân
-          </Link>
+          {USER_MENU_ITEMS.map((item) => (
+            <Link
+              key={item.href}
+              to={item.href}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
+            >
+              {USER_MENU_ICONS[item.href]}
+              {item.label}
+            </Link>
+          ))}
           <button
             type="button"
             role="menuitem"
