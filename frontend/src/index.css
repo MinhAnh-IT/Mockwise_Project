@@ -41,6 +41,18 @@
   body {
     @apply bg-surface text-on-surface font-sans antialiased;
   }
+
+  /* Hide the page-level vertical scrollbar visually while keeping
+     scrolling fully functional (mouse wheel, trackpad, keyboard, touch). */
+  html,
+  body {
+    scrollbar-width: none;        /* Firefox */
+    -ms-overflow-style: none;     /* IE / legacy Edge */
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;                /* Chrome / Safari / Edge */
+  }
 }
 
 .bg-grid-pattern {
