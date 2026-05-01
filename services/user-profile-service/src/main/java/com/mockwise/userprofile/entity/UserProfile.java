@@ -22,6 +22,13 @@ public class UserProfile {
     @Column(nullable = false)
     Integer experience;
 
+    /**
+     * Latest avatar object key in storage-service. Null = no avatar uploaded yet
+     * (UI falls back to the user's initials).
+     */
+    @Column(name = "avatar_object_key", length = 500)
+    String avatarObjectKey;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "positionId", nullable = false,
             foreignKey = @ForeignKey(name = "fk_user_profile_position"))

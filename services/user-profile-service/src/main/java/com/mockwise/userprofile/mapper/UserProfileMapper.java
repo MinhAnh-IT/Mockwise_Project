@@ -15,6 +15,10 @@ public interface UserProfileMapper {
     @Mapping(target = "position", ignore = true)
     UserProfile toEntity(UserProfileRequest request);
 
+    // avatarUrl + avatarUrlExpiresAt are populated by the service layer after
+    // calling storage-service for a presigned GET URL — leave them null here.
+    @Mapping(target = "avatarUrl", ignore = true)
+    @Mapping(target = "avatarUrlExpiresAt", ignore = true)
     UserProfileResponse toResponse(UserProfile entity);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

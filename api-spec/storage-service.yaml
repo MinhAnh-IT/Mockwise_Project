@@ -73,7 +73,7 @@ components:
 
     StorageKind:
       type: string
-      enum: [INTERVIEW_VIDEO, QUESTION_AUDIO]
+      enum: [INTERVIEW_VIDEO, QUESTION_AUDIO, USER_AVATAR]
 
     StorageStatus:
       type: string
@@ -84,6 +84,24 @@ components:
         - `FAILED` — upload was rejected (size mismatch, expired, etc.).
 
     # ── Requests ──────────────────────────────────────────────────────────────
+
+    CreateAvatarUploadRequest:
+      type: object
+      required: [contentType, sizeBytes]
+      properties:
+        contentType:
+          type: string
+          description: |
+            MIME type of the avatar image. Allowed:
+            `image/jpeg`, `image/png`, `image/webp`.
+          example: "image/png"
+        sizeBytes:
+          type: integer
+          format: int64
+          description: |
+            Declared file size. Capped at 5 MB. Verified against actual MinIO
+            object size at completion — mismatch causes the upload to be rejected.
+          example: 204800
 
     CreateVideoUploadRequest:
       type: object
@@ -124,10 +142,30 @@ components:
           minimum: 1
           description: |
             Requested URL lifetime. Server **caps** the value per kind:
-            audio ≤ 60s, video ≤ 1800s. Values above the cap are silently truncated.
+            audio ≤ 60s, avatar ≤ 600s, video ≤ 1800s. Values above the cap are silently truncated.
           example: 60
 
     # ── Responses (raw payloads — wrapped in ApiResponse below) ───────────────
+
+    AvatarUploadResponse:
+      type: object
+      properties:
+        objectId:
+          type: string
+        bucket:
+          type: string
+          example: "user-avatars"
+        objectKey:
+          type: string
+          description: Server-built key — `avatars/{userId}/{uuid}`. Send this back to user-profile-service in `PATCH /profiles/{userId}` to associate it with the user.
+          example: "avatars/u-7f3a/8f1c3a4d-9a2b-4e7f-8c1d-2a4b6c8e0f12"
+        uploadUrl:
+          type: string
+          format: uri
+          description: Presigned PUT URL the client uses to upload the image directly to MinIO.
+        expiresAt:
+          type: string
+          format: date-time
 
     VideoUploadResponse:
       type: object
@@ -367,6 +405,90 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v1/storage/uploads/avatars:
+    post:
+      tags: [Uploads]
+      summary: Reserve an avatar upload slot and get a presigned PUT URL
+      description: |
+        Same two-step flow as video upload:
+
+        1. `POST /uploads/avatars` → receive `{ objectId, uploadUrl, objectKey, expiresAt }`
+        2. `PUT <uploadUrl>` directly to MinIO with the image bytes
+        3. `POST /uploads/avatars/{objectId}/complete` to flip status to `READY`
+        4. Send the `objectKey` to user-profile-service via `PATCH /profiles/{userId}`
+           so the next time the profile is fetched the response includes
+           `avatarUrl`.
+
+        Limits: max 5 MB, content-type ∈ `image/jpeg`, `image/png`, `image/webp`.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAvatarUploadRequest'
+      responses:
+        '200':
+          description: Upload reserved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AvatarUploadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/storage/uploads/avatars/{objectId}/complete:
+    post:
+      tags: [Uploads]
+      summary: Confirm an avatar upload has finished
+      description: |
+        Stat-s the object in MinIO, verifies the actual size matches what the
+        client declared at reservation time, then flips status to `READY`.
+
+        Only the user who originally reserved the slot may complete it.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: objectId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Upload completed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StorageObjectResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          description: Declared size did not match the bytes actually stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v1/storage/internal/question-audio:
     post:
       tags: [Internal]
@@ -423,7 +545,7 @@ paths:
         to access the object (active session, ownership, etc.). Storage-service does
         not re-check ACL — it trusts the caller after the X-Internal-Auth handshake.
 
-        TTL is server-capped per kind: audio ≤ 60s, video ≤ 30 minutes. Values
+        TTL is server-capped per kind: audio ≤ 60s, avatar ≤ 10 minutes, video ≤ 30 minutes. Values
         above the cap are silently truncated; values below 1 are clamped to 1.
 
         Reachable only from the internal network.

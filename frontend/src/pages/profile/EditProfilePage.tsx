@@ -12,6 +12,7 @@ import Input from '@/components/form/Input';
 import Select from '@/components/form/Select';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
+import AvatarUploader from '@/components/profile/AvatarUploader';
 import type {
   PositionLevel,
   PositionTrack,
@@ -27,6 +28,9 @@ export default function EditProfilePage() {
   const [experience, setExperience] = useState(String(profile?.experience ?? 0));
   const [trackId, setTrackId] = useState(profile?.position.trackId ?? '');
   const [levelId, setLevelId] = useState(profile?.position.levelId ?? '');
+  // Pending object key from a fresh avatar upload — flushed to the server when
+  // the user clicks Save (alongside any other field changes).
+  const [pendingAvatarObjectKey, setPendingAvatarObjectKey] = useState<string | null>(null);
 
   const [tracks, setTracks] = useState<PositionTrack[]>([]);
   const [levels, setLevels] = useState<PositionLevel[]>([]);
@@ -77,8 +81,11 @@ export default function EditProfilePage() {
       diff.trackId = trackId;
       diff.levelId = levelId;
     }
+    if (pendingAvatarObjectKey) {
+      diff.avatarObjectKey = pendingAvatarObjectKey;
+    }
     return diff;
-  }, [profile, fullName, city, experience, trackId, levelId]);
+  }, [profile, fullName, city, experience, trackId, levelId, pendingAvatarObjectKey]);
 
   const isDirty = Object.keys(dirtyPayload).length > 0;
 
@@ -131,6 +138,14 @@ export default function EditProfilePage() {
             className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 md:p-8 space-y-5"
           >
             <FormError message={error} />
+
+            <div className="pb-1">
+              <AvatarUploader
+                fullName={profile.fullName}
+                currentAvatarUrl={profile.avatarUrl}
+                onUploaded={setPendingAvatarObjectKey}
+              />
+            </div>
 
             <Field label="Họ và tên" htmlFor="fullName" required>
               <Input

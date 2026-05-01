@@ -22,17 +22,20 @@ public record MinioProperties(
 ) {
     public record Buckets(
             String interviewVideo,
-            String questionAudio
+            String questionAudio,
+            String userAvatar
     ) {}
 
     public record Presign(
             int uploadTtlSeconds,
             int downloadTtlSeconds,
-            int audioTtlSeconds
+            int audioTtlSeconds,
+            int avatarTtlSeconds
     ) {}
 
     public record UploadLimits(
             long videoMaxBytes,
-            long audioMaxBytes
+            long audioMaxBytes,
+            long avatarMaxBytes
     ) {}
 }

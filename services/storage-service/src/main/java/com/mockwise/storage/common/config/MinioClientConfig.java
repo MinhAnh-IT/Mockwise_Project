@@ -57,6 +57,7 @@ public class MinioClientConfig {
         return () -> {
             ensureBucket(client, properties.buckets().interviewVideo());
             ensureBucket(client, properties.buckets().questionAudio());
+            ensureBucket(client, properties.buckets().userAvatar());
         };
     }
 

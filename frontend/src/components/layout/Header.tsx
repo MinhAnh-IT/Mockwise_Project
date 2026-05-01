@@ -8,6 +8,7 @@ import {
   UserCircle,
 } from 'lucide-react';
 import { useAuth } from '@/auth/useAuth';
+import Avatar from '@/components/ui/Avatar';
 import Logo from '@/components/ui/Logo';
 import {
   HEADER_NAV_GUEST,
@@ -47,7 +48,11 @@ export default function Header() {
         {isLoading ? (
           <AuthSlotSkeleton />
         ) : isAuthenticated ? (
-          <UserMenu fullName={profile.fullName} onSignOut={signOut} />
+          <UserMenu
+            fullName={profile.fullName}
+            avatarUrl={profile.avatarUrl}
+            onSignOut={signOut}
+          />
         ) : (
           <>
             <Link
@@ -97,14 +102,14 @@ function NavLink({ item }: { item: NavItem }) {
 
 type UserMenuProps = {
   fullName: string;
+  avatarUrl?: string | null;
   onSignOut: () => Promise<void>;
 };
 
-function UserMenu({ fullName, onSignOut }: UserMenuProps) {
+function UserMenu({ fullName, avatarUrl, onSignOut }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const initial = fullName.trim().charAt(0).toUpperCase() || '?';
 
   useEffect(() => {
     if (!open) return;
@@ -132,9 +137,7 @@ function UserMenu({ fullName, onSignOut }: UserMenuProps) {
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <div className="w-8 h-8 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center text-sm font-bold">
-          {initial}
-        </div>
+        <Avatar src={avatarUrl} fullName={fullName} size="sm" />
         <span className="hidden md:inline text-sm font-semibold text-on-surface max-w-[8rem] truncate">
           {fullName}
         </span>

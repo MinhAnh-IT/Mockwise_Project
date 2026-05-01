@@ -97,6 +97,12 @@ components:
         levelId:    { type: string, example: "level-uuid" }
         city:       { type: string, example: "Ha Noi" }
         experience: { type: integer, minimum: 0, example: 3 }
+        avatarObjectKey:
+          type: string
+          description: |
+            Object key returned by storage-service after a successful avatar
+            upload (`POST /api/v1/storage/uploads/avatars/{objectId}/complete`).
+          example: "avatars/u-7f3a/8f1c3a4d-9a2b-4e7f-8c1d-2a4b6c8e0f12"
 
     # ── Profile responses ──────────────────────────────────────────────
     UserProfileResponse:
@@ -107,6 +113,23 @@ components:
         position:   { $ref: '#/components/schemas/PositionResponse' }
         city:       { type: string, example: "Ho Chi Minh" }
         experience: { type: integer, example: 2 }
+        avatarObjectKey:
+          type: string
+          nullable: true
+          description: Storage object key — null means no avatar uploaded.
+          example: "avatars/u-7f3a/8f1c3a4d-9a2b-4e7f-8c1d-2a4b6c8e0f12"
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: |
+            Short-lived presigned GET URL for the avatar image. Re-fetch the
+            profile to get a fresh URL once `avatarUrlExpiresAt` is reached.
+            Null when no avatar is set or storage-service is unavailable.
+        avatarUrlExpiresAt:
+          type: string
+          format: date-time
+          nullable: true
 
     UserProfileWrapped:
       type: object
