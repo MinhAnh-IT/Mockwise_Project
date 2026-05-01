@@ -85,24 +85,6 @@ components:
 
     # ── Requests ──────────────────────────────────────────────────────────────
 
-    CreateAvatarUploadRequest:
-      type: object
-      required: [contentType, sizeBytes]
-      properties:
-        contentType:
-          type: string
-          description: |
-            MIME type of the avatar image. Allowed:
-            `image/jpeg`, `image/png`, `image/webp`.
-          example: "image/png"
-        sizeBytes:
-          type: integer
-          format: int64
-          description: |
-            Declared file size. Capped at 5 MB. Verified against actual MinIO
-            object size at completion — mismatch causes the upload to be rejected.
-          example: 204800
-
     CreateVideoUploadRequest:
       type: object
       required: [sessionId, contentType, sizeBytes]
@@ -146,26 +128,6 @@ components:
           example: 60
 
     # ── Responses (raw payloads — wrapped in ApiResponse below) ───────────────
-
-    AvatarUploadResponse:
-      type: object
-      properties:
-        objectId:
-          type: string
-        bucket:
-          type: string
-          example: "user-avatars"
-        objectKey:
-          type: string
-          description: Server-built key — `avatars/{userId}/{uuid}`. Send this back to user-profile-service in `PATCH /profiles/{userId}` to associate it with the user.
-          example: "avatars/u-7f3a/8f1c3a4d-9a2b-4e7f-8c1d-2a4b6c8e0f12"
-        uploadUrl:
-          type: string
-          format: uri
-          description: Presigned PUT URL the client uses to upload the image directly to MinIO.
-        expiresAt:
-          type: string
-          format: date-time
 
     VideoUploadResponse:
       type: object
@@ -408,16 +370,19 @@ paths:
   /api/v1/storage/uploads/avatars:
     post:
       tags: [Uploads]
-      summary: Reserve an avatar upload slot and get a presigned PUT URL
+      summary: Upload a user avatar (multipart)
       description: |
-        Same two-step flow as video upload:
+        Single-step multipart upload. The browser POSTs the image file to this
+        endpoint and storage-service streams it through to MinIO server-side.
 
-        1. `POST /uploads/avatars` → receive `{ objectId, uploadUrl, objectKey, expiresAt }`
-        2. `PUT <uploadUrl>` directly to MinIO with the image bytes
-        3. `POST /uploads/avatars/{objectId}/complete` to flip status to `READY`
-        4. Send the `objectKey` to user-profile-service via `PATCH /profiles/{userId}`
-           so the next time the profile is fetched the response includes
-           `avatarUrl`.
+        Going through this service (rather than browser-direct presigned PUT)
+        avoids two cross-origin issues that come up when the app runs over HTTPS
+        but MinIO is exposed only over HTTP: mixed-content blocking and
+        per-bucket CORS configuration. Avatars are capped at 5 MB so the extra
+        server hop is cheap.
+
+        After upload, send the returned `objectKey` to user-profile-service via
+        `PATCH /profiles/{userId}` so the next profile fetch carries `avatarUrl`.
 
         Limits: max 5 MB, content-type ∈ `image/jpeg`, `image/png`, `image/webp`.
       security:
@@ -425,46 +390,17 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CreateAvatarUploadRequest'
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
       responses:
         '200':
-          description: Upload reserved
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/AvatarUploadResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /api/v1/storage/uploads/avatars/{objectId}/complete:
-    post:
-      tags: [Uploads]
-      summary: Confirm an avatar upload has finished
-      description: |
-        Stat-s the object in MinIO, verifies the actual size matches what the
-        client declared at reservation time, then flips status to `READY`.
-
-        Only the user who originally reserved the slot may complete it.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: objectId
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Upload completed
+          description: Avatar stored
           content:
             application/json:
               schema:
@@ -474,20 +410,10 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/StorageObjectResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '422':
-          description: Declared size did not match the bytes actually stored
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/storage/internal/question-audio:
     post:

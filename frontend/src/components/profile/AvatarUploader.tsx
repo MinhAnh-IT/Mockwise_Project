@@ -1,10 +1,6 @@
 import { useRef, useState } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
-import {
-  completeAvatarUpload,
-  putAvatarBytes,
-  reserveAvatarUpload,
-} from '@/api/storage';
+import { uploadAvatar } from '@/api/storage';
 import Avatar from '@/components/ui/Avatar';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -48,13 +44,8 @@ export default function AvatarUploader({ fullName, currentAvatarUrl, onUploaded 
 
     setUploading(true);
     try {
-      const reservation = await reserveAvatarUpload({
-        contentType: file.type,
-        sizeBytes: file.size,
-      });
-      await putAvatarBytes(reservation.uploadUrl, file);
-      await completeAvatarUpload(reservation.objectId);
-      onUploaded(reservation.objectKey);
+      const stored = await uploadAvatar(file);
+      onUploaded(stored.objectKey);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Tải ảnh thất bại.');
       setPreviewUrl(null);

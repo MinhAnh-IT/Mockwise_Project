@@ -3,10 +3,8 @@ package com.mockwise.storage.service;
 import com.mockwise.storage.common.config.MinioProperties;
 import com.mockwise.storage.common.exception.BusinessException;
 import com.mockwise.storage.common.exception.StatusCode;
-import com.mockwise.storage.dto.request.CreateAvatarUploadRequest;
 import com.mockwise.storage.dto.request.CreateVideoUploadRequest;
 import com.mockwise.storage.dto.request.InternalDownloadUrlRequest;
-import com.mockwise.storage.dto.response.AvatarUploadResponse;
 import com.mockwise.storage.dto.response.PresignedUrlResponse;
 import com.mockwise.storage.dto.response.QuestionAudioUploadResponse;
 import com.mockwise.storage.dto.response.StorageObjectResponse;
@@ -135,82 +133,51 @@ public class StorageService {
     // ── Avatar upload (user-facing) ──────────────────────────────────────────
 
     /**
-     * Reserves an avatar upload slot and returns a presigned PUT URL. Same
-     * two-step pattern as video upload — lets the browser PUT bytes directly
-     * to MinIO, no server proxy.
+     * Stores a user avatar in one round-trip via multipart upload.
      *
-     * <p>Object key is built as {@code avatars/{userId}/{uuid}} so each upload
-     * gets its own MinIO object. The user-profile-service stores the latest key
-     * in {@code avatar_object_key}; previous objects become orphaned and can be
-     * swept by a future cleanup job.
+     * <p>Avatars are small (≤5MB) so streaming through this service to MinIO
+     * keeps the architecture simple — no need to expose MinIO to the public
+     * internet over HTTPS or set up cross-origin CORS for browser-direct PUTs.
+     *
+     * <p>The object key is server-built as {@code avatars/{userId}/{uuid}} so
+     * the client never controls the storage path. The user-profile-service
+     * stores the returned key on the user's profile; previous objects become
+     * orphaned and can be cleaned up by a future sweep job.
      */
     @Transactional
-    public AvatarUploadResponse createAvatarUpload(CreateAvatarUploadRequest req, String ownerUserId) {
-        validateAvatarUpload(req);
+    public StorageObjectResponse uploadAvatar(MultipartFile file, String ownerUserId) {
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_AVATAR_TYPES.contains(contentType)) {
+            throw new BusinessException(StatusCode.INVALID_CONTENT_TYPE, contentType, StorageKind.USER_AVATAR);
+        }
+        if (file.getSize() > properties.uploadLimits().avatarMaxBytes()) {
+            throw new BusinessException(StatusCode.UPLOAD_SIZE_EXCEEDED,
+                    file.getSize(), properties.uploadLimits().avatarMaxBytes(), StorageKind.USER_AVATAR);
+        }
 
         String bucket = properties.buckets().userAvatar();
         String objectKey = "avatars/%s/%s".formatted(ownerUserId, UUID.randomUUID());
+
+        try (var stream = file.getInputStream()) {
+            minioGateway.putObject(bucket, objectKey, stream, file.getSize(), contentType);
+        } catch (IOException e) {
+            log.error("Failed to read avatar upload stream: {}", e.getMessage());
+            throw new BusinessException(StatusCode.STORAGE_BACKEND_ERROR);
+        }
 
         StorageObject saved = storageObjectRepository.save(StorageObject.builder()
                 .kind(StorageKind.USER_AVATAR)
                 .bucket(bucket)
                 .objectKey(objectKey)
-                .contentType(req.getContentType())
-                .sizeBytes(req.getSizeBytes())
-                .status(StorageStatus.PENDING_UPLOAD)
+                .contentType(contentType)
+                .sizeBytes(file.getSize())
+                .status(StorageStatus.READY)
                 .ownerUserId(ownerUserId)
+                .completedAt(OffsetDateTime.now())
                 .build());
 
-        int ttl = properties.presign().uploadTtlSeconds();
-        String url = minioGateway.presignPutUrl(bucket, objectKey, ttl);
-
-        log.info("Reserved avatar upload id={} owner={}", saved.getId(), ownerUserId);
-
-        return AvatarUploadResponse.builder()
-                .objectId(saved.getId())
-                .bucket(bucket)
-                .objectKey(objectKey)
-                .uploadUrl(url)
-                .expiresAt(OffsetDateTime.now().plusSeconds(ttl))
-                .build();
-    }
-
-    /**
-     * Confirms the avatar upload finished. Same ownership / size-match checks
-     * as video upload; on success flips the row to READY so subsequent
-     * download-url requests succeed.
-     */
-    @Transactional
-    public StorageObjectResponse completeAvatarUpload(String objectId, String ownerUserId) {
-        StorageObject obj = storageObjectRepository.findById(objectId)
-                .orElseThrow(() -> new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND));
-
-        if (obj.getKind() != StorageKind.USER_AVATAR) {
-            throw new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND);
-        }
-        if (!Objects.equals(obj.getOwnerUserId(), ownerUserId)) {
-            throw new BusinessException(StatusCode.OWNERSHIP_VIOLATION);
-        }
-        if (obj.getStatus() == StorageStatus.READY) {
-            throw new BusinessException(StatusCode.STORAGE_OBJECT_ALREADY_COMPLETED);
-        }
-
-        StatObjectResponse stat = minioGateway.stat(obj.getBucket(), obj.getObjectKey())
-                .orElseThrow(() -> new BusinessException(StatusCode.STORAGE_UPLOAD_NOT_FOUND_IN_BUCKET));
-
-        if (obj.getSizeBytes() != null && stat.size() != obj.getSizeBytes()) {
-            log.warn("Size mismatch for avatar {} — declared {}, actual {}",
-                    objectId, obj.getSizeBytes(), stat.size());
-            throw new BusinessException(StatusCode.STORAGE_UPLOAD_SIZE_MISMATCH);
-        }
-
-        obj.setSizeBytes(stat.size());
-        obj.setStatus(StorageStatus.READY);
-        obj.setCompletedAt(OffsetDateTime.now());
-        storageObjectRepository.save(obj);
-
-        log.info("Completed avatar upload id={} size={}", objectId, stat.size());
-        return StorageObjectResponse.from(obj);
+        log.info("Uploaded avatar id={} owner={} size={}", saved.getId(), ownerUserId, file.getSize());
+        return StorageObjectResponse.from(saved);
     }
 
     // ── Question audio (internal: tts-stt → storage) ─────────────────────────
@@ -304,18 +271,6 @@ public class StorageService {
             throw new BusinessException(StatusCode.UPLOAD_SIZE_EXCEEDED,
                     req.getSizeBytes(), properties.uploadLimits().videoMaxBytes(),
                     StorageKind.INTERVIEW_VIDEO);
-        }
-    }
-
-    private void validateAvatarUpload(CreateAvatarUploadRequest req) {
-        if (!ALLOWED_AVATAR_TYPES.contains(req.getContentType())) {
-            throw new BusinessException(StatusCode.INVALID_CONTENT_TYPE,
-                    req.getContentType(), StorageKind.USER_AVATAR);
-        }
-        if (req.getSizeBytes() > properties.uploadLimits().avatarMaxBytes()) {
-            throw new BusinessException(StatusCode.UPLOAD_SIZE_EXCEEDED,
-                    req.getSizeBytes(), properties.uploadLimits().avatarMaxBytes(),
-                    StorageKind.USER_AVATAR);
         }
     }
 
