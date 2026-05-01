@@ -224,10 +224,16 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ../nginx/conf.d:/etc/nginx/conf.d:ro
       - ../api-spec:/etc/nginx/api-spec:ro
+      # Let's Encrypt certs (managed by certbot on the host).
+      # Mount read-only — the cert files are owned by certbot.
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      # Webroot for ACME HTTP-01 challenges (initial issuance + renewals).
+      - /var/www/certbot:/var/www/certbot:ro
     networks: [public-net, internal-net]
     depends_on: [api-gateway, frontend, swagger-ui]
 
