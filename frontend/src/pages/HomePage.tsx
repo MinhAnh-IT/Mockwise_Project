@@ -4,7 +4,6 @@ import CtaSection from '@/components/home/CtaSection';
 import FeaturesSection from '@/components/home/FeaturesSection';
 import HeroSection from '@/components/home/HeroSection';
 import PricingSection from '@/components/home/PricingSection';
-import TestimonialSection from '@/components/home/TestimonialSection';
 
 export default function HomePage() {
   return (
@@ -13,7 +12,6 @@ export default function HomePage() {
       <main className="pt-16">
         <HeroSection />
         <FeaturesSection />
-        <TestimonialSection />
         <PricingSection />
         <CtaSection />
       </main>

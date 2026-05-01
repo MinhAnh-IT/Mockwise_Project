@@ -8,10 +8,18 @@ export type NavGroup = {
   items: NavItem[];
 };
 
-export const HEADER_NAV_ITEMS: NavItem[] = [
-  { label: 'Tính năng', href: '#features' },
-  { label: 'Bảng giá', href: '#pricing' },
-  { label: 'Đánh giá', href: '#testimonial' },
+// Public landing-page navigation: anchors into homepage sections.
+export const HEADER_NAV_GUEST: NavItem[] = [
+  { label: 'Tính năng', href: '/#features' },
+  { label: 'Bảng giá', href: '/#pricing' },
+];
+
+// Authenticated app navigation: top-level routes the user can move between.
+export const HEADER_NAV_USER: NavItem[] = [
+  { label: 'Luyện tập', href: '/practice' },
+  { label: 'Lịch sử', href: '/history' },
+  { label: 'Thanh toán', href: '/payment' },
+  { label: 'Bảng giá', href: '/#pricing' },
 ];
 
 export const FOOTER_GROUPS: NavGroup[] = [
