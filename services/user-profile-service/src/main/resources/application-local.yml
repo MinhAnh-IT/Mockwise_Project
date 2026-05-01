@@ -1,5 +1,14 @@
 spring:
   datasource:
-    url: jdbc:mysql://31.220.84.140:3306/user_profile?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://31.220.84.140:3306/user_profile
     username: mockwise
     password: mockwise_db_password2026
+
+
+  jpa:
+    show-sql: true
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE

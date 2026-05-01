@@ -12,9 +12,12 @@ export type UserProfile = {
   position: Position;
   city: string;
   experience: number;
-  avatarObjectKey?: string | null;
+  /**
+   * Same-origin path served by storage-service (`/api/v1/storage/avatars/me`).
+   * Includes a `?v=<key>` cache-buster so a re-upload bypasses the browser
+   * cache. Null/undefined when the user has not uploaded an avatar.
+   */
   avatarUrl?: string | null;
-  avatarUrlExpiresAt?: string | null;
 };
 
 export type UserProfileUpdateRequest = {

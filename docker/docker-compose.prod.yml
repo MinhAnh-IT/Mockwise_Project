@@ -37,10 +37,6 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       IAM_BASE_URL: http://iam-service:8081/api/v1/iam
-      # Internal storage-service URL — user-profile mints presigned avatar URLs
-      # by calling /internal/download-url with the X-Internal-Auth handshake.
-      STORAGE_SERVICE_INTERNAL_URL: http://storage-service:8085/api/v1/storage
-      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
     networks: [internal-net]
     depends_on: [iam-service]
 

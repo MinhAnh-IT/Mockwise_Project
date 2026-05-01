@@ -1,4 +1,4 @@
-import { unwrap } from '@/api/client';
+import { requestRaw, unwrap } from '@/api/client';
 
 const PREFIX = '/api/v1/storage';
 
@@ -32,4 +32,15 @@ export function uploadAvatar(file: File): Promise<StorageObject> {
     method: 'POST',
     body: form,
   });
+}
+
+/**
+ * Fetch a JWT-protected binary endpoint (e.g. the avatar bytes) and return a
+ * blob URL the caller can drop into an `<img src>`. Caller is responsible for
+ * `URL.revokeObjectURL` when the URL is no longer needed.
+ */
+export async function fetchAuthedBlobUrl(path: string): Promise<string> {
+  const response = await requestRaw(path);
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
 }

@@ -5,6 +5,7 @@ import com.mockwise.storage.common.exception.BusinessException;
 import com.mockwise.storage.common.exception.StatusCode;
 import com.mockwise.storage.dto.request.CreateVideoUploadRequest;
 import com.mockwise.storage.dto.request.InternalDownloadUrlRequest;
+import com.mockwise.storage.dto.response.AvatarStream;
 import com.mockwise.storage.dto.response.PresignedUrlResponse;
 import com.mockwise.storage.dto.response.QuestionAudioUploadResponse;
 import com.mockwise.storage.dto.response.StorageObjectResponse;
@@ -14,6 +15,7 @@ import com.mockwise.storage.enums.StorageKind;
 import com.mockwise.storage.enums.StorageStatus;
 import com.mockwise.storage.gateway.MinioStorageGateway;
 import com.mockwise.storage.repository.StorageObjectRepository;
+import io.minio.GetObjectResponse;
 import io.minio.StatObjectResponse;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -178,6 +180,23 @@ public class StorageService {
 
         log.info("Uploaded avatar id={} owner={} size={}", saved.getId(), ownerUserId, file.getSize());
         return StorageObjectResponse.from(saved);
+    }
+
+    /**
+     * Streams the latest READY avatar bytes for a user. Server-side proxy to
+     * MinIO so the browser, which loads the app over HTTPS, never sees the
+     * HTTP-only MinIO host (mixed content).
+     */
+    @Transactional(readOnly = true)
+    public AvatarStream streamLatestAvatar(String ownerUserId) {
+        StorageObject obj = storageObjectRepository
+                .findFirstByOwnerUserIdAndKindAndStatusOrderByCompletedAtDesc(
+                        ownerUserId, StorageKind.USER_AVATAR, StorageStatus.READY)
+                .orElseThrow(() -> new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND));
+
+        GetObjectResponse stream = minioGateway.getObject(obj.getBucket(), obj.getObjectKey());
+        return new AvatarStream(stream, obj.getContentType(),
+                obj.getSizeBytes() != null ? obj.getSizeBytes() : -1);
     }
 
     // ── Question audio (internal: tts-stt → storage) ─────────────────────────

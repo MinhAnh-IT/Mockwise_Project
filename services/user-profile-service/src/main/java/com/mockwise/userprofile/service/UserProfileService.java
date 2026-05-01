@@ -37,7 +37,6 @@ public class UserProfileService {
     UserProfileMapper userProfileMapper;
     PositionService positionService;
     IamUserService iamUserService;
-    StorageAvatarService storageAvatarService;
 
     @Transactional
     public UserProfileResponse createProfile(String userId, UserProfileRequest request) {
@@ -66,24 +65,35 @@ public class UserProfileService {
     }
 
     /**
-     * Calls the mapper for the static fields, then asks storage-service for a
-     * short-lived presigned URL when the profile has an avatar. Storage failures
-     * fall back to the base response with no avatarUrl — see
-     * {@link StorageAvatarService#mintAvatarUrl}.
+     * Stamps a same-origin avatar URL onto the response. The bytes are streamed
+     * by storage-service at {@code GET /api/v1/storage/avatars/me} so the
+     * browser never sees a MinIO host (HTTPS app + HTTP MinIO would otherwise
+     * trip mixed-content blocking).
+     *
+     * <p>The {@code ?v=<key-suffix>} param is a cache-buster: when the user
+     * uploads a new avatar the object key changes, the URL changes, and the
+     * browser refetches instead of reusing the previous response.
      */
     private UserProfileResponse toEnrichedResponse(UserProfile profile) {
         UserProfileResponse base = userProfileMapper.toResponse(profile);
-        return storageAvatarService.mintAvatarUrl(profile.getAvatarObjectKey())
-                .map(url -> new UserProfileResponse(
-                        base.userId(),
-                        base.fullName(),
-                        base.position(),
-                        base.city(),
-                        base.experience(),
-                        base.avatarObjectKey(),
-                        url.url(),
-                        url.expiresAt()))
-                .orElse(base);
+        String key = profile.getAvatarObjectKey();
+        if (key == null || key.isBlank()) {
+            return base;
+        }
+        String url = "/api/v1/storage/avatars/me?v=" + cacheBusterFor(key);
+        return new UserProfileResponse(
+                base.userId(),
+                base.fullName(),
+                base.position(),
+                base.city(),
+                base.experience(),
+                url,
+                null);
+    }
+
+    private static String cacheBusterFor(String objectKey) {
+        int slash = objectKey.lastIndexOf('/');
+        return slash >= 0 ? objectKey.substring(slash + 1) : objectKey;
     }
 
     @Transactional

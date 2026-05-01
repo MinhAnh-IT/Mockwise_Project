@@ -3,6 +3,7 @@ package com.mockwise.storage.controller;
 import com.core.apiresponse.response.ApiResponse;
 import com.mockwise.storage.common.security.CustomUserDetails;
 import com.mockwise.storage.dto.request.CreateVideoUploadRequest;
+import com.mockwise.storage.dto.response.AvatarStream;
 import com.mockwise.storage.dto.response.StorageObjectResponse;
 import com.mockwise.storage.dto.response.VideoUploadResponse;
 import com.mockwise.storage.service.StorageService;
@@ -11,6 +12,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -57,5 +60,32 @@ public class UploadController {
             @AuthenticationPrincipal CustomUserDetails user) {
         return ResponseEntity.ok(ApiResponse.success(
                 storageService.uploadAvatar(file, user.getUserId())));
+    }
+
+    /**
+     * Streams the authenticated user's latest avatar bytes back to the browser.
+     *
+     * <p>This avoids handing the browser a presigned MinIO URL — the app runs
+     * over HTTPS but MinIO is HTTP-only on this VPS, so a direct {@code <img
+     * src="http://...">} would be blocked as mixed content. Streaming through
+     * here keeps the load same-origin.
+     *
+     * <p>{@code Cache-Control: private, max-age=600} matches the avatar TTL we
+     * cap presigned URLs at; clients will revalidate after 10 minutes. The
+     * frontend appends a {@code ?v=<key-suffix>} cache-buster so a re-upload
+     * surfaces the new image immediately.
+     */
+    @GetMapping("/avatars/me")
+    public ResponseEntity<InputStreamResource> getMyAvatar(
+            @AuthenticationPrincipal CustomUserDetails user) {
+        AvatarStream avatar = storageService.streamLatestAvatar(user.getUserId());
+
+        ResponseEntity.BodyBuilder builder = ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(avatar.contentType()))
+                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=600");
+        if (avatar.sizeBytes() > 0) {
+            builder.contentLength(avatar.sizeBytes());
+        }
+        return builder.body(new InputStreamResource(avatar.stream()));
     }
 }
