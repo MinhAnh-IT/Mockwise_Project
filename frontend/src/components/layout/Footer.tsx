@@ -1,3 +1,4 @@
+import Logo from '@/components/ui/Logo';
 import SocialIcon from '@/components/ui/SocialIcon';
 import { FOOTER_GROUPS } from '@/data/navigation';
 import { SITE } from '@/data/site';
@@ -9,8 +10,12 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 md:px-12 py-16">
         <div className="grid grid-cols-2 md:grid-cols-12 gap-10 md:gap-8">
           <div className="col-span-2 md:col-span-4">
-            <a href="#" className="text-xl font-bold tracking-tight text-on-surface inline-block mb-4">
-              {SITE.name}
+            <a
+              href="#"
+              aria-label={`${SITE.name} — Trang chủ`}
+              className="inline-flex items-center mb-4"
+            >
+              <Logo className="h-10 w-auto" />
             </a>
             <p className="text-on-surface-variant text-sm leading-relaxed max-w-sm mb-6">
               {SITE.tagline}

@@ -22,6 +22,10 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
       JWT_COOKIE_SECURE: "false"
+      # IAM calls user-profile-service to materialise the profile after a
+      # successful registration. Without this, IAM falls back to localhost:8082
+      # inside its own container and registration fails with 502.
+      EXTERNAL_SERVICES_PROFILE_SERVICE_URL: http://user-profile-service:8082/api/v1/profiles
     networks: [internal-net]
 
   user-profile-service:

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { ReactNode } from 'react';
+import Logo from '@/components/ui/Logo';
 import { SITE } from '@/data/site';
 
 type Props = {
@@ -13,8 +14,8 @@ export default function AuthLayout({ title, subtitle, children, footer }: Props)
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       <header className="px-6 md:px-12 h-16 flex items-center">
-        <Link to="/" className="text-xl font-bold tracking-tight text-on-surface">
-          {SITE.name}
+        <Link to="/" aria-label={`${SITE.name} — Trang chủ`} className="flex items-center">
+          <Logo className="h-9 w-auto" />
         </Link>
       </header>
 

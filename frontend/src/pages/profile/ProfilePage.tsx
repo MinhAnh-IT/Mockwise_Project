@@ -2,6 +2,7 @@ import { LogOut, Mail, MapPin, Briefcase, GraduationCap, Calendar, User } from '
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import Button from '@/components/form/Button';
+import Logo from '@/components/ui/Logo';
 import { useAuth } from '@/auth/useAuth';
 import { SITE } from '@/data/site';
 
@@ -27,8 +28,8 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       <header className="px-6 md:px-12 h-16 flex items-center justify-between border-b border-outline-variant/30 bg-surface-container-lowest">
-        <Link to="/" className="text-xl font-bold tracking-tight text-on-surface">
-          {SITE.name}
+        <Link to="/" aria-label={`${SITE.name} — Trang chủ`} className="flex items-center">
+          <Logo className="h-9 w-auto" />
         </Link>
         <Button variant="secondary" onClick={handleSignOut} loading={signingOut}>
           <LogOut className="w-4 h-4" />

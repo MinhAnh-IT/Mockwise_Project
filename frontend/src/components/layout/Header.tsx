@@ -2,16 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronDown, LogOut, UserCircle } from 'lucide-react';
 import { useAuth } from '@/auth/useAuth';
+import Logo from '@/components/ui/Logo';
 import { HEADER_NAV_ITEMS } from '@/data/navigation';
-import { SITE } from '@/data/site';
 
 export default function Header() {
   const { status, profile, signOut } = useAuth();
 
   return (
     <header className="fixed top-0 w-full flex justify-between items-center px-6 md:px-12 h-16 bg-surface-container-lowest/80 backdrop-blur-md border-b border-outline-variant/30 z-50">
-      <Link to="/" className="text-xl font-bold tracking-tight text-on-surface">
-        {SITE.name}
+      <Link to="/" aria-label="MockWise — Trang chủ" className="flex items-center">
+        <Logo className="h-9 w-auto" />
       </Link>
 
       <nav className="hidden md:flex gap-8 items-center">
