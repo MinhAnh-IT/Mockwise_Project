@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Logo from '@/components/ui/Logo';
 import SocialIcon from '@/components/ui/SocialIcon';
 import { FOOTER_GROUPS } from '@/data/navigation';
@@ -10,13 +11,13 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 md:px-12 py-16">
         <div className="grid grid-cols-2 md:grid-cols-12 gap-10 md:gap-8">
           <div className="col-span-2 md:col-span-4">
-            <a
-              href="#"
+            <Link
+              to="/"
               aria-label={`${SITE.name} — Trang chủ`}
               className="inline-flex items-center mb-4"
             >
               <Logo className="h-14 w-auto" />
-            </a>
+            </Link>
             <p className="text-on-surface-variant text-sm leading-relaxed max-w-sm mb-6">
               {SITE.tagline}
             </p>
@@ -38,12 +39,12 @@ export default function Footer() {
               <ul className="space-y-3">
                 {group.items.map((item) => (
                   <li key={item.label}>
-                    <a
-                      href={item.href}
+                    <Link
+                      to={item.href}
                       className="text-sm text-on-surface-variant hover:text-secondary transition-colors"
                     >
                       {item.label}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>

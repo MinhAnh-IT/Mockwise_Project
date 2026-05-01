@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/auth/AuthContext';
 import ProtectedRoute from '@/auth/ProtectedRoute';
+import ScrollToHash from '@/components/layout/ScrollToHash';
 import ComingSoonPage from '@/pages/ComingSoonPage';
 import HomePage from '@/pages/HomePage';
 import LoginPage from '@/pages/auth/LoginPage';
@@ -14,6 +15,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ScrollToHash />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/home" element={<HomePage />} />

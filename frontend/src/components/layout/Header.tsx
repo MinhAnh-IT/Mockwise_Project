@@ -80,17 +80,19 @@ function AuthSlotSkeleton() {
   );
 }
 
-// Anchor links inside the homepage (e.g. /#pricing) need a plain <a> so the
-// browser scrolls to the section. Pure paths (e.g. /practice) use react-router's
-// <Link> for client-side navigation without a full page reload.
+// Always use <Link> for client-side navigation — even for hash anchors like
+// /#pricing. A plain <a href> would trigger a full page reload when navigating
+// across routes (e.g. from /practice to /#pricing). The actual scroll to the
+// hashed section is handled globally by ScrollToHash mounted in App.
 function NavLink({ item }: { item: NavItem }) {
-  const className =
-    'text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors';
-
-  if (item.href.includes('#')) {
-    return <a href={item.href} className={className}>{item.label}</a>;
-  }
-  return <Link to={item.href} className={className}>{item.label}</Link>;
+  return (
+    <Link
+      to={item.href}
+      className="text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors"
+    >
+      {item.label}
+    </Link>
+  );
 }
 
 type UserMenuProps = {

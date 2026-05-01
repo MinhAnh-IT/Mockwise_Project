@@ -34,10 +34,10 @@ export const FOOTER_GROUPS: NavGroup[] = [
   {
     title: 'Sản phẩm',
     items: [
-      { label: 'Phỏng vấn Hành vi', href: '#features' },
-      { label: 'Phỏng vấn Kỹ thuật', href: '#features' },
-      { label: 'Phỏng vấn Lập trình', href: '#features' },
-      { label: 'Bảng giá', href: '#pricing' },
+      { label: 'Phỏng vấn Hành vi', href: '/#features' },
+      { label: 'Phỏng vấn Kỹ thuật', href: '/#features' },
+      { label: 'Phỏng vấn Lập trình', href: '/#features' },
+      { label: 'Bảng giá', href: '/#pricing' },
     ],
   },
   {
