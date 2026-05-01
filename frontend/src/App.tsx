@@ -9,6 +9,8 @@ import RegisterPage from '@/pages/auth/RegisterPage';
 import VerifyAccountPage from '@/pages/auth/VerifyAccountPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
+import PracticeIntroPage from '@/pages/practice/PracticeIntroPage';
+import PracticePage from '@/pages/practice/PracticePage';
 import EditProfilePage from '@/pages/profile/EditProfilePage';
 import ProfilePage from '@/pages/profile/ProfilePage';
 
@@ -45,7 +47,15 @@ export default function App() {
             path="/practice"
             element={
               <ProtectedRoute>
-                <ComingSoonPage title="Luyện tập" />
+                <PracticePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/practice/:type"
+            element={
+              <ProtectedRoute>
+                <PracticeIntroPage />
               </ProtectedRoute>
             }
           />
