@@ -11,7 +11,7 @@ export default function Header() {
   return (
     <header className="fixed top-0 w-full flex justify-between items-center px-6 md:px-12 h-16 bg-surface-container-lowest/80 backdrop-blur-md border-b border-outline-variant/30 z-50">
       <Link to="/" aria-label="MockWise — Trang chủ" className="flex items-center">
-        <Logo className="h-9 w-auto" />
+        <Logo className="h-12 w-auto" />
       </Link>
 
       <nav className="hidden md:flex gap-8 items-center">

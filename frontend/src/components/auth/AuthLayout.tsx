@@ -15,7 +15,7 @@ export default function AuthLayout({ title, subtitle, children, footer }: Props)
     <div className="min-h-screen flex flex-col bg-surface">
       <header className="px-6 md:px-12 h-16 flex items-center">
         <Link to="/" aria-label={`${SITE.name} — Trang chủ`} className="flex items-center">
-          <Logo className="h-9 w-auto" />
+          <Logo className="h-12 w-auto" />
         </Link>
       </header>
 
