@@ -47,4 +47,12 @@ public class CoreQuestion {
 
     @Column(length = 500)
     String audioKey;
+
+    /**
+     * True if this question is suitable to open a session. See the matching
+     * field on BehavioralQuestion for usage notes.
+     */
+    @Column(name = "is_opener", nullable = false)
+    @Builder.Default
+    Boolean isOpener = false;
 }

@@ -56,4 +56,16 @@ public class Question {
     @UpdateTimestamp
     @Column(nullable = false)
     OffsetDateTime updatedAt;
+
+    /**
+     * Times this question has been pinned to a session. Used by the selector
+     * as a tie-breaker so popular questions are not always picked first —
+     * incremented via the internal mark-asked endpoint, not Hibernate writes.
+     */
+    @Column(name = "ask_count", nullable = false)
+    @Builder.Default
+    Long askCount = 0L;
+
+    @Column(name = "last_asked_at")
+    OffsetDateTime lastAskedAt;
 }

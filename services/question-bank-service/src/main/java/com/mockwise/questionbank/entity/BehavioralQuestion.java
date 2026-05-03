@@ -39,4 +39,13 @@ public class BehavioralQuestion {
 
     @Column(length = 500)
     String audioKey;
+
+    /**
+     * True if this question is suitable to open a session (warm-up, easy,
+     * open-ended). The interview-service first-question algorithm prefers
+     * openers and falls back to the rest of the pool only when none match.
+     */
+    @Column(name = "is_opener", nullable = false)
+    @Builder.Default
+    Boolean isOpener = false;
 }
