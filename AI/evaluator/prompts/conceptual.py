@@ -241,6 +241,27 @@ key_points_to_study:
     read amplification, and which databases use each (PostgreSQL vs RocksDB)"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPLETENESS CLASSIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Set the top-level `completeness` field to one of:
+
+  NO_ANSWER  — The candidate did not actually answer.
+               Triggers: silence, "I don't know", "skip", or a transcript so
+               brief/off-topic that NONE of the key concepts can be evaluated.
+               Use this for honest opt-out — orchestrator treats this as
+               "topic not assessed" rather than "candidate is weak".
+
+  INCOMPLETE — The candidate engaged but missed material concepts: most
+               key_concepts were not mentioned, or were only mentioned at
+               surface level when intermediate/advanced depth was expected.
+               The orchestrator may probe a specific gap with a follow-up.
+
+  COMPLETE   — The candidate addressed the bulk of the key_concepts at
+               roughly the expected depth. Score may still be low if there
+               are misconceptions or weak structure, but the answer was a
+               genuine attempt — no follow-up needed on completeness grounds.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 META BLOCK INSTRUCTIONS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Fill meta with placeholder values that the system will overwrite:

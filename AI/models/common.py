@@ -27,10 +27,27 @@ class Quality(str, Enum):
     missing = "missing"
 
 
+class Completeness(str, Enum):
+    """How fully the candidate engaged with the question.
+
+    NO_ANSWER  — silence, "I don't know", or transcript too short to evaluate.
+                 interview-service treats this as honest opt-out (UNKNOWN topic
+                 status) rather than a wrong answer.
+    INCOMPLETE — engaged but missed material expected content; the orchestrator
+                 should consider a follow-up to probe the gap.
+    COMPLETE   — covered what the question asked for; topic can be closed
+                 unless score itself is weak.
+    """
+    no_answer = "NO_ANSWER"
+    incomplete = "INCOMPLETE"
+    complete = "COMPLETE"
+
+
 # Coerce plain strings → Enum instances (needed when Instructor parses Gemini responses)
 GradeField = Annotated[Grade, BeforeValidator(lambda v: Grade(v) if isinstance(v, str) else v)]
 HireSignalField = Annotated[HireSignal, BeforeValidator(lambda v: HireSignal(v) if isinstance(v, str) else v)]
 QualityField = Annotated[Quality, BeforeValidator(lambda v: Quality(v) if isinstance(v, str) else v)]
+CompletenessField = Annotated[Completeness, BeforeValidator(lambda v: Completeness(v) if isinstance(v, str) else v)]
 
 
 class ScoreItem(BaseModel):

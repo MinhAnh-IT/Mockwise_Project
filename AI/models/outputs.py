@@ -1,7 +1,13 @@
 from typing import Literal, List, Optional
 from pydantic import BaseModel, Field
 
-from models.common import ScoreItem, MetaBlock, SummaryBlock, QualityField
+from models.common import (
+    CompletenessField,
+    MetaBlock,
+    QualityField,
+    ScoreItem,
+    SummaryBlock,
+)
 
 
 # ─── Live Coding Output ───────────────────────────────────────────────────────
@@ -42,6 +48,7 @@ class LiveCodingOutput(BaseModel):
     session_id: str
     interview_type: Literal["live_coding"]
     overall_score: int = Field(..., ge=0, le=100)
+    completeness: CompletenessField
     scores: LiveCodingScores
     analysis: LiveCodingAnalysis
     feedback: LiveCodingFeedback
@@ -94,6 +101,7 @@ class BehavioralOutput(BaseModel):
     session_id: str
     interview_type: Literal["behavioral"]
     overall_score: int = Field(..., ge=0, le=100)
+    completeness: CompletenessField
     scores: BehavioralScores
     star_breakdown: StarBreakdown
     signal_coverage: List[SignalItem]
@@ -141,6 +149,7 @@ class ConceptualOutput(BaseModel):
     session_id: str
     interview_type: Literal["core_conceptual"]
     overall_score: int = Field(..., ge=0, le=100)
+    completeness: CompletenessField
     scores: ConceptualScores
     concept_coverage: List[ConceptItem]
     level_calibration: LevelCalibration

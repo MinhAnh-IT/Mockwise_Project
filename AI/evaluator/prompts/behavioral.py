@@ -271,6 +271,30 @@ sample_stronger_answer_structure:
   - This should be specific to the question, not generic advice.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPLETENESS CLASSIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Set the top-level `completeness` field to one of:
+
+  NO_ANSWER  — The candidate did not actually answer the question.
+               Triggers: silence, "I don't know", "skip", a transcript that
+               only acknowledges the question, or content so brief/off-topic
+               that no STAR component can be identified at all.
+               Use this for honest opt-out — it is NOT the same as a wrong
+               answer. The orchestrator marks the topic as not assessed
+               (rather than weak) when it sees NO_ANSWER.
+
+  INCOMPLETE — The candidate engaged with the question but left material
+               STAR components missing or shallow (e.g. Result not articulated,
+               Action stays at "we did X" without specifics, expected signals
+               largely undetected). The orchestrator may probe with a
+               follow-up question.
+
+  COMPLETE   — The candidate produced a substantive answer covering the STAR
+               components and addressing the competency. Score may still be
+               low (rambling, blame-shifting), but the answer was a genuine
+               attempt — no follow-up needed on completeness grounds alone.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 META BLOCK INSTRUCTIONS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Fill meta with placeholder values that the system will overwrite:

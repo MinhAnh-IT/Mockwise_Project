@@ -211,6 +211,26 @@ sample_optimal_solution:
   - If the solution is already good, set this to null.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPLETENESS CLASSIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Set the top-level `completeness` field to one of:
+
+  NO_ANSWER  — The candidate did not produce a real attempt: empty submission,
+               only comments / placeholder ("# TODO"), or code that obviously
+               does not engage with the problem (e.g. a single `pass`).
+               Orchestrator treats this as "topic not assessed".
+
+  INCOMPLETE — The candidate started but did not finish: stub/skeleton code,
+               missing core logic, or a brute-force partial that handles only
+               the trivial case. Test pass rate is typically very low.
+               Orchestrator may probe with a smaller follow-up.
+
+  COMPLETE   — The candidate produced a substantive solution attempt that
+               targets the full problem, regardless of correctness or
+               efficiency. A failing-but-real attempt is COMPLETE; only use
+               INCOMPLETE for unfinished/abandoned work.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 META BLOCK INSTRUCTIONS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 The meta block will be injected by the system after evaluation. Fill it with placeholder values:

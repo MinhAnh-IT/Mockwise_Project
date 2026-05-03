@@ -36,6 +36,23 @@ KAFKA_CONSUMER_GROUP: str = os.getenv(
     "KAFKA_CONSUMER_GROUP", "ai-service-selector"
 )
 
+# Kafka — evaluation pipeline (interview-service ↔ ai-service)
+# Independent group id from the selector consumer so the two streams have
+# separate offset tracking; sharing a group would let one slow handler stall
+# the other.
+KAFKA_TOPIC_EVALUATION_REQUESTED: str = os.getenv(
+    "KAFKA_TOPIC_EVALUATION_REQUESTED", "evaluation-requested"
+)
+KAFKA_TOPIC_EVALUATION_COMPLETED: str = os.getenv(
+    "KAFKA_TOPIC_EVALUATION_COMPLETED", "evaluation-completed"
+)
+KAFKA_TOPIC_EVALUATION_FAILED: str = os.getenv(
+    "KAFKA_TOPIC_EVALUATION_FAILED", "evaluation-failed"
+)
+KAFKA_EVALUATION_CONSUMER_GROUP: str = os.getenv(
+    "KAFKA_EVALUATION_CONSUMER_GROUP", "ai-service-evaluator"
+)
+
 # Question-bank service base URL — used by the bootstrap reindex endpoint.
 QUESTION_BANK_BASE_URL: str = os.getenv(
     "QUESTION_BANK_BASE_URL", "http://question-bank-service:8084"
