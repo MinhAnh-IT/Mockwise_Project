@@ -31,6 +31,10 @@ public interface UserProfileMapper {
     @Mapping(source = "profile.position", target = "position")
     @Mapping(source = "profile.city", target = "city")
     @Mapping(source = "profile.experience", target = "experience")
+    @Mapping(source = "profile.techStack", target = "techStack")
+    @Mapping(source = "profile.preferredLanguage", target = "preferredLanguage")
+    @Mapping(source = "profile.yearsInCurrentRole", target = "yearsInCurrentRole")
+    @Mapping(source = "profile.industries", target = "industries")
     @Mapping(source = "email", target = "email")
     @Mapping(source = "isVerified", target = "isVerified")
     AdminUserProfileResponse toAdminResponse(UserProfileResponse profile, String email, Boolean isVerified);
