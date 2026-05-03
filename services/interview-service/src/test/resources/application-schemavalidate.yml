@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    # Override at runtime: set SPRING_DATASOURCE_URL to the scratch DB the
+    # harness created (see JpaSchemaValidationIT). Defaults to a local PG
+    # database named `interview_dryrun` if unset, which keeps repeat runs
+    # idempotent without a fresh DB each time (V1 is CREATE TABLE so it
+    # will fail on a second run — use a one-shot DB).
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/interview_dryrun}
+    username: ${POSTGRES_USER:huynhminhanh}
+    password: ${POSTGRES_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      # The whole point of this profile: Hibernate compares entity
+      # mappings against the live schema and throws on any drift.
+      ddl-auto: validate
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  # Schema is owned by Flyway (V1__initial_schema.sql); we just want to
+  # validate against it, not migrate during the test.
+  flyway:
+    enabled: false
+
+internal:
+  auth:
+    api-key: test-key

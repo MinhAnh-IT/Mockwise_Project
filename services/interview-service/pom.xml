@@ -67,6 +67,15 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
+
+        <!-- Hypersistence Utils — JSONB + array type support for Hibernate 6.
+             Pinned to the version question-bank-service uses so JSONB
+             serialization stays consistent across services. -->
+        <dependency>
+            <groupId>io.hypersistence</groupId>
+            <artifactId>hypersistence-utils-hibernate-63</artifactId>
+            <version>3.9.9</version>
+        </dependency>
     </dependencies>
 
     <build>
