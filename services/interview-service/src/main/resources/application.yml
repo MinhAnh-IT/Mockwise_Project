@@ -1,0 +1,65 @@
+spring:
+  profiles:
+    # If no profile is set explicitly (e.g. running the jar locally), fall back
+    # to `local` so application-local.yml's hard-coded VPS values are used.
+    # In production, compose injects env vars which take precedence over yaml.
+    default: local
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      pool-name: InterviewHikariPool
+      idle-timeout: 30000
+      max-lifetime: 600000
+      connection-timeout: 20000
+
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: none
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+
+server:
+  port: 8088
+  servlet:
+    context-path: /api/v1/interviews
+
+api:
+  response:
+    enabled: false
+
+internal:
+  auth:
+    api-key: ${INTERNAL_API_KEY}
+
+# URLs to dependent services. Wired into Feign clients as they are added.
+external:
+  services:
+    question-bank:
+      url: ${QUESTION_BANK_BASE_URL:http://question-bank-service:8084/api/v1/question-bank}
+    storage:
+      url: ${STORAGE_BASE_URL:http://storage-service:8085/api/v1/storage}
+    user-profile:
+      url: ${USER_PROFILE_BASE_URL:http://user-profile-service:8082/api/v1/profiles}
+    tts-stt:
+      url: ${TTS_STT_BASE_URL:http://tts-stt-service:8086}
+    ai:
+      url: ${AI_BASE_URL:http://ai-service:8000}
+
+logging:
+  level:
+    org.hibernate.SQL: INFO

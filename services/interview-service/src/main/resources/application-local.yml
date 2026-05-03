@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://31.220.84.140:5432/interview
+    username: mockwise
+    password: mockwise_pg_password2026
+
+  jpa:
+    show-sql: true
+
+internal:
+  auth:
+    api-key: dev-internal-key-change-me
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE

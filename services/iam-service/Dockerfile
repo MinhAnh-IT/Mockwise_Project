@@ -15,6 +15,7 @@ COPY iam-service/pom.xml iam-service/pom.xml
 COPY question-bank-service/pom.xml question-bank-service/pom.xml
 COPY storage-service/pom.xml storage-service/pom.xml
 COPY tts-stt-service/pom.xml tts-stt-service/pom.xml
+COPY interview-service/pom.xml interview-service/pom.xml
 COPY iam-service/src iam-service/src
 RUN mvn -B -pl iam-service clean package -DskipTests
 
