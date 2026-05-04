@@ -43,7 +43,8 @@ public enum StatusCode {
     STORAGE_OBJECT_WRONG_KIND(4094, "Storage object kind does not match the expected kind", 400),
     STORAGE_OBJECT_ALREADY_USED(4095, "Storage object is already used by another answer", 409),
 
-    PLACEHOLDER(0, "placeholder", 500);
+    // ── Validation ───────────────────────────────────────────────────────────
+    VALIDATION_ERROR(4001, "Validation failed: %s", 400);
 
     int code;
     String message;

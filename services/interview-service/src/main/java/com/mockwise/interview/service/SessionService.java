@@ -78,8 +78,12 @@ public class SessionService {
 
     @Transactional
     public StartSessionOutput start(String userId, StartSessionInput input) {
+        // Bean Validation on the controller's @Valid annotation already
+        // enforces non-null interviewType before we get here; this is a
+        // defensive belt-and-brace check for service-to-service callers
+        // that bypass the controller.
         if (input == null || input.interviewType() == null) {
-            throw new BusinessException(StatusCode.PLACEHOLDER, "interviewType is required");
+            throw new BusinessException(StatusCode.VALIDATION_ERROR, "interviewType is required");
         }
 
         UserProfileResponse profile = userProfileAdapter.getProfile(userId);

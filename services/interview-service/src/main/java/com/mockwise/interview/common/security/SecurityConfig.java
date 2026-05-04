@@ -24,15 +24,17 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
 
                 .authorizeHttpRequests(auth -> auth
+                        // Path matchers run AFTER context-path is stripped, so a
+                        // request for /api/v1/interviews/start arrives here as /start.
                         .requestMatchers(HttpMethod.GET, "/health", "/actuator/**").permitAll()
 
                         // Internal service-to-service endpoints — guarded by InternalAuthFilter
                         .requestMatchers("/internal/**").hasAuthority("ROLE_INTERNAL")
 
-                        // User-facing interview endpoints — JWT propagated by api-gateway
-                        .requestMatchers("/interviews/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
-
-                        .anyRequest().authenticated()
+                        // Everything else under /api/v1/interviews/* is user-facing.
+                        // The interview-service is single-purpose so this catch-all
+                        // is safe — no admin / public sub-tree to disambiguate.
+                        .anyRequest().hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
                 )
 
                 .addFilterBefore(new InternalAuthFilter(internalAuthProperties), UsernamePasswordAuthenticationFilter.class)

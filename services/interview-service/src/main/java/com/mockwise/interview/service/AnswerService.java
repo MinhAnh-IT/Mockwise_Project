@@ -124,7 +124,7 @@ AnswerService {
             verifyStorageObject(input.storageObjectId(), userId);
         } else {
             if (input.code() == null || input.code().isBlank()) {
-                throw new BusinessException(StatusCode.PLACEHOLDER, "code is required for CODE answers");
+                throw new BusinessException(StatusCode.VALIDATION_ERROR, "code is required for CODE answers");
             }
         }
 
@@ -150,7 +150,7 @@ AnswerService {
 
     private void verifyStorageObject(UUID storageObjectId, String userId) {
         if (storageObjectId == null) {
-            throw new BusinessException(StatusCode.PLACEHOLDER, "storageObjectId is required for VIDEO answers");
+            throw new BusinessException(StatusCode.VALIDATION_ERROR, "storageObjectId is required for VIDEO answers");
         }
 
         StorageObjectResponse object;
@@ -206,6 +206,28 @@ AnswerService {
                             "language", String.valueOf(answer.getLanguage())
                     ));
         }
+    }
+
+    // ── Get one answer (FE poll) ─────────────────────────────────────────────
+
+    /**
+     * Returns the answer if the caller owns its session. The FE polls this
+     * to render scoring → ready → scored transitions; SSE will subsume it
+     * in Phase G but this is the deterministic fallback.
+     */
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Answer getForUser(UUID sessionId, UUID answerId, String userId) {
+        Answer answer = answerRepo.findById(answerId)
+                .orElseThrow(() -> new BusinessException(StatusCode.ANSWER_NOT_FOUND));
+        if (!answer.getSessionId().equals(sessionId)) {
+            throw new BusinessException(StatusCode.ANSWER_NOT_FOUND);
+        }
+        InterviewSession session = sessionRepo.findById(sessionId)
+                .orElseThrow(() -> new BusinessException(StatusCode.SESSION_NOT_FOUND));
+        if (!session.getUserId().equals(userId)) {
+            throw new BusinessException(StatusCode.SESSION_NOT_OWNER);
+        }
+        return answer;
     }
 
     // ── Apply evaluation-completed (Kafka consumer entry point) ──────────────

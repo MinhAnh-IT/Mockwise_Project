@@ -1,6 +1,9 @@
 package com.mockwise.interview.dto.request;
 
 import com.mockwise.interview.enums.InterviewType;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 /**
  * Input to {@code SessionService.start}. The userId is sourced from the
@@ -13,7 +16,13 @@ import com.mockwise.interview.enums.InterviewType;
  * @param timeBudgetMinutesOverride  optional shortcut session
  */
 public record StartSessionInput(
+
+        @NotNull(message = "interviewType is required")
         InterviewType interviewType,
+
+        @Size(max = 50, message = "topicFocus must be at most 50 characters")
         String topicFocus,
+
+        @Min(value = 1, message = "timeBudgetMinutesOverride must be >= 1")
         Integer timeBudgetMinutesOverride
 ) {}
