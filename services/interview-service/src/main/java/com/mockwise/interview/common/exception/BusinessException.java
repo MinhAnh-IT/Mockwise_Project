@@ -35,4 +35,16 @@ public class BusinessException extends RuntimeException {
         this.code = responseCode.getCode();
         this.httpStatus = responseCode.getHttpStatus();
     }
+
+    /**
+     * Used by the Feign error decoders to surface an upstream service's
+     * {@code ApiResponse} envelope as a local exception. Carries the
+     * upstream's code + http status so the orchestrator's GlobalException
+     * advice can pick a sensible response without losing diagnostic info.
+     */
+    public BusinessException(int code, String message, int httpStatus) {
+        super(message);
+        this.code = code;
+        this.httpStatus = httpStatus;
+    }
 }

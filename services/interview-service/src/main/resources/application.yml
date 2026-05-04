@@ -59,6 +59,7 @@ external:
       url: ${TTS_STT_BASE_URL:http://tts-stt-service:8086}
     ai:
       url: ${AI_BASE_URL:http://ai-service:8000}
+      api-key: ${AI_SERVICE_API_KEY:}
 
 logging:
   level:
