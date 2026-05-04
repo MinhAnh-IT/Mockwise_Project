@@ -81,6 +81,7 @@ AnswerService {
 
     StorageAdapter storageAdapter;
     UserProfileAdapter userProfileAdapter;
+    com.mockwise.interview.client.ttsstt.TtsSttAdapter ttsSttAdapter;
     OutboxWriter outboxWriter;
 
     AssessmentVerdictMapper verdictMapper;
@@ -228,6 +229,143 @@ AnswerService {
             throw new BusinessException(StatusCode.SESSION_NOT_OWNER);
         }
         return answer;
+    }
+
+    // ── Apply transcript-ready / -failed (tts-stt → orchestrator) ────────────
+
+    /**
+     * Called by the {@code transcript-ready} consumer. Flips the answer
+     * from PROCESSING → READY → EVALUATING (in one Tx) and stages the
+     * {@code evaluation-requested} payload to the outbox so the AI
+     * service has a self-contained input — no callback needed.
+     *
+     * <p>The eval payload shape matches what {@code AI/api.py POST /evaluate}
+     * accepts: BehavioralInput / ConceptualInput. Coding answers don't
+     * land here — they go through the judge-service path.
+     *
+     * <p>Idempotency: an answer already past PROCESSING is a no-op return.
+     * The consumer's own dedup ({@code processed_event}) is the primary
+     * guard but we belt-and-brace here so a manual replay is safe.
+     */
+    @Transactional
+    public void applyTranscriptReady(
+            UUID answerId, UUID transcriptId, String languageCode) {
+
+        Answer answer = answerRepo.findById(answerId)
+                .orElseThrow(() -> new BusinessException(StatusCode.ANSWER_NOT_FOUND));
+        if (answer.getStatus() != AnswerStatus.PROCESSING) {
+            log.debug("Answer {} status is {} — ignoring late transcript-ready",
+                    answerId, answer.getStatus());
+            return;
+        }
+
+        SessionQuestion sq = sessionQuestionRepo.findById(answer.getSessionQuestionId())
+                .orElseThrow(() -> new BusinessException(StatusCode.QUESTION_NOT_IN_SESSION));
+
+        // Step 1 — fetch the transcript text from tts-stt. Without it the
+        // AI service has nothing to score against.
+        var transcript = ttsSttAdapter.getTranscript(transcriptId.toString());
+
+        // Step 2 — answer rows transition: PROCESSING → READY → EVALUATING
+        // in one Tx. We collapse READY into EVALUATING because the
+        // evaluation-requested outbox row goes out in this same write —
+        // there's no observable READY tick from outside.
+        AnswerStatus prev = answer.getStatus();
+        answer.setStatus(AnswerStatus.EVALUATING);
+        answer.setTranscriptId(transcriptId);
+        answerRepo.save(answer);
+        logTransition(answerId, prev, AnswerStatus.EVALUATING, "transcript-ready", Map.of(
+                "transcriptId", transcriptId.toString(),
+                "languageCode", String.valueOf(languageCode)));
+
+        // Step 3 — assemble evaluation-requested. Field names match
+        // AI/models/inputs.py exactly so the payload deserialises into
+        // BehavioralInput / ConceptualInput on the Python side.
+        Map<String, Object> snap = sq.getSnapshot() != null ? sq.getSnapshot() : Map.of();
+        String responseLanguage = languageCode != null
+                ? languageCode.toLowerCase().contains("vi") ? "vi" : "en"
+                : "vi";
+
+        Map<String, Object> question = new HashMap<>();
+        question.put("id", sq.getQuestionId());
+        question.put("text", sq.getInlineText() != null ? sq.getInlineText() : snap.get("text"));
+        if (sq.getQuestionType() == QuestionType.BEHAVIORAL) {
+            question.put("competency", snap.get("competency"));
+            question.put("expected_signals", snap.getOrDefault("expectedSignals", List.of()));
+        } else {
+            question.put("domain", snap.get("domain"));
+            question.put("key_concepts", snap.getOrDefault("keyConcepts", List.of()));
+            question.put("depth_expected", snap.getOrDefault("depthExpected", "intermediate"));
+        }
+
+        Map<String, Object> answerBlock = new HashMap<>();
+        answerBlock.put("transcript", transcript.text() != null ? transcript.text() : "");
+        answerBlock.put("duration_seconds",
+                transcript.durationMs() != null ? transcript.durationMs() / 1000 : 0);
+        answerBlock.put("language", responseLanguage);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("session_id", answer.getSessionId().toString());
+        payload.put("interview_type",
+                sq.getQuestionType() == QuestionType.BEHAVIORAL ? "behavioral" : "core_conceptual");
+        payload.put("question", question);
+        payload.put("answer", answerBlock);
+        payload.put("response_language", responseLanguage);
+
+        // Wrap in the EvaluationRequestedEvent shape the AI consumer expects
+        // (AI/models/evaluation_events.py).
+        Map<String, Object> envelope = new HashMap<>();
+        envelope.put("eventId", java.util.UUID.randomUUID().toString());
+        envelope.put("eventType", "EVALUATION_REQUESTED");
+        envelope.put("occurredAt", OffsetDateTime.now().toString());
+        envelope.put("answerId", answer.getId().toString());
+        envelope.put("sessionId", answer.getSessionId().toString());
+        envelope.put("questionId", String.valueOf(sq.getQuestionId()));
+        envelope.put("payload", payload);
+
+        outboxWriter.stage(
+                com.mockwise.interview.message.constants.KafkaTopics.EVALUATION_REQUESTED,
+                "EVALUATION_REQUESTED",
+                answer.getId(),
+                envelope);
+    }
+
+    /**
+     * Called by the {@code transcript-failed} consumer. Flips the answer
+     * to FAILED with the upstream error so the FE can render
+     * "couldn't process — please re-record".
+     */
+    @Transactional
+    public void applyTranscriptFailed(UUID answerId, String errorCode, String errorMessage) {
+        applyFailureTerminalState(answerId, errorCode, errorMessage, "transcript-failed");
+    }
+
+    /**
+     * Called by the {@code evaluation-failed} consumer. Same terminal
+     * flip as transcript-failed — operator can replay later.
+     */
+    @Transactional
+    public void applyEvaluationFailed(UUID answerId, String errorCode, String errorMessage) {
+        applyFailureTerminalState(answerId, errorCode, errorMessage, "evaluation-failed");
+    }
+
+    private void applyFailureTerminalState(UUID answerId, String errorCode, String errorMessage, String reason) {
+        Answer answer = answerRepo.findById(answerId)
+                .orElseThrow(() -> new BusinessException(StatusCode.ANSWER_NOT_FOUND));
+        if (answer.getStatus() == AnswerStatus.SCORED || answer.getStatus() == AnswerStatus.FAILED) {
+            log.debug("Answer {} already terminal ({}) — ignoring {}",
+                    answerId, answer.getStatus(), reason);
+            return;
+        }
+        AnswerStatus prev = answer.getStatus();
+        answer.setStatus(AnswerStatus.FAILED);
+        answer.setErrorCode(errorCode);
+        answer.setErrorMessage(errorMessage);
+        answer.setScoredAt(OffsetDateTime.now());
+        answerRepo.save(answer);
+        logTransition(answerId, prev, AnswerStatus.FAILED, reason, Map.of(
+                "errorCode", String.valueOf(errorCode),
+                "errorMessage", String.valueOf(errorMessage)));
     }
 
     // ── Apply evaluation-completed (Kafka consumer entry point) ──────────────

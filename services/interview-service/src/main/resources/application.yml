@@ -33,6 +33,14 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
 
+  # Kafka. The bootstrap-servers env wins so prod can override; bean
+  # config (KafkaConfig) reads the same KafkaProperties via Spring Boot.
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      # Same group id across replicas — partitions get split, no double-handling.
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:interview-service}
+
 server:
   port: 8088
   servlet:
@@ -45,6 +53,20 @@ api:
 internal:
   auth:
     api-key: ${INTERNAL_API_KEY}
+
+# Outbox poller + topic-name overrides. Defaults match the producers
+# we expect from tts-stt-service and the AI service.
+interview:
+  outbox:
+    poll-interval-ms: ${INTERVIEW_OUTBOX_POLL_INTERVAL_MS:1000}
+    batch-size: ${INTERVIEW_OUTBOX_BATCH_SIZE:50}
+    send-timeout-ms: ${INTERVIEW_OUTBOX_SEND_TIMEOUT_MS:5000}
+  kafka:
+    topic:
+      transcript-ready:    ${KAFKA_TOPIC_TRANSCRIPT_READY:transcript-ready}
+      transcript-failed:   ${KAFKA_TOPIC_TRANSCRIPT_FAILED:transcript-failed}
+      evaluation-completed: ${KAFKA_TOPIC_EVALUATION_COMPLETED:evaluation-completed}
+      evaluation-failed:   ${KAFKA_TOPIC_EVALUATION_FAILED:evaluation-failed}
 
 # URLs to dependent services. Wired into Feign clients as they are added.
 external:
