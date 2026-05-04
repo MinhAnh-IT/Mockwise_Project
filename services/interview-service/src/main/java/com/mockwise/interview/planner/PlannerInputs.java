@@ -1,11 +1,11 @@
 package com.mockwise.interview.planner;
 
-import com.mockwise.interview.assessment.AssessmentVerdict;
+import com.mockwise.interview.dto.assessment.AssessmentVerdict;
 import com.mockwise.interview.entity.BlueprintTopic;
 import com.mockwise.interview.entity.InterviewBlueprint;
 import com.mockwise.interview.entity.InterviewSession;
 import com.mockwise.interview.entity.SessionTopicState;
-import com.mockwise.interview.entity.enums.TopicStatus;
+import com.mockwise.interview.enums.TopicStatus;
 
 import java.util.Map;
 

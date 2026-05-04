@@ -1,7 +1,7 @@
 package com.mockwise.interview.entity;
 
-import com.mockwise.interview.entity.enums.InterviewType;
-import com.mockwise.interview.entity.enums.SessionStatus;
+import com.mockwise.interview.enums.InterviewType;
+import com.mockwise.interview.enums.SessionStatus;
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import lombok.*;

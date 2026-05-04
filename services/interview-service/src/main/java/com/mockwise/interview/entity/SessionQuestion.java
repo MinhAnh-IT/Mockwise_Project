@@ -1,9 +1,9 @@
 package com.mockwise.interview.entity;
 
-import com.mockwise.interview.entity.enums.Difficulty;
-import com.mockwise.interview.entity.enums.QuestionSource;
-import com.mockwise.interview.entity.enums.QuestionType;
-import com.mockwise.interview.entity.enums.TopicKind;
+import com.mockwise.interview.enums.Difficulty;
+import com.mockwise.interview.enums.QuestionSource;
+import com.mockwise.interview.enums.QuestionType;
+import com.mockwise.interview.enums.TopicKind;
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import lombok.*;

@@ -1,7 +1,7 @@
 package com.mockwise.interview.repository;
 
 import com.mockwise.interview.entity.Answer;
-import com.mockwise.interview.entity.enums.AnswerStatus;
+import com.mockwise.interview.enums.AnswerStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

@@ -10,7 +10,7 @@ import feign.RequestInterceptor;
 import feign.Retryer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+
 
 import java.time.Duration;
 
@@ -20,7 +20,7 @@ import java.time.Duration;
  * Read timeout is much higher than the other clients because
  * {@code POST /follow-up/generate} blocks on a Gemini call.
  */
-@Configuration
+
 public class AiServiceFeignConfig {
 
     @Value("${external.services.ai.api-key:}")

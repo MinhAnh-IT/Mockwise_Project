@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://31.220.84.140:5432/interview
+    url: jdbc:postgresql://31.220.84.140:5432/mockwise_interview
     username: mockwise
     password: mockwise_pg_password2026
 

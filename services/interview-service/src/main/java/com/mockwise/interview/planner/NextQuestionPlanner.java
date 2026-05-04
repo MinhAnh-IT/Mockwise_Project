@@ -1,17 +1,17 @@
 package com.mockwise.interview.planner;
 
-import com.mockwise.interview.assessment.AssessmentVerdict;
-import com.mockwise.interview.assessment.WeakTarget;
-import com.mockwise.interview.assessment.enums.Completeness;
-import com.mockwise.interview.assessment.enums.Correctness;
-import com.mockwise.interview.assessment.enums.Depth;
-import com.mockwise.interview.assessment.enums.Severity;
-import com.mockwise.interview.assessment.enums.SignalStrength;
+import com.mockwise.interview.dto.assessment.AssessmentVerdict;
+import com.mockwise.interview.dto.assessment.WeakTarget;
+import com.mockwise.interview.enums.Completeness;
+import com.mockwise.interview.enums.Correctness;
+import com.mockwise.interview.enums.Depth;
+import com.mockwise.interview.enums.Severity;
+import com.mockwise.interview.enums.SignalStrength;
 import com.mockwise.interview.entity.BlueprintTopic;
 import com.mockwise.interview.entity.InterviewBlueprint;
 import com.mockwise.interview.entity.SessionTopicState;
-import com.mockwise.interview.entity.enums.Difficulty;
-import com.mockwise.interview.entity.enums.TopicStatus;
+import com.mockwise.interview.enums.Difficulty;
+import com.mockwise.interview.enums.TopicStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
@@ -101,7 +101,7 @@ public class NextQuestionPlanner {
             // to AI generator).
             WeakTarget target = pickWeakTarget(v.weakTargets())
                     .orElse(new WeakTarget(
-                            com.mockwise.interview.assessment.enums.WeakTargetKind.SIGNAL,
+                            com.mockwise.interview.enums.WeakTargetKind.SIGNAL,
                             "second_chance",
                             Severity.MED));
             Difficulty downgraded = downgradeWith(topic.getLastDifficulty() != null
@@ -346,8 +346,8 @@ public class NextQuestionPlanner {
         if (v.scoreNormalized() == null) return false;
         return v.scoreNormalized() >= CASE_D_SCORE_THRESHOLD
                 && v.signalStrength() == SignalStrength.STRONG
-                && (v.hireSignal() == com.mockwise.interview.assessment.enums.HireSignal.yes
-                    || v.hireSignal() == com.mockwise.interview.assessment.enums.HireSignal.strong_yes);
+                && (v.hireSignal() == com.mockwise.interview.enums.HireSignal.yes
+                    || v.hireSignal() == com.mockwise.interview.enums.HireSignal.strong_yes);
     }
 
     private static Optional<WeakTarget> pickWeakTarget(List<WeakTarget> targets) {

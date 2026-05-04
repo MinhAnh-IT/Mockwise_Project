@@ -1,26 +1,26 @@
 package com.mockwise.interview.planner;
 
-import com.mockwise.interview.assessment.AssessmentVerdict;
-import com.mockwise.interview.assessment.StrongTarget;
-import com.mockwise.interview.assessment.WeakTarget;
-import com.mockwise.interview.assessment.enums.Completeness;
-import com.mockwise.interview.assessment.enums.Correctness;
-import com.mockwise.interview.assessment.enums.Depth;
-import com.mockwise.interview.assessment.enums.Grade;
-import com.mockwise.interview.assessment.enums.HireSignal;
-import com.mockwise.interview.assessment.enums.Severity;
-import com.mockwise.interview.assessment.enums.SignalStrength;
-import com.mockwise.interview.assessment.enums.WeakTargetKind;
+import com.mockwise.interview.dto.assessment.AssessmentVerdict;
+import com.mockwise.interview.dto.assessment.StrongTarget;
+import com.mockwise.interview.dto.assessment.WeakTarget;
+import com.mockwise.interview.enums.Completeness;
+import com.mockwise.interview.enums.Correctness;
+import com.mockwise.interview.enums.Depth;
+import com.mockwise.interview.enums.Grade;
+import com.mockwise.interview.enums.HireSignal;
+import com.mockwise.interview.enums.Severity;
+import com.mockwise.interview.enums.SignalStrength;
+import com.mockwise.interview.enums.WeakTargetKind;
 import com.mockwise.interview.entity.BlueprintTopic;
 import com.mockwise.interview.entity.InterviewBlueprint;
 import com.mockwise.interview.entity.InterviewSession;
 import com.mockwise.interview.entity.SessionTopicState;
 import com.mockwise.interview.entity.SessionTopicStateId;
-import com.mockwise.interview.entity.enums.Difficulty;
-import com.mockwise.interview.entity.enums.Importance;
-import com.mockwise.interview.entity.enums.SessionStatus;
-import com.mockwise.interview.entity.enums.TopicKind;
-import com.mockwise.interview.entity.enums.TopicStatus;
+import com.mockwise.interview.enums.Difficulty;
+import com.mockwise.interview.enums.Importance;
+import com.mockwise.interview.enums.SessionStatus;
+import com.mockwise.interview.enums.TopicKind;
+import com.mockwise.interview.enums.TopicStatus;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -259,7 +259,7 @@ class NextQuestionPlannerTest {
                         Completeness.COMPLETE, HireSignal.yes, Grade.B,
                         List.of(),
                         List.of(new StrongTarget(
-                                com.mockwise.interview.assessment.enums.StrongTargetKind.SIGNAL, "x"))))
+                                com.mockwise.interview.enums.StrongTargetKind.SIGNAL, "x"))))
                 .build();
 
         var out = planner.plan(inputs);
@@ -384,7 +384,7 @@ class NextQuestionPlannerTest {
             return InterviewBlueprint.builder()
                     .id(UUID.randomUUID())
                     .targetRole("BACKEND").level("mid")
-                    .interviewType(com.mockwise.interview.entity.enums.InterviewType.MIXED)
+                    .interviewType(com.mockwise.interview.enums.InterviewType.MIXED)
                     .topics(new java.util.ArrayList<>(List.of(openerBeh, apiCore, dbCore)))
                     .questionBudget(8)
                     .maxFollowUpsPerTopic(2)

@@ -1,6 +1,6 @@
 package com.mockwise.interview.planner;
 
-import com.mockwise.interview.entity.enums.TopicStatus;
+import com.mockwise.interview.enums.TopicStatus;
 
 /**
  * The mutation diff a planner decision implies. Returned alongside the

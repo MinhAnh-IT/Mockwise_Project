@@ -1,9 +1,9 @@
 package com.mockwise.interview.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.mockwise.interview.entity.enums.Difficulty;
-import com.mockwise.interview.entity.enums.Importance;
-import com.mockwise.interview.entity.enums.TopicKind;
+import com.mockwise.interview.enums.Difficulty;
+import com.mockwise.interview.enums.Importance;
+import com.mockwise.interview.enums.TopicKind;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

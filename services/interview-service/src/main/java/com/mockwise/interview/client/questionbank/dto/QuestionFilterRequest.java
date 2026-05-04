@@ -1,7 +1,7 @@
 package com.mockwise.interview.client.questionbank.dto;
 
-import com.mockwise.interview.entity.enums.Difficulty;
-import com.mockwise.interview.entity.enums.QuestionType;
+import com.mockwise.interview.enums.Difficulty;
+import com.mockwise.interview.enums.QuestionType;
 
 import java.util.List;
 

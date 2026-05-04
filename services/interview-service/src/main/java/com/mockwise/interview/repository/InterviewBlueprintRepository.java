@@ -1,7 +1,7 @@
 package com.mockwise.interview.repository;
 
 import com.mockwise.interview.entity.InterviewBlueprint;
-import com.mockwise.interview.entity.enums.InterviewType;
+import com.mockwise.interview.enums.InterviewType;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

@@ -1,8 +1,8 @@
 package com.mockwise.interview.planner;
 
-import com.mockwise.interview.assessment.WeakTarget;
+import com.mockwise.interview.dto.assessment.WeakTarget;
 import com.mockwise.interview.entity.BlueprintTopic;
-import com.mockwise.interview.entity.enums.Difficulty;
+import com.mockwise.interview.enums.Difficulty;
 
 /**
  * What the planner decided to do next, expressed as a discriminated union

@@ -1,6 +1,6 @@
 package com.mockwise.interview.entity;
 
-import com.mockwise.interview.entity.enums.TopicKind;
+import com.mockwise.interview.enums.TopicKind;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EnumType;

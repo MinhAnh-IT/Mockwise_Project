@@ -10,7 +10,7 @@ import feign.RequestInterceptor;
 import feign.Retryer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+
 
 import java.time.Duration;
 
@@ -20,7 +20,7 @@ import java.time.Duration;
  * so we always inject it — keeps the wire-up boring and avoids an
  * accidentally-anonymous call slipping through.
  */
-@Configuration
+
 public class QuestionBankFeignConfig {
 
     @Value("${internal.auth.api-key:}")
