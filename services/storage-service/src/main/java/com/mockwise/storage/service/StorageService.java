@@ -279,6 +279,25 @@ public class StorageService {
                 .build();
     }
 
+    // ── Object lookup (internal) ─────────────────────────────────────────────
+
+    /**
+     * Read-only fetch by id. Used by interview-service to verify ownership
+     * and READY state before pinning a {@code storageObjectId} to an answer
+     * (see {@code AnswerService.verifyStorageObject} on the orchestrator).
+     *
+     * <p>The full {@link StorageObjectResponse} is returned — the caller
+     * decides which fields it needs. {@code ownerUserId} in particular is
+     * what closes the cross-user ACL hole an inattentive frontend could
+     * otherwise open.
+     */
+    @Transactional(readOnly = true)
+    public StorageObjectResponse getObjectById(String objectId) {
+        StorageObject object = storageObjectRepository.findById(objectId)
+                .orElseThrow(() -> new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND));
+        return StorageObjectResponse.from(object);
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private void validateVideoUpload(CreateVideoUploadRequest req) {

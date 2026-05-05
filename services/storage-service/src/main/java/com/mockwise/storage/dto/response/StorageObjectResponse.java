@@ -15,6 +15,7 @@ import java.time.OffsetDateTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class StorageObjectResponse {
     String objectId;
+    String ownerUserId;
     StorageKind kind;
     String bucket;
     String objectKey;
@@ -29,6 +30,7 @@ public class StorageObjectResponse {
     public static StorageObjectResponse from(StorageObject o) {
         return StorageObjectResponse.builder()
                 .objectId(o.getId())
+                .ownerUserId(o.getOwnerUserId())
                 .kind(o.getKind())
                 .bucket(o.getBucket())
                 .objectKey(o.getObjectKey())

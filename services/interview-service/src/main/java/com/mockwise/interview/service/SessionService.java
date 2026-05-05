@@ -67,6 +67,7 @@ public class SessionService {
     );
 
     UserProfileAdapter userProfileAdapter;
+    com.mockwise.interview.client.storage.StorageAdapter storageAdapter;
     BlueprintLoader blueprintLoader;
     QuestionPicker questionPicker;
     InterviewSessionRepository sessionRepo;
@@ -137,7 +138,7 @@ public class SessionService {
                 input.timeBudgetMinutesOverride() != null
                         ? input.timeBudgetMinutesOverride()
                         : blueprint.getTimeBudgetMinutes(),
-                PinnedQuestionView.fromEntity(firstQuestion));
+                signAudio(PinnedQuestionView.fromEntity(firstQuestion)));
     }
 
     // ── /get ─────────────────────────────────────────────────────────────────
@@ -174,8 +175,21 @@ public class SessionService {
                                 s.getFollowUpsUsed(),
                                 s.getLastScore()))
                         .toList(),
-                questions.stream().map(PinnedQuestionView::fromEntity).toList()
+                questions.stream()
+                        .map(PinnedQuestionView::fromEntity)
+                        .map(this::signAudio)
+                        .toList()
         );
+    }
+
+    /**
+     * Resolves the question's {@code audioKey} into a short-lived
+     * presigned GET URL the FE can stream. Soft-fails — if storage is
+     * down we still return the view, just without the URL filled in.
+     */
+    private PinnedQuestionView signAudio(PinnedQuestionView view) {
+        return view.withSignedAudio(
+                key -> storageAdapter.signQuestionAudioUrl(key).orElse(null));
     }
 
     // ── /finish ──────────────────────────────────────────────────────────────
