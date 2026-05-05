@@ -11,6 +11,10 @@ import java.util.List;
  * {@code @JsonIgnoreProperties(ignoreUnknown = true)} guarantees the AI
  * service can keep adding fields (feedback bullets, meta, etc.) without
  * a coordinated deploy here.
+ *
+ * <p>The AI service emits camelCase JSON (via Pydantic CamelModel base),
+ * so the default Jackson camelCase binding works without per-DTO
+ * overrides — same convention as everywhere else in the Mockwise stack.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record BehavioralEvalOutput(

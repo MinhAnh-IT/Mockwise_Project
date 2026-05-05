@@ -286,31 +286,35 @@ AnswerService {
                 ? languageCode.toLowerCase().contains("vi") ? "vi" : "en"
                 : "vi";
 
+        // Field names are camelCase to match the AI service's Pydantic
+        // CamelModel base — the AI side accepts both (populate_by_name=True)
+        // but emits camelCase, so producing camelCase here keeps the wire
+        // format symmetric and consistent with the rest of Mockwise.
         Map<String, Object> question = new HashMap<>();
         question.put("id", sq.getQuestionId());
         question.put("text", sq.getInlineText() != null ? sq.getInlineText() : snap.get("text"));
         if (sq.getQuestionType() == QuestionType.BEHAVIORAL) {
             question.put("competency", snap.get("competency"));
-            question.put("expected_signals", snap.getOrDefault("expectedSignals", List.of()));
+            question.put("expectedSignals", snap.getOrDefault("expectedSignals", List.of()));
         } else {
             question.put("domain", snap.get("domain"));
-            question.put("key_concepts", snap.getOrDefault("keyConcepts", List.of()));
-            question.put("depth_expected", snap.getOrDefault("depthExpected", "intermediate"));
+            question.put("keyConcepts", snap.getOrDefault("keyConcepts", List.of()));
+            question.put("depthExpected", snap.getOrDefault("depthExpected", "intermediate"));
         }
 
         Map<String, Object> answerBlock = new HashMap<>();
         answerBlock.put("transcript", transcript.text() != null ? transcript.text() : "");
-        answerBlock.put("duration_seconds",
+        answerBlock.put("durationSeconds",
                 transcript.durationMs() != null ? transcript.durationMs() / 1000 : 0);
         answerBlock.put("language", responseLanguage);
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("session_id", answer.getSessionId().toString());
-        payload.put("interview_type",
+        payload.put("sessionId", answer.getSessionId().toString());
+        payload.put("interviewType",
                 sq.getQuestionType() == QuestionType.BEHAVIORAL ? "behavioral" : "core_conceptual");
         payload.put("question", question);
         payload.put("answer", answerBlock);
-        payload.put("response_language", responseLanguage);
+        payload.put("responseLanguage", responseLanguage);
 
         // Wrap in the EvaluationRequestedEvent shape the AI consumer expects
         // (AI/models/evaluation_events.py).

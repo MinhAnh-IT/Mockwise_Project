@@ -14,8 +14,8 @@ def build_conceptual_prompt(inp: ConceptualInput, retry_instruction: str = "") -
 RESPONSE LANGUAGE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 You MUST write ALL text fields (notes, feedback, verdicts, corrections, misconceptions) in {language_label.upper()}.
-This applies to: scores.*.note, feedback.*, concept_coverage.*.correction, misconceptions.*.correction, level_calibration.gap, summary.one_line_verdict.
-EXCEPTION: concept_coverage.*.candidate_statement and misconceptions.*.claim must be direct quotes from the candidate's transcript — keep them in the candidate's original language.
+This applies to: scores.*.note, feedback.*, conceptCoverage.*.correction, misconceptions.*.correction, levelCalibration.gap, summary.oneLineVerdict.
+EXCEPTION: conceptCoverage.*.candidateStatement and misconceptions.*.claim must be direct quotes from the candidate's transcript — keep them in the candidate's original language.
 Do NOT mix languages in your own analysis text. Respond entirely in {language_label}.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
@@ -100,12 +100,12 @@ For EACH key concept listed above, produce a ConceptItem with:
   mentioned          : true if the candidate mentioned this concept in any form
   correct            : true if their statement about it is accurate, false if incorrect,
                        null if not mentioned
-  candidate_statement: quote the relevant part of the transcript (max 200 chars), or null
+  candidateStatement: quote the relevant part of the transcript (max 200 chars), or null
   correction         : if correct=false, write the correct explanation clearly and concisely.
                        If correct=true or null, set to null.
 
 IMPORTANT: Be precise about correctness. Partial knowledge should be noted in
-candidate_statement with correct=true but the depth issue captured in the depth score.
+candidateStatement with correct=true but the depth issue captured in the depth score.
 Only set correct=false when the candidate states something factually wrong.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -132,10 +132,10 @@ SCORING DIMENSIONS & WEIGHTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Score each dimension 0–100. Overall score formula:
 
-  overall_score = round(
+  overallScore = round(
       accuracy.score             * 0.35 +
       depth.score                * 0.30 +
-      practical_application.score* 0.20 +
+      practicalApplication.score* 0.20 +
       clarity.score              * 0.15
   )
 
@@ -153,14 +153,14 @@ DIMENSION 1 — ACCURACY (weight: 0.35)
   - Vague but not incorrect: no deduction (affects depth score instead)
 
 DIMENSION 2 — DEPTH (weight: 0.30)
-  How deeply does the candidate understand the concepts, relative to depth_expected: "{q.depth_expected}"?
+  How deeply does the candidate understand the concepts, relative to depthExpected: "{q.depth_expected}"?
 
   Depth levels (map to the expected depth):
   - Surface: Knows definitions and basic usage
   - Intermediate: Understands internal mechanisms, can explain WHY things work
   - Advanced: Knows trade-offs, failure modes, edge cases, real-world implications
 
-  Scoring relative to depth_expected:
+  Scoring relative to depthExpected:
   - 90–100: Exceeds or precisely matches the expected depth
   - 70–89 : Meets expected depth on most concepts, minor gaps
   - 50–69 : One level below expected depth for most concepts
@@ -188,8 +188,8 @@ LEVEL CALIBRATION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Calibrate the candidate's demonstrated level against what was expected.
 
-  expected_level          : use depth_expected value: "{q.depth_expected}"
-  actual_demonstrated_level: one of [surface, intermediate, advanced, expert]
+  expectedLevel          : use depthExpected value: "{q.depth_expected}"
+  actualDemonstratedLevel: one of [surface, intermediate, advanced, expert]
   gap                     : describe the gap concisely, e.g.:
                             "Candidate demonstrated intermediate understanding;
                              advanced depth was expected. Missing: trade-off analysis,
@@ -199,7 +199,7 @@ Calibrate the candidate's demonstrated level against what was expected.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 GRADE & HIRE SIGNAL MAPPING
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  overall_score | grade | hire_signal
+  overallScore | grade | hireSignal
   ─────────────────────────────────────
   90 – 100      |   A   | strong_yes
   75 –  89      |   B   | yes
@@ -222,7 +222,7 @@ improvements:
   - Example: "Did not address cache invalidation strategies — this is critical for
     production systems. Study TTL vs event-driven invalidation vs cache-aside pattern."
 
-key_points_to_study:
+keyPointsToStudy:
   - List 3-6 SPECIFIC, PRIORITIZED topics the candidate should study.
   - These must be directly derived from gaps observed in this specific answer.
   - Be ACTIONABLE and SPECIFIC, not generic.
@@ -252,11 +252,11 @@ Set the top-level `completeness` field to one of:
                "topic not assessed" rather than "candidate is weak".
 
   INCOMPLETE — The candidate engaged but missed material concepts: most
-               key_concepts were not mentioned, or were only mentioned at
+               keyConcepts were not mentioned, or were only mentioned at
                surface level when intermediate/advanced depth was expected.
                The orchestrator may probe a specific gap with a follow-up.
 
-  COMPLETE   — The candidate addressed the bulk of the key_concepts at
+  COMPLETE   — The candidate addressed the bulk of the keyConcepts at
                roughly the expected depth. Score may still be low if there
                are misconceptions or weak structure, but the answer was a
                genuine attempt — no follow-up needed on completeness grounds.
@@ -265,16 +265,16 @@ Set the top-level `completeness` field to one of:
 META BLOCK INSTRUCTIONS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Fill meta with placeholder values that the system will overwrite:
-  evaluated_at           : "SYSTEM_INJECTED"
-  model_version          : "SYSTEM_INJECTED"
-  evaluation_duration_ms : 0
+  evaluatedAt           : "SYSTEM_INJECTED"
+  modelVersion          : "SYSTEM_INJECTED"
+  evaluationDurationMs : 0
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 OUTPUT REQUIREMENTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Fill ALL fields of the structured output completely.
-session_id must be exactly: {inp.session_id}
-interview_type must be exactly: "core_conceptual"
+sessionId must be exactly: {inp.session_id}
+interviewType must be exactly: "core_conceptual"
 
 Think step by step:
 1. Understand the domain and what depth is expected.
@@ -282,8 +282,8 @@ Think step by step:
 3. For each key concept, determine: mentioned? correct? (quote evidence)
 4. Scan for any misconceptions across the entire answer.
 5. Score each dimension independently with justification.
-6. Compute overall_score using the weighted formula.
+6. Compute overallScore using the weighted formula.
 7. Calibrate level: what level did they actually demonstrate vs. what was expected?
-8. Map to grade and hire_signal.
+8. Map to grade and hireSignal.
 9. Write specific, actionable feedback with prioritized study points.
 """.strip()

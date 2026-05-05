@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import Annotated
-from pydantic import BaseModel, Field, BeforeValidator
+from pydantic import Field, BeforeValidator
+
+from models._base import CamelModel
 
 
 class Grade(str, Enum):
@@ -50,20 +52,20 @@ QualityField = Annotated[Quality, BeforeValidator(lambda v: Quality(v) if isinst
 CompletenessField = Annotated[Completeness, BeforeValidator(lambda v: Completeness(v) if isinstance(v, str) else v)]
 
 
-class ScoreItem(BaseModel):
+class ScoreItem(CamelModel):
     score: int = Field(..., ge=0, le=100)
     max: int = Field(default=100)
     weight: float
     note: str
 
 
-class MetaBlock(BaseModel):
+class MetaBlock(CamelModel):
     evaluated_at: str
     model_version: str
     evaluation_duration_ms: int
 
 
-class SummaryBlock(BaseModel):
+class SummaryBlock(CamelModel):
     grade: GradeField
     hire_signal: HireSignalField
     one_line_verdict: str

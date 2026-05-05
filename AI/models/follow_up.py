@@ -9,10 +9,12 @@ from __future__ import annotations
 
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from models._base import CamelModel
 
 
-class WeakTarget(BaseModel):
+class WeakTarget(CamelModel):
     """A specific gap to probe in the follow-up.
 
     `kind` mirrors the categories the evaluator already exposes:
@@ -26,14 +28,14 @@ class WeakTarget(BaseModel):
     severity: Literal["low", "medium", "high"] = "high"
 
 
-class StrongTarget(BaseModel):
+class StrongTarget(CamelModel):
     """A skill the candidate already demonstrated. Helps the LLM avoid
     re-asking what the candidate has covered well."""
     kind: Literal["signal", "concept"]
     value: str
 
 
-class ParentQuestion(BaseModel):
+class ParentQuestion(CamelModel):
     id: str
     type: Literal["BEHAVIORAL", "CORE_CONCEPTUAL"]
     text: str
@@ -43,7 +45,7 @@ class ParentQuestion(BaseModel):
     key_concepts: Optional[List[str]] = None
 
 
-class FollowUpRequest(BaseModel):
+class FollowUpRequest(CamelModel):
     session_id: str
     parent_question: ParentQuestion
     user_answer_transcript: str
@@ -53,7 +55,7 @@ class FollowUpRequest(BaseModel):
     language: Literal["vi", "en"] = "vi"
 
 
-class FollowUpResponse(BaseModel):
+class FollowUpResponse(CamelModel):
     question_text: str = Field(..., description="The follow-up question to ask")
     expected_points: List[str] = Field(
         ..., description="What a satisfactory answer must cover (≤ 5 items)"

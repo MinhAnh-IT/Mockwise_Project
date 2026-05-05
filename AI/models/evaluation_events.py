@@ -8,10 +8,12 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from models._base import CamelModel
 
 
-class EvaluationRequestedEvent(BaseModel):
+class EvaluationRequestedEvent(CamelModel):
     """Fired by interview-service once an answer is READY (transcript on file
     for behavioral/core, judge result on file for coding) and the orchestrator
     has assembled the full evaluation payload.
@@ -32,7 +34,7 @@ class EvaluationRequestedEvent(BaseModel):
     )
 
 
-class EvaluationCompletedEvent(BaseModel):
+class EvaluationCompletedEvent(CamelModel):
     """Fired after the evaluator graph finishes successfully.
 
     `result` is the final_output dict from the graph — see the per-type
@@ -50,7 +52,7 @@ class EvaluationCompletedEvent(BaseModel):
     result: dict
 
 
-class EvaluationFailedEvent(BaseModel):
+class EvaluationFailedEvent(CamelModel):
     """Fired when the evaluator graph exhausted retries or hit an
     unrecoverable error. Interview-service flips the answer to FAILED."""
     eventId: str

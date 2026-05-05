@@ -6,7 +6,7 @@ import com.mockwise.interview.enums.Completeness;
 import java.util.List;
 
 /**
- * Lean projection of the ConceptualOutput payload. concept_coverage's
+ * Lean projection of the ConceptualOutput payload. conceptCoverage's
  * {@code correct} is nullable in the AI schema (null = "not mentioned, so
  * correctness undecidable"), so we use {@link Boolean} instead of
  * {@code boolean} to preserve that.

@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Lean projection of the LiveCodingOutput payload. The AI exposes far more
  * (complexity strings, optimization hints, sample solutions); the mapper
- * only needs is_optimal + the per-dimension scores + the issue list.
+ * only needs isOptimal + the per-dimension scores + the issue list.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record LiveCodingEvalOutput(

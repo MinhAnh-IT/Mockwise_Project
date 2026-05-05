@@ -14,8 +14,8 @@ def build_behavioral_prompt(inp: BehavioralInput, retry_instruction: str = "") -
 RESPONSE LANGUAGE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 You MUST write ALL text fields (notes, feedback, verdicts, red flags, signal evidence) in {language_label.upper()}.
-This applies to: scores.*.note, feedback.*, red_flags.*.detail, signal_coverage.*.evidence, summary.one_line_verdict.
-EXCEPTION: star_breakdown.*.excerpt and signal_coverage.*.evidence must be direct quotes from the candidate's transcript — keep them in the candidate's original language.
+This applies to: scores.*.note, feedback.*, redFlags.*.detail, signalCoverage.*.evidence, summary.oneLineVerdict.
+EXCEPTION: starBreakdown.*.excerpt and signalCoverage.*.evidence must be direct quotes from the candidate's transcript — keep them in the candidate's original language.
 Do NOT mix languages in your own analysis text. Respond entirely in {language_label}.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
@@ -143,12 +143,12 @@ SCORING DIMENSIONS & WEIGHTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Score each dimension 0–100. Overall score formula:
 
-  overall_score = round(
-      star_structure.score  * 0.25 +
+  overallScore = round(
+      starStructure.score  * 0.25 +
       relevance.score       * 0.20 +
       specificity.score     * 0.25 +
-      impact_result.score   * 0.20 +
-      self_awareness.score  * 0.10
+      impactResult.score   * 0.20 +
+      selfAwareness.score  * 0.10
   )
 
 DIMENSION 1 — STAR STRUCTURE (weight: 0.25)
@@ -239,7 +239,7 @@ If no red flags are present, return an empty list.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 GRADE & HIRE SIGNAL MAPPING
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  overall_score | grade | hire_signal
+  overallScore | grade | hireSignal
   ─────────────────────────────────────
   90 – 100      |   A   | strong_yes
   75 –  89      |   B   | yes
@@ -263,7 +263,7 @@ improvements:
     metrics for each story: latency improvements, revenue impact, time saved, team size affected.
     Quantified results are the single biggest differentiator between good and great answers."
 
-sample_stronger_answer_structure:
+sampleStrongerAnswerStructure:
   - Provide a structural outline (not full text) of how a stronger answer to this specific
     question might look, referencing the question's competency and expected signals.
   - Format as: "Situation → Task → Action → Result" with 1-2 sentences per component
@@ -298,16 +298,16 @@ Set the top-level `completeness` field to one of:
 META BLOCK INSTRUCTIONS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Fill meta with placeholder values that the system will overwrite:
-  evaluated_at           : "SYSTEM_INJECTED"
-  model_version          : "SYSTEM_INJECTED"
-  evaluation_duration_ms : 0
+  evaluatedAt           : "SYSTEM_INJECTED"
+  modelVersion          : "SYSTEM_INJECTED"
+  evaluationDurationMs : 0
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 OUTPUT REQUIREMENTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Fill ALL fields of the structured output completely.
-session_id must be exactly: {inp.session_id}
-interview_type must be exactly: "behavioral"
+sessionId must be exactly: {inp.session_id}
+interviewType must be exactly: "behavioral"
 
 Think step by step:
 1. Read the question and understand what competency is being tested.
@@ -316,7 +316,7 @@ Think step by step:
 4. Check each expected signal — look for direct evidence.
 5. Identify any red flags using the taxonomy above.
 6. Score each dimension independently.
-7. Compute overall_score with the weighted formula.
-8. Map to grade and hire_signal.
+7. Compute overallScore with the weighted formula.
+8. Map to grade and hireSignal.
 9. Write specific, actionable feedback.
 """.strip()
