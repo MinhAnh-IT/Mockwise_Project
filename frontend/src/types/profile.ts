@@ -6,6 +6,12 @@ export type Position = {
   levelName: string;
 };
 
+/**
+ * TTS / AI feedback language. Mirrors the backend `Language` enum
+ * (services/user-profile-service/.../entity/Language.java). Defaults to VI.
+ */
+export type Language = 'VI' | 'EN';
+
 export type UserProfile = {
   userId: string;
   fullName: string;
@@ -18,6 +24,21 @@ export type UserProfile = {
    * cache. Null/undefined when the user has not uploaded an avatar.
    */
   avatarUrl?: string | null;
+  /**
+   * Tools / languages / frameworks (lowercased, e.g. ["java", "spring"]).
+   * Backend normalizes case + dedupes on save, so we display whatever it
+   * returns and write back lowercase tokens.
+   */
+  techStack?: string[];
+  preferredLanguage?: Language;
+  /**
+   * Years in the current track/level. May be smaller than `experience` when
+   * the user recently switched roles. Used by interview-service to refine
+   * difficulty calibration.
+   */
+  yearsInCurrentRole?: number | null;
+  /** Industries (lowercased, e.g. ["fintech", "ecommerce"]). */
+  industries?: string[];
 };
 
 export type UserProfileUpdateRequest = {
@@ -27,6 +48,10 @@ export type UserProfileUpdateRequest = {
   city?: string;
   experience?: number;
   avatarObjectKey?: string;
+  techStack?: string[];
+  preferredLanguage?: Language;
+  yearsInCurrentRole?: number;
+  industries?: string[];
 };
 
 export type PositionTrack = {

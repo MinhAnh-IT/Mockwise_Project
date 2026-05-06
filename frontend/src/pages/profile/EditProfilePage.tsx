@@ -14,10 +14,29 @@ import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
 import AvatarUploader from '@/components/profile/AvatarUploader';
 import type {
+  Language,
   PositionLevel,
   PositionTrack,
   UserProfileUpdateRequest,
 } from '@/types/profile';
+
+// Comma/newline-separated free text → normalized lowercase tokens. Backend
+// re-runs the same normalization on save; we mirror it locally so dirty-diff
+// comparisons match what the server returns on the next read.
+function splitTokens(raw: string): string[] {
+  const seen = new Set<string>();
+  for (const part of raw.split(/[,\n]/)) {
+    const token = part.trim().toLowerCase();
+    if (token) seen.add(token);
+  }
+  return [...seen];
+}
+
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
 
 export default function EditProfilePage() {
   const { profile, refreshProfile } = useAuth();
@@ -28,6 +47,18 @@ export default function EditProfilePage() {
   const [experience, setExperience] = useState(String(profile?.experience ?? 0));
   const [trackId, setTrackId] = useState(profile?.position.trackId ?? '');
   const [levelId, setLevelId] = useState(profile?.position.levelId ?? '');
+  const [preferredLanguage, setPreferredLanguage] = useState<Language>(
+    profile?.preferredLanguage ?? 'VI',
+  );
+  const [yearsInCurrentRole, setYearsInCurrentRole] = useState(
+    profile?.yearsInCurrentRole != null ? String(profile.yearsInCurrentRole) : '',
+  );
+  const [techStackInput, setTechStackInput] = useState(
+    (profile?.techStack ?? []).join(', '),
+  );
+  const [industriesInput, setIndustriesInput] = useState(
+    (profile?.industries ?? []).join(', '),
+  );
   // Pending object key from a fresh avatar upload — flushed to the server when
   // the user clicks Save (alongside any other field changes).
   const [pendingAvatarObjectKey, setPendingAvatarObjectKey] = useState<string | null>(null);
@@ -84,14 +115,66 @@ export default function EditProfilePage() {
     if (pendingAvatarObjectKey) {
       diff.avatarObjectKey = pendingAvatarObjectKey;
     }
+
+    if (preferredLanguage !== (profile.preferredLanguage ?? 'VI')) {
+      diff.preferredLanguage = preferredLanguage;
+    }
+
+    const yicrTrim = yearsInCurrentRole.trim();
+    const yicrCurrent = profile.yearsInCurrentRole ?? null;
+    if (yicrTrim === '') {
+      // Clearing not supported by current backend PATCH (no nullable signal);
+      // leave the field untouched if user empties it.
+    } else if (Number(yicrTrim) !== yicrCurrent) {
+      diff.yearsInCurrentRole = Number(yicrTrim);
+    }
+
+    const techStack = splitTokens(techStackInput);
+    if (!arraysEqual(techStack, profile.techStack ?? [])) {
+      diff.techStack = techStack;
+    }
+
+    const industries = splitTokens(industriesInput);
+    if (!arraysEqual(industries, profile.industries ?? [])) {
+      diff.industries = industries;
+    }
+
     return diff;
-  }, [profile, fullName, city, experience, trackId, levelId, pendingAvatarObjectKey]);
+  }, [
+    profile,
+    fullName,
+    city,
+    experience,
+    trackId,
+    levelId,
+    pendingAvatarObjectKey,
+    preferredLanguage,
+    yearsInCurrentRole,
+    techStackInput,
+    industriesInput,
+  ]);
 
   const isDirty = Object.keys(dirtyPayload).length > 0;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!profile || !isDirty) return;
+
+    if (
+      dirtyPayload.yearsInCurrentRole !== undefined &&
+      dirtyPayload.yearsInCurrentRole > Number(experience)
+    ) {
+      setError('Số năm ở vị trí hiện tại không thể lớn hơn tổng số năm kinh nghiệm.');
+      return;
+    }
+    if ((dirtyPayload.techStack?.length ?? 0) > 20) {
+      setError('Tech stack tối đa 20 mục.');
+      return;
+    }
+    if ((dirtyPayload.industries?.length ?? 0) > 10) {
+      setError('Lĩnh vực ngành tối đa 10 mục.');
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
@@ -216,6 +299,60 @@ export default function EditProfilePage() {
                 />
               </Field>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field
+                label="Số năm ở vị trí hiện tại"
+                htmlFor="yearsInCurrentRole"
+                hint="Không bắt buộc. Dùng để hiệu chỉnh độ khó câu hỏi."
+              >
+                <Input
+                  id="yearsInCurrentRole"
+                  type="number"
+                  min={0}
+                  value={yearsInCurrentRole}
+                  onChange={(e) => setYearsInCurrentRole(e.target.value)}
+                  placeholder="vd: 1"
+                />
+              </Field>
+
+              <Field label="Ngôn ngữ ưu tiên" htmlFor="preferredLanguage">
+                <Select
+                  id="preferredLanguage"
+                  value={preferredLanguage}
+                  onChange={(e) => setPreferredLanguage(e.target.value as Language)}
+                >
+                  <option value="VI">Tiếng Việt</option>
+                  <option value="EN">English</option>
+                </Select>
+              </Field>
+            </div>
+
+            <Field
+              label="Tech stack"
+              htmlFor="techStack"
+              hint="Cách nhau bởi dấu phẩy. Tối đa 20 mục. Ví dụ: java, spring, postgresql"
+            >
+              <Input
+                id="techStack"
+                value={techStackInput}
+                onChange={(e) => setTechStackInput(e.target.value)}
+                placeholder="java, spring, postgresql"
+              />
+            </Field>
+
+            <Field
+              label="Lĩnh vực ngành (industries)"
+              htmlFor="industries"
+              hint="Cách nhau bởi dấu phẩy. Tối đa 10 mục. Ví dụ: fintech, ecommerce"
+            >
+              <Input
+                id="industries"
+                value={industriesInput}
+                onChange={(e) => setIndustriesInput(e.target.value)}
+                placeholder="fintech, ecommerce"
+              />
+            </Field>
 
             <div className="flex gap-3 pt-2">
               <Button

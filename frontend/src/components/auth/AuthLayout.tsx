@@ -8,9 +8,19 @@ type Props = {
   subtitle?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
+  /**
+   * Card width. 'sm' (default) suits short forms like login/OTP;
+   * 'md' is for longer forms (e.g. register) that benefit from 2-column rows.
+   */
+  size?: 'sm' | 'md';
 };
 
-export default function AuthLayout({ title, subtitle, children, footer }: Props) {
+const SIZE_CLASS: Record<NonNullable<Props['size']>, string> = {
+  sm: 'max-w-md',
+  md: 'max-w-2xl',
+};
+
+export default function AuthLayout({ title, subtitle, children, footer, size = 'sm' }: Props) {
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       <header className="px-6 md:px-12 h-16 flex items-center">
@@ -20,7 +30,7 @@ export default function AuthLayout({ title, subtitle, children, footer }: Props)
       </header>
 
       <main className="flex-1 flex items-center justify-center px-6 py-10">
-        <div className="w-full max-w-md">
+        <div className={`w-full ${SIZE_CLASS[size]}`}>
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-on-surface mb-2">{title}</h1>
             {subtitle && <p className="text-on-surface-variant text-sm">{subtitle}</p>}

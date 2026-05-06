@@ -1,14 +1,34 @@
-import { Pencil, Mail, MapPin, Briefcase, GraduationCap, Calendar, User } from 'lucide-react';
+import {
+  Pencil,
+  Mail,
+  MapPin,
+  Briefcase,
+  GraduationCap,
+  Calendar,
+  User,
+  Languages,
+  Clock,
+  Code2,
+  Building2,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/auth/useAuth';
 import Avatar from '@/components/ui/Avatar';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
 
+const LANGUAGE_LABEL: Record<'VI' | 'EN', string> = {
+  VI: 'Tiếng Việt',
+  EN: 'English',
+};
+
 export default function ProfilePage() {
   const { profile } = useAuth();
 
   if (!profile) return null;
+
+  const techStack = profile.techStack ?? [];
+  const industries = profile.industries ?? [];
 
   return (
     <div className="min-h-screen flex flex-col bg-surface">
@@ -60,17 +80,75 @@ export default function ProfilePage() {
               />
               <InfoRow icon={<MapPin className="w-4 h-4" />} label="Thành phố" value={profile.city} />
               <InfoRow
+                icon={<Clock className="w-4 h-4" />}
+                label="Số năm ở vị trí hiện tại"
+                value={
+                  profile.yearsInCurrentRole != null
+                    ? `${profile.yearsInCurrentRole} năm`
+                    : 'Chưa cập nhật'
+                }
+              />
+              <InfoRow
+                icon={<Languages className="w-4 h-4" />}
+                label="Ngôn ngữ ưu tiên"
+                value={LANGUAGE_LABEL[profile.preferredLanguage ?? 'VI']}
+              />
+              <InfoRow
                 icon={<Mail className="w-4 h-4" />}
                 label="Mã người dùng"
                 value={profile.userId}
                 mono
               />
             </dl>
+
+            <div className="mt-8 pt-6 border-t border-outline-variant grid grid-cols-1 gap-6">
+              <ChipRow
+                icon={<Code2 className="w-4 h-4" />}
+                label="Tech stack"
+                items={techStack}
+              />
+              <ChipRow
+                icon={<Building2 className="w-4 h-4" />}
+                label="Lĩnh vực ngành"
+                items={industries}
+              />
+            </div>
           </div>
         </div>
       </main>
 
       <Footer />
+    </div>
+  );
+}
+
+type ChipRowProps = {
+  icon: React.ReactNode;
+  label: string;
+  items: string[];
+};
+
+function ChipRow({ icon, label, items }: ChipRowProps) {
+  return (
+    <div className="flex flex-col gap-2">
+      <dt className="flex items-center gap-2 text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+        {icon}
+        {label}
+      </dt>
+      {items.length === 0 ? (
+        <dd className="text-on-surface-variant text-sm italic">Chưa cập nhật</dd>
+      ) : (
+        <dd className="flex flex-wrap gap-2">
+          {items.map((item) => (
+            <span
+              key={item}
+              className="inline-flex items-center px-3 py-1 rounded-full bg-surface-container-low text-on-surface text-sm border border-outline-variant"
+            >
+              {item}
+            </span>
+          ))}
+        </dd>
+      )}
     </div>
   );
 }

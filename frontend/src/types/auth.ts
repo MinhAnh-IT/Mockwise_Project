@@ -5,12 +5,23 @@ export type AccountRequest = {
   password: string;
 };
 
+import type { Language } from '@/types/profile';
+
 export type ProfileDraftRequest = {
   fullName: string;
   trackId: string;
   levelId: string;
   city: string;
   experience: number;
+  /**
+   * Optional first-pass profile fields. Users can register with only the
+   * required ones; richer signals (techStack / industries / yearsInCurrentRole)
+   * can be filled later via /profile/edit.
+   */
+  preferredLanguage?: Language;
+  techStack?: string[];
+  yearsInCurrentRole?: number;
+  industries?: string[];
 };
 
 export type RegisterRequest = {
