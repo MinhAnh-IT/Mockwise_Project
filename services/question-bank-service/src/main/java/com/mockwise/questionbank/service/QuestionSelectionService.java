@@ -46,7 +46,13 @@ public class QuestionSelectionService {
     public QuestionFilterResponse filter(QuestionFilterRequest req) {
         validate(req);
 
-        String tags = toPgTextArray(req.tagsAny());
+        // Tags use the "IS NULL OR overlap" pattern, so pass null (not "{}")
+        // when there's no bias — '{} && q.tags' is always FALSE and would
+        // wipe out the candidate pool. excludeIds uses NOT ANY which works
+        // correctly with "{}" so it stays.
+        String tags = (req.tagsAny() == null || req.tagsAny().isEmpty())
+                ? null
+                : toPgTextArray(req.tagsAny());
         String excludeIds = toPgTextArray(req.excludeIds());
         int limit = req.effectiveLimit();
 
