@@ -69,6 +69,9 @@ _consumer_stop: Optional[asyncio.Event] = None
 _evaluation_consumer_task: Optional[asyncio.Task] = None
 _evaluation_consumer_stop: Optional[asyncio.Event] = None
 _evaluation_kafka_enabled = False
+_session_review_consumer_task: Optional[asyncio.Task] = None
+_session_review_consumer_stop: Optional[asyncio.Event] = None
+_session_review_kafka_enabled = False
 _selector_enabled = False
 _start_time: float = 0.0
 
@@ -77,6 +80,7 @@ _start_time: float = 0.0
 async def lifespan(_: FastAPI):
     global _consumer_task, _consumer_stop, _selector_enabled, _start_time
     global _evaluation_consumer_task, _evaluation_consumer_stop, _evaluation_kafka_enabled
+    global _session_review_consumer_task, _session_review_consumer_stop, _session_review_kafka_enabled
     _start_time = time.time()
 
     if config.DATABASE_URL:
@@ -130,6 +134,24 @@ async def lifespan(_: FastAPI):
                 "still works, but interview-service won't get evaluation-completed events.",
                 exc,
             )
+
+        # Session-level overall reviewer pipeline.
+        from messaging import session_review_producer
+        from messaging.session_review_consumer import run_session_review_consumer
+        try:
+            await session_review_producer.start_producer()
+            _session_review_consumer_stop = asyncio.Event()
+            _session_review_consumer_task = asyncio.create_task(
+                run_session_review_consumer(_session_review_consumer_stop)
+            )
+            _session_review_kafka_enabled = True
+            logger.info("Session-review Kafka pipeline started")
+        except Exception as exc:
+            logger.error(
+                "Session-review Kafka pipeline failed to start (%s) — interview-service "
+                "won't get session-evaluation-completed events until restart.",
+                exc,
+            )
     else:
         logger.warning(
             "KAFKA_BOOTSTRAP_SERVERS not set — evaluation Kafka pipeline disabled"
@@ -143,6 +165,8 @@ async def lifespan(_: FastAPI):
             _consumer_stop.set()
         if _evaluation_consumer_stop is not None:
             _evaluation_consumer_stop.set()
+        if _session_review_consumer_stop is not None:
+            _session_review_consumer_stop.set()
         if _consumer_task is not None:
             try:
                 await asyncio.wait_for(_consumer_task, timeout=10.0)
@@ -155,9 +179,18 @@ async def lifespan(_: FastAPI):
             except asyncio.TimeoutError:
                 logger.warning("Evaluation consumer did not stop within 10s; cancelling")
                 _evaluation_consumer_task.cancel()
+        if _session_review_consumer_task is not None:
+            try:
+                await asyncio.wait_for(_session_review_consumer_task, timeout=10.0)
+            except asyncio.TimeoutError:
+                logger.warning("Session-review consumer did not stop within 10s; cancelling")
+                _session_review_consumer_task.cancel()
         if _evaluation_kafka_enabled:
             from messaging import evaluation_producer
             await evaluation_producer.stop_producer()
+        if _session_review_kafka_enabled:
+            from messaging import session_review_producer
+            await session_review_producer.stop_producer()
         if _selector_enabled:
             from selector.repository.db import close_pool
             await close_pool()
@@ -209,6 +242,11 @@ async def health():
         checks["evaluation_kafka"] = "running"
     else:
         checks["evaluation_kafka"] = "disabled (no KAFKA_BOOTSTRAP_SERVERS)"
+
+    if _session_review_kafka_enabled:
+        checks["session_review_kafka"] = "running"
+    else:
+        checks["session_review_kafka"] = "disabled (no KAFKA_BOOTSTRAP_SERVERS)"
 
     body = {
         "status": overall,

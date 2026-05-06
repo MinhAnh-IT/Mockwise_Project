@@ -6,6 +6,7 @@ import com.mockwise.interview.enums.TopicStatus;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public record SessionView(
@@ -21,7 +22,11 @@ public record SessionView(
         OffsetDateTime finishedAt,
         OffsetDateTime scoredAt,
         List<TopicProgress> topicProgress,
-        List<PinnedQuestionView> questions
+        List<PinnedQuestionView> questions,
+        // Populated only when status == SCORED (Task C). Carries the AI's
+        // overall_reviewer output: overallScore / grade / hireSignal /
+        // summary / strengths / weaknesses / perTopicSummary / recommendations.
+        Map<String, Object> overallReview
 ) {
 
     public record TopicProgress(

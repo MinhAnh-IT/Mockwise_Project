@@ -1,0 +1,1097 @@
+openapi: 3.0.3
+
+info:
+  title: MockWise — Interview Service
+  version: 1.0.0
+  description: |
+    Orchestrates a candidate's mock-interview from `/start` through to a final
+    AI-generated overall review. Owns the topic-coverage matrix, the adaptive
+    next-question planner (Case A/B/C/D + follow-ups), the per-answer state
+    machine, and the cross-question finalization that publishes
+    `interview-scored` for downstream services.
+
+    All public traffic goes through the API Gateway: **`http://localhost:8888`**
+    Direct service port (dev only): `8088` (context-path: `/api/v1/interviews`)
+
+    ### Three classes of endpoints
+
+    | Class    | Path prefix                              | Auth                       | Reachable from |
+    |----------|------------------------------------------|----------------------------|----------------|
+    | Public   | `/api/v1/interviews/{start, …}`          | JWT (`Bearer`) by gateway  | Public network |
+    | Admin    | `/api/v1/interviews/admin/**`            | JWT + `ROLE_ADMIN` (gateway-enforced) | Public network — gateway returns 403 for non-admins |
+    | Internal | `/api/v1/interviews/internal/**`         | `X-Internal-Auth` header   | Internal network only |
+
+    ### End-to-end flow (BEHAVIORAL / CORE)
+
+    1. FE → `POST /start` — interview-service loads the user profile, picks the
+       default `InterviewBlueprint` for the user's (track, level, type), seeds
+       the topic-coverage matrix, and pins the first question.
+    2. FE records video → uploads via storage-service presigned PUT (separate
+       service).
+    3. FE → `POST /{sid}/questions/{sqid}/answers` with the resulting
+       `storageObjectId`. Interview-service verifies the object via
+       storage-service `/internal/objects/{id}` and stages `answer-submitted`
+       on the outbox.
+    4. tts-stt consumes, runs STT, publishes `transcript-ready` → interview
+       consumes, fetches transcript, stages `evaluation-requested`.
+    5. AI service evaluator graph scores the answer, publishes
+       `evaluation-completed` → interview consumes, sets answer SCORED, runs
+       the planner, pins the next question (or ends the session).
+    6. When the session reaches COMPLETED **and** every answer is terminal,
+       interview stages `session-evaluation-requested`. The AI overall reviewer
+       returns `session-evaluation-completed` → session flips to SCORED with
+       `finalScore` + `metadata.overallReview`. `interview-scored` is staged
+       for mail-service.
+
+    ### Per-question results are hidden mid-session
+
+    `GET /{sid}/answers/{aid}` masks `score`, `feedback`, `verdict`, and
+    `rubricScores` while the session is anything other than SCORED. The
+    candidate sees `status` transitions for live UI feedback but cannot peek at
+    the per-question grading. After the AI overall reviewer lands and the
+    session flips to SCORED, all per-question fields and the consolidated
+    `overallReview` become visible together.
+
+servers:
+  - url: http://localhost:8888
+    description: Local via API Gateway (public + admin endpoints)
+  - url: http://localhost:8088
+    description: Direct (dev only)
+
+tags:
+  - name: Sessions
+    description: Candidate-facing session lifecycle
+  - name: Answers
+    description: Submit & poll per-question answers
+  - name: Admin
+    description: Blueprint (interview template) CRUD — gateway enforces ROLE_ADMIN
+  - name: Health
+    description: Liveness probe
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ── Enums ────────────────────────────────────────────────────────────────
+
+    InterviewType:
+      type: string
+      enum: [BEHAVIORAL, CORE, MIXED]
+
+    SessionStatus:
+      type: string
+      enum: [CREATED, IN_PROGRESS, COMPLETED, CANCELLED, SCORED]
+      description: |
+        - `CREATED` — row inserted but no first question yet (rare; `/start` jumps straight to IN_PROGRESS).
+        - `IN_PROGRESS` — questions being asked / answered.
+        - `COMPLETED` — planner ended (budget/coverage) or user clicked /finish; awaiting overall review.
+        - `SCORED` — terminal; `finalScore` + `metadata.overallReview` populated.
+        - `CANCELLED` — terminal; admin or system aborted.
+
+    AnswerStatus:
+      type: string
+      enum: [SUBMITTED, PROCESSING, READY, EVALUATING, SCORED, FAILED]
+      description: |
+        Lifecycle: SUBMITTED → PROCESSING → READY → EVALUATING → SCORED|FAILED.
+        FE typically polls `GET /{sid}/answers/{aid}` until status is terminal.
+
+    AnswerType:
+      type: string
+      enum: [VIDEO, CODE]
+
+    QuestionType:
+      type: string
+      enum: [BEHAVIORAL, CORE_CONCEPTUAL, LIVE_CODING]
+
+    QuestionSource:
+      type: string
+      enum: [BANK, PRE_AUTHORED_FOLLOWUP, AI_GENERATED]
+
+    Difficulty:
+      type: string
+      enum: [EASY, MEDIUM, HARD]
+
+    Importance:
+      type: string
+      enum: [HIGH, MED, LOW]
+
+    TopicKind:
+      type: string
+      enum: [COMPETENCY, DOMAIN]
+
+    TopicStatus:
+      type: string
+      enum: [NOT_TESTED, PROBING, STRONG, ADEQUATE, PARTIAL, WEAK, UNKNOWN]
+
+    # ── Sessions ─────────────────────────────────────────────────────────────
+
+    StartSessionInput:
+      type: object
+      required: [interviewType]
+      properties:
+        interviewType:
+          $ref: '#/components/schemas/InterviewType'
+        topicFocus:
+          type: string
+          maxLength: 50
+          nullable: true
+          description: Optional bumped-importance topic (e.g. `DATABASE`).
+        timeBudgetMinutesOverride:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: Optional shorter session length than the blueprint default.
+
+    PinnedQuestionView:
+      type: object
+      properties:
+        sessionQuestionId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          example: 1
+        questionId:
+          type: string
+          nullable: true
+          description: Bank question id; null for AI_GENERATED follow-ups.
+        questionType:
+          $ref: '#/components/schemas/QuestionType'
+        topicKind:
+          $ref: '#/components/schemas/TopicKind'
+        topicValue:
+          type: string
+          example: OWNERSHIP
+        difficulty:
+          $ref: '#/components/schemas/Difficulty'
+        source:
+          $ref: '#/components/schemas/QuestionSource'
+        isFollowUp:
+          type: boolean
+        parentSessionQuestionId:
+          type: string
+          format: uuid
+          nullable: true
+        text:
+          type: string
+        audioKey:
+          type: string
+          nullable: true
+        audioUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: |
+            Short-lived presigned GET URL (≤ 60s) the FE plays directly. Null
+            when storage signing failed — FE should display the question text.
+        expectedPoints:
+          type: array
+          nullable: true
+          items:
+            type: string
+
+    StartSessionOutput:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        targetRole:
+          type: string
+          example: BACKEND
+        level:
+          type: string
+          example: mid
+        interviewType:
+          $ref: '#/components/schemas/InterviewType'
+        questionBudget:
+          type: integer
+          example: 8
+        timeBudgetMinutes:
+          type: integer
+          example: 45
+        firstQuestion:
+          $ref: '#/components/schemas/PinnedQuestionView'
+
+    SessionView:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+        targetRole:
+          type: string
+        level:
+          type: string
+        interviewType:
+          $ref: '#/components/schemas/InterviewType'
+        status:
+          $ref: '#/components/schemas/SessionStatus'
+        questionCount:
+          type: integer
+        finalScore:
+          type: number
+          format: float
+          nullable: true
+          description: 0..10 — null until status == SCORED.
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        scoredAt:
+          type: string
+          format: date-time
+          nullable: true
+        topicProgress:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopicProgress'
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PinnedQuestionView'
+        overallReview:
+          $ref: '#/components/schemas/OverallReview'
+
+    TopicProgress:
+      type: object
+      properties:
+        topicKind:
+          type: string
+        topicValue:
+          type: string
+        status:
+          $ref: '#/components/schemas/TopicStatus'
+        questionsAsked:
+          type: integer
+        followUpsUsed:
+          type: integer
+        lastScore:
+          type: number
+          format: float
+          nullable: true
+
+    OverallReview:
+      type: object
+      nullable: true
+      description: |
+        Cross-question review produced by the AI overall_reviewer graph. **Only
+        present when `status == SCORED`.** Stashed verbatim from the
+        `session-evaluation-completed` event payload, so any new field added by
+        the AI side appears here without a coordinated deploy.
+      properties:
+        sessionId:
+          type: string
+        overallScore:
+          type: number
+          format: float
+          example: 8.4
+        grade:
+          type: string
+          enum: [A, B, C, D, F]
+        hireSignal:
+          type: string
+          enum: [strong_yes, yes, weak_yes, no, strong_no]
+        summary:
+          type: string
+        strengths:
+          type: array
+          items:
+            type: string
+        weaknesses:
+          type: array
+          items:
+            type: string
+        perTopicSummary:
+          type: array
+          items:
+            type: object
+            properties:
+              topicKind:
+                type: string
+              topicValue:
+                type: string
+              status:
+                type: string
+              comment:
+                type: string
+        recommendations:
+          type: array
+          items:
+            type: string
+
+    # ── Answers ──────────────────────────────────────────────────────────────
+
+    SubmitAnswerInput:
+      type: object
+      required: [type]
+      properties:
+        type:
+          $ref: '#/components/schemas/AnswerType'
+        storageObjectId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Required when `type == VIDEO`. Must reference a READY object owned by the caller.
+        code:
+          type: string
+          maxLength: 262144
+          nullable: true
+          description: Required when `type == CODE`. Up to 256 KB of source.
+        language:
+          type: string
+          maxLength: 20
+          nullable: true
+          description: Required when `type == CODE`. e.g. `java`, `python`.
+
+    SubmitAnswerOutput:
+      type: object
+      properties:
+        answerId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/AnswerStatus'
+          example: PROCESSING
+        submittedAt:
+          type: string
+          format: date-time
+
+    AnswerView:
+      type: object
+      description: |
+        Returned by `GET /{sid}/answers/{aid}`. **`score`, `maxScore`, `feedback`,
+        `verdict`, and `rubricScores` are masked to null while the session is in
+        any state other than SCORED** — the candidate cannot see per-question
+        grading mid-interview. They are revealed in one shot once the AI overall
+        reviewer flips the session to SCORED.
+      properties:
+        answerId:
+          type: string
+          format: uuid
+        sessionId:
+          type: string
+          format: uuid
+        sessionQuestionId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/AnswerType'
+        status:
+          $ref: '#/components/schemas/AnswerStatus'
+        score:
+          type: number
+          format: float
+          nullable: true
+        maxScore:
+          type: number
+          format: float
+          nullable: true
+        feedback:
+          type: string
+          nullable: true
+        verdict:
+          type: object
+          additionalProperties: true
+          nullable: true
+        rubricScores:
+          type: object
+          additionalProperties: true
+          nullable: true
+        errorCode:
+          type: string
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+        submittedAt:
+          type: string
+          format: date-time
+          nullable: true
+        scoredAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    # ── Admin: blueprints (interview templates) ──────────────────────────────
+
+    BlueprintTopicDto:
+      type: object
+      required: [kind, topicValue, importance, targetDifficulty]
+      properties:
+        kind:
+          $ref: '#/components/schemas/TopicKind'
+        topicValue:
+          type: string
+          maxLength: 50
+          description: Uppercased token, e.g. `OWNERSHIP`, `DATABASE`. Matches the question-bank `Competency`/`Domain` enums.
+          example: OWNERSHIP
+        importance:
+          $ref: '#/components/schemas/Importance'
+        targetDifficulty:
+          $ref: '#/components/schemas/Difficulty'
+        orderHint:
+          type: integer
+          minimum: 0
+          example: 1
+          description: Sort key when picking the next topic (lower = earlier).
+
+    BlueprintCreateRequest:
+      type: object
+      required: [targetRole, level, interviewType, topics]
+      properties:
+        targetRole:
+          type: string
+          maxLength: 20
+          description: |
+            Will be normalized server-side via `BlueprintNormalizer.normalizeRole`
+            (e.g. "Backend" → "BACKEND"). Match the value the user-profile track
+            normalizes to, otherwise sessions for that user will fail to start
+            with `BLUEPRINT_NOT_FOUND`.
+          example: BACKEND
+        level:
+          type: string
+          maxLength: 20
+          description: Normalized to one of `junior`, `mid`, `senior`.
+          example: mid
+        interviewType:
+          $ref: '#/components/schemas/InterviewType'
+        topics:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/BlueprintTopicDto'
+        questionBudget:
+          type: integer
+          minimum: 1
+          default: 8
+        timeBudgetMinutes:
+          type: integer
+          minimum: 1
+          default: 45
+        maxFollowUpsPerTopic:
+          type: integer
+          minimum: 0
+          default: 2
+        maxFollowUpsPerSession:
+          type: integer
+          minimum: 0
+          default: 4
+        useAiSelector:
+          type: boolean
+          default: false
+        isDefault:
+          type: boolean
+          default: false
+          description: |
+            At most one default blueprint per (targetRole, level, interviewType).
+            Setting this true automatically clears the flag on any sibling.
+
+    BlueprintUpdateRequest:
+      allOf:
+        - $ref: '#/components/schemas/BlueprintCreateRequest'
+
+    SetDefaultRequest:
+      type: object
+      required: [isDefault]
+      properties:
+        isDefault:
+          type: boolean
+
+    BlueprintAdminResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        targetRole:
+          type: string
+        level:
+          type: string
+        interviewType:
+          $ref: '#/components/schemas/InterviewType'
+        topics:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlueprintTopicDto'
+        questionBudget:
+          type: integer
+        timeBudgetMinutes:
+          type: integer
+        maxFollowUpsPerTopic:
+          type: integer
+        maxFollowUpsPerSession:
+          type: integer
+        useAiSelector:
+          type: boolean
+        isDefault:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ── Standard envelopes ────────────────────────────────────────────────────
+
+    ApiResponse:
+      type: object
+      required: [success, code]
+      properties:
+        success:
+          type: boolean
+        code:
+          type: integer
+        message:
+          type: string
+          nullable: true
+        data:
+          nullable: true
+
+    ApiListResponse:
+      type: object
+      properties:
+        totalCount:
+          type: integer
+        items:
+          type: array
+          items: {}
+
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      example:
+        success: false
+        code: 4042
+        message: "No blueprint configured for the requested role/level/type"
+        data: null
+
+  responses:
+    BadRequest:
+      description: Validation error or invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Missing/invalid bearer token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Authenticated but not the owner of the session/answer (or non-admin hitting /admin)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Session, answer, or blueprint does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: |
+        State-machine violation. Common codes:
+        - `4090` session not in IN_PROGRESS (e.g. submitting after /finish)
+        - `4093` storage object not READY
+        - `4096` another default blueprint exists for the same (role, level, type)
+        - `4097` cannot delete a blueprint still referenced by sessions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+paths:
+  /api/v1/interviews/health:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ── Sessions ──────────────────────────────────────────────────────────────
+
+  /api/v1/interviews/start:
+    post:
+      tags: [Sessions]
+      summary: Start a new interview session
+      description: |
+        Loads the caller's profile from user-profile-service, normalizes
+        track/level, picks the matching default `InterviewBlueprint`, seeds
+        the topic-coverage matrix, and pins the first question.
+
+        Returns the pinned question pre-signed for direct audio playback (TTL
+        ≤ 60s — refresh by calling `GET /{sid}` again).
+
+        Errors:
+        - `4042 BLUEPRINT_NOT_FOUND` — no default blueprint exists for the
+          user's (track, level, type). Ask an admin to create one via
+          `POST /admin/blueprints`.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartSessionInput'
+      responses:
+        '201':
+          description: Session created, first question pinned
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StartSessionOutput'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/interviews/{sid}:
+    get:
+      tags: [Sessions]
+      summary: Fetch full session detail
+      description: |
+        Returns session metadata, topic-coverage matrix, every pinned question,
+        and (only when status == SCORED) the consolidated `overallReview`.
+
+        Per-question scores in `questions[]` are NOT included — those live on
+        `GET /{sid}/answers/{aid}` and are masked until the session is SCORED.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: sid
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Session detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SessionView'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/interviews/{sid}/finish:
+    post:
+      tags: [Sessions]
+      summary: User-triggered hard stop
+      description: |
+        Flips status from IN_PROGRESS → COMPLETED. Idempotent — already
+        terminal sessions return 200 without mutation.
+
+        Also fires the "all answers terminal?" gate. If at the moment of the
+        call every per-answer evaluation has already landed, the
+        `session-evaluation-requested` outbox row is staged here. Otherwise the
+        gate fires later when the last in-flight `evaluation-completed` event
+        is consumed.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: sid
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Session marked COMPLETED (or no-op if already terminal)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Answers ───────────────────────────────────────────────────────────────
+
+  /api/v1/interviews/{sid}/questions/{sqid}/answers:
+    post:
+      tags: [Answers]
+      summary: Submit a video or code answer for a pinned question
+      description: |
+        VIDEO answers must reference a READY storage object owned by the caller —
+        interview-service verifies it via `GET /api/v1/storage/internal/objects/{id}`
+        before persisting the answer row. CODE answers carry the source inline.
+
+        After this call returns, the FE should poll `GET /{sid}/answers/{aid}`
+        until status reaches SCORED (or FAILED). The verdict + score remain
+        masked until the whole session is SCORED.
+
+        Path parameters:
+        - `sid`  — session id (`interview_session.id`)
+        - `sqid` — pinned **session_question id** (NOT the bank question id),
+          so a follow-up answer is unambiguous.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: sid
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: sqid
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitAnswerInput'
+      responses:
+        '202':
+          description: Answer accepted, queued for transcription / scoring
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SubmitAnswerOutput'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/interviews/{sid}/answers/{aid}:
+    get:
+      tags: [Answers]
+      summary: Poll an answer's evaluation state
+      description: |
+        Returns the answer with its current status. Per-question grading
+        (`score`, `maxScore`, `feedback`, `verdict`, `rubricScores`) is **null
+        until the parent session is SCORED**.
+
+        FE typical poll loop:
+        - `PROCESSING` → STT in flight, keep polling.
+        - `EVALUATING` → AI in flight, keep polling.
+        - `SCORED` → still mid-session: render "câu đã được đánh giá", move to next question.
+        - `FAILED` → render error using `errorCode` / `errorMessage`.
+        - After session SCORED → re-fetch to get the revealed verdict bundle.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: sid
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: aid
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Answer state
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AnswerView'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Admin: blueprints ─────────────────────────────────────────────────────
+
+  /api/v1/interviews/admin/blueprints:
+    post:
+      tags: [Admin]
+      summary: Create a blueprint (interview template)
+      description: |
+        Admin-only. Defines the topic mix, question budget, time budget, and
+        follow-up limits the orchestrator uses when a candidate's
+        (track, level, type) matches.
+
+        `targetRole` and `level` are normalized server-side (e.g. "Backend" →
+        "BACKEND", "Mid" → "mid"). The unique partial index on
+        `(target_role, level, interview_type) WHERE is_default = TRUE` is
+        respected: setting `isDefault: true` here clears the flag on any
+        sibling in one transaction.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlueprintCreateRequest'
+      responses:
+        '201':
+          description: Blueprint created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BlueprintAdminResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    get:
+      tags: [Admin]
+      summary: List blueprints with optional filters
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: targetRole
+          schema:
+            type: string
+        - in: query
+          name: level
+          schema:
+            type: string
+        - in: query
+          name: interviewType
+          schema:
+            $ref: '#/components/schemas/InterviewType'
+        - in: query
+          name: isDefault
+          schema:
+            type: boolean
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 0
+        - in: query
+          name: size
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Page of blueprints
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ApiListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/BlueprintAdminResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/interviews/admin/blueprints/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Admin]
+      summary: Fetch a single blueprint
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Blueprint detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BlueprintAdminResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Admin]
+      summary: Update a blueprint
+      description: |
+        Full replacement of the editable fields. The (`targetRole`, `level`,
+        `interviewType`) tuple may be changed; if the new tuple already has a
+        default, this update will conflict (4096) when promoting to default.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlueprintUpdateRequest'
+      responses:
+        '200':
+          description: Blueprint updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BlueprintAdminResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags: [Admin]
+      summary: Delete a blueprint
+      description: |
+        Hard delete. Blocked with `4097 BLUEPRINT_IN_USE` when at least one
+        `interview_session.blueprint_id` still references this row — sessions
+        carry the FK so deleting would orphan them. Update the seed data or
+        wait for the in-flight sessions to finish before deleting.
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Blueprint deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/interviews/admin/blueprints/{id}/default:
+    patch:
+      tags: [Admin]
+      summary: Toggle the isDefault flag for a blueprint
+      description: |
+        Promotes (or demotes) this blueprint as the default for its
+        (`targetRole`, `level`, `interviewType`) tuple. When promoting, any
+        sibling default in the same tuple is automatically cleared in one
+        transaction so the partial unique index is never violated.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetDefaultRequest'
+      responses:
+        '200':
+          description: Default flag updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BlueprintAdminResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'

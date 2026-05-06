@@ -5,6 +5,7 @@ import com.mockwise.interview.common.security.CustomUserDetails;
 import com.mockwise.interview.dto.request.SubmitAnswerInput;
 import com.mockwise.interview.dto.response.AnswerView;
 import com.mockwise.interview.dto.response.SubmitAnswerOutput;
+import com.mockwise.interview.enums.SessionStatus;
 import com.mockwise.interview.service.AnswerService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -55,7 +56,11 @@ public class AnswerController {
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable UUID sid,
             @PathVariable UUID aid) {
-        var answer = answerService.getForUser(sid, aid, user.getUserId());
-        return ResponseEntity.ok(ApiResponse.success(AnswerView.fromEntity(answer)));
+        var pair = answerService.getForUser(sid, aid, user.getUserId());
+        // Per-question score / feedback / verdict stay hidden until the session
+        // reaches SCORED — the candidate only sees the consolidated overall
+        // review at the end of the interview.
+        boolean reveal = pair.sessionStatus() == SessionStatus.SCORED;
+        return ResponseEntity.ok(ApiResponse.success(AnswerView.fromEntity(pair.answer(), reveal)));
     }
 }

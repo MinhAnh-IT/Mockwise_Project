@@ -53,6 +53,21 @@ KAFKA_EVALUATION_CONSUMER_GROUP: str = os.getenv(
     "KAFKA_EVALUATION_CONSUMER_GROUP", "ai-service-evaluator"
 )
 
+# Kafka — overall (cross-question) review pipeline. Fired by interview-service
+# after every per-answer evaluation has reached a terminal state for a session.
+KAFKA_TOPIC_SESSION_EVAL_REQUESTED: str = os.getenv(
+    "KAFKA_TOPIC_SESSION_EVAL_REQUESTED", "session-evaluation-requested"
+)
+KAFKA_TOPIC_SESSION_EVAL_COMPLETED: str = os.getenv(
+    "KAFKA_TOPIC_SESSION_EVAL_COMPLETED", "session-evaluation-completed"
+)
+KAFKA_TOPIC_SESSION_EVAL_FAILED: str = os.getenv(
+    "KAFKA_TOPIC_SESSION_EVAL_FAILED", "session-evaluation-failed"
+)
+KAFKA_SESSION_EVAL_CONSUMER_GROUP: str = os.getenv(
+    "KAFKA_SESSION_EVAL_CONSUMER_GROUP", "ai-service-session-reviewer"
+)
+
 # Question-bank service base URL — used by the bootstrap reindex endpoint.
 QUESTION_BANK_BASE_URL: str = os.getenv(
     "QUESTION_BANK_BASE_URL", "http://question-bank-service:8084"

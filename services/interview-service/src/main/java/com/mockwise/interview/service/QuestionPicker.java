@@ -9,6 +9,7 @@ import com.mockwise.interview.client.questionbank.dto.FollowUpResponse;
 import com.mockwise.interview.client.questionbank.dto.QuestionCandidate;
 import com.mockwise.interview.client.questionbank.dto.QuestionFilterRequest;
 import com.mockwise.interview.client.questionbank.dto.QuestionFilterResponse;
+import com.mockwise.interview.client.questionbank.dto.QuestionSnapshotResponse;
 import com.mockwise.interview.client.userprofile.dto.UserProfileResponse;
 import com.mockwise.interview.common.exception.BusinessException;
 import com.mockwise.interview.common.exception.StatusCode;
@@ -97,6 +98,11 @@ public class QuestionPicker {
         // Counter bump is fire-and-forget — see QuestionBankAdapter.markAskedSoft.
         questionBankAdapter.markAskedSoft(chosen.id());
 
+        // Pull the rich snapshot from question-bank so the evaluator and the
+        // end-of-session reviewer have expectedSignals/keyConcepts/depthExpected/
+        // testCases without re-querying. Fallback to thin snapshot on outage.
+        QuestionSnapshotResponse rich = questionBankAdapter.getSnapshotSoft(chosen.id()).orElse(null);
+
         return sessionQuestionRepo.save(SessionQuestion.builder()
                 .sessionId(sessionId)
                 .sequence(sequence)
@@ -107,7 +113,7 @@ public class QuestionPicker {
                 .difficulty(difficulty)
                 .isFollowUp(false)
                 .source(QuestionSource.BANK)
-                .snapshot(buildSnapshot(chosen))
+                .snapshot(buildSnapshot(chosen, rich))
                 .build());
     }
 
@@ -233,7 +239,7 @@ public class QuestionPicker {
                 .parentSessionQuestionId(parent.getId())
                 .isFollowUp(true)
                 .source(QuestionSource.PRE_AUTHORED_FOLLOWUP)
-                .snapshot(buildFollowUpSnapshot(fu))
+                .snapshot(buildFollowUpSnapshot(fu, parent))
                 .build()));
     }
 
@@ -289,7 +295,7 @@ public class QuestionPicker {
                 .source(QuestionSource.AI_GENERATED)
                 .inlineText(res.questionText())
                 .inlineExpectedPoints(res.expectedPoints() != null ? res.expectedPoints() : new ArrayList<>())
-                .snapshot(buildAiSnapshot(res))
+                .snapshot(buildAiSnapshot(res, parent))
                 .build());
     }
 
@@ -330,20 +336,59 @@ public class QuestionPicker {
         return false;
     }
 
-    private static Map<String, Object> buildSnapshot(QuestionCandidate c) {
+    /**
+     * Frozen snapshot stored on {@code SessionQuestion.snapshot}. Prefer the
+     * rich snapshot from question-bank ({@code expectedSignals},
+     * {@code keyConcepts}, {@code depthExpected}, coding fields) — fall
+     * back to the thin candidate fields when the snapshot fetch failed so
+     * a transient outage never blocks pinning.
+     */
+    private static Map<String, Object> buildSnapshot(QuestionCandidate c, QuestionSnapshotResponse rich) {
         Map<String, Object> m = new HashMap<>();
+        // Always-present base fields
         m.put("id", c.id());
-        m.put("type", c.type() != null ? c.type().name() : null);
-        m.put("difficulty", c.difficulty() != null ? c.difficulty().name() : null);
-        m.put("text", c.text());
-        m.put("audioKey", c.audioKey());
-        m.put("competency", c.competency());
-        m.put("domain", c.domain());
-        m.put("tags", c.tags());
+        m.put("type", c.type() != null ? c.type().name() : (rich != null ? rich.type() : null));
+        m.put("difficulty", c.difficulty() != null ? c.difficulty().name() : (rich != null ? rich.difficulty() : null));
+        m.put("text", rich != null && rich.text() != null ? rich.text() : c.text());
+        m.put("audioKey", rich != null && rich.audioKey() != null ? rich.audioKey() : c.audioKey());
+        m.put("tags", rich != null && rich.tags() != null ? rich.tags() : c.tags());
+        m.put("snapshotAt", rich != null && rich.snapshotAt() != null ? rich.snapshotAt().toString() : null);
+
+        // BEHAVIORAL — competency from candidate (always set), expectedSignals only from rich
+        m.put("competency", c.competency() != null ? c.competency() : (rich != null ? rich.competency() : null));
+        if (rich != null && rich.expectedSignals() != null) {
+            m.put("expectedSignals", rich.expectedSignals());
+        }
+
+        // CORE_CONCEPTUAL — domain from candidate, keyConcepts/depthExpected/targetRoles from rich
+        m.put("domain", c.domain() != null ? c.domain() : (rich != null ? rich.domain() : null));
+        if (rich != null) {
+            if (rich.keyConcepts() != null) m.put("keyConcepts", rich.keyConcepts());
+            if (rich.depthExpected() != null) m.put("depthExpected", rich.depthExpected());
+            if (rich.targetRoles() != null) m.put("targetRoles", rich.targetRoles());
+        }
+
+        // LIVE_CODING — only present when type=LIVE_CODING
+        if (rich != null) {
+            if (rich.title() != null) m.put("title", rich.title());
+            if (rich.description() != null) m.put("description", rich.description());
+            if (rich.timeLimitMinutes() != null) m.put("timeLimitMinutes", rich.timeLimitMinutes());
+            if (rich.optimalTimeComplexity() != null) m.put("optimalTimeComplexity", rich.optimalTimeComplexity());
+            if (rich.optimalSpaceComplexity() != null) m.put("optimalSpaceComplexity", rich.optimalSpaceComplexity());
+            if (rich.functionMeta() != null) m.put("functionMeta", rich.functionMeta());
+            if (rich.starterCode() != null) m.put("starterCode", rich.starterCode());
+            if (rich.testCases() != null) m.put("testCases", rich.testCases());
+        }
         return m;
     }
 
-    private static Map<String, Object> buildFollowUpSnapshot(FollowUpResponse fu) {
+    /**
+     * Pre-authored follow-up snapshot inherits topic context from the parent
+     * (competency, domain, keyConcepts, expectedSignals, depthExpected) so
+     * AnswerService.applyTranscriptReady can build the evaluator payload
+     * without distinguishing follow-ups from openers.
+     */
+    private static Map<String, Object> buildFollowUpSnapshot(FollowUpResponse fu, SessionQuestion parent) {
         Map<String, Object> m = new HashMap<>();
         m.put("id", fu.id());
         m.put("text", fu.text());
@@ -351,16 +396,34 @@ public class QuestionPicker {
         m.put("expectedPoints", fu.expectedPoints());
         m.put("probesTargetKind", fu.probesTargetKind());
         m.put("probesTargetValue", fu.probesTargetValue());
+        inheritFromParent(m, parent);
         return m;
     }
 
-    private static Map<String, Object> buildAiSnapshot(AiFollowUpResponse res) {
+    private static Map<String, Object> buildAiSnapshot(AiFollowUpResponse res, SessionQuestion parent) {
         Map<String, Object> m = new HashMap<>();
         m.put("text", res.questionText());
         m.put("expectedPoints", res.expectedPoints());
         m.put("rationale", res.rationale());
         m.put("source", res.source());
         m.put("modelMeta", res.modelMeta());
+        inheritFromParent(m, parent);
         return m;
+    }
+
+    /**
+     * Copy topic-context fields from parent's snapshot into the follow-up
+     * snapshot. Skips any field already set on the follow-up (e.g. explicit
+     * {@code expectedPoints} on a pre-authored follow-up wins over the
+     * parent's {@code expectedSignals}).
+     */
+    private static void inheritFromParent(Map<String, Object> sink, SessionQuestion parent) {
+        if (parent == null || parent.getSnapshot() == null) return;
+        Map<String, Object> ps = parent.getSnapshot();
+        for (String k : List.of("competency", "domain", "keyConcepts", "expectedSignals", "depthExpected", "targetRoles")) {
+            if (!sink.containsKey(k) && ps.get(k) != null) {
+                sink.put(k, ps.get(k));
+            }
+        }
     }
 }

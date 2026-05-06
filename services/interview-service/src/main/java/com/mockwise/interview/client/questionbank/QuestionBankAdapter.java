@@ -5,6 +5,7 @@ import com.mockwise.interview.client.questionbank.dto.FollowUpResponse;
 import com.mockwise.interview.client.questionbank.dto.MarkAskedResponse;
 import com.mockwise.interview.client.questionbank.dto.QuestionFilterRequest;
 import com.mockwise.interview.client.questionbank.dto.QuestionFilterResponse;
+import com.mockwise.interview.client.questionbank.dto.QuestionSnapshotResponse;
 import com.mockwise.interview.common.exception.BusinessException;
 import com.mockwise.interview.common.exception.StatusCode;
 import lombok.AccessLevel;
@@ -36,6 +37,21 @@ public class QuestionBankAdapter {
 
     public QuestionFilterResponse filter(QuestionFilterRequest request) {
         return unwrap(client.filter(request), "filter");
+    }
+
+    /**
+     * Soft-failing snapshot fetch. The picker can still pin a question with
+     * a thinner snapshot if question-bank is briefly unavailable — the
+     * evaluator will degrade gracefully on missing fields. Returns empty on
+     * any error so the caller can fall back without a try/catch wrapper.
+     */
+    public Optional<QuestionSnapshotResponse> getSnapshotSoft(String questionId) {
+        try {
+            return Optional.ofNullable(unwrap(client.getSnapshot(questionId), "snapshot"));
+        } catch (Exception ex) {
+            log.warn("snapshot fetch failed for question {}: {}", questionId, ex.getMessage());
+            return Optional.empty();
+        }
     }
 
     public List<FollowUpResponse> findFollowUps(

@@ -4,6 +4,7 @@ import com.mockwise.interview.entity.Answer;
 import com.mockwise.interview.enums.AnswerStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,4 +23,12 @@ public interface AnswerRepository extends JpaRepository<Answer, UUID> {
      * the caller can apply its own age cut-off.
      */
     List<Answer> findByStatus(AnswerStatus status);
+
+    /**
+     * Counts answers in a session whose status is in {@code statuses}.
+     * Used by {@link com.mockwise.interview.service.SessionFinalizerService}
+     * to detect "all answers terminal" before staging the overall-review
+     * request.
+     */
+    long countBySessionIdAndStatusIn(UUID sessionId, Collection<AnswerStatus> statuses);
 }

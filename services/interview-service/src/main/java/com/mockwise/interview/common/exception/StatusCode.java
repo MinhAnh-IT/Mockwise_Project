@@ -43,6 +43,15 @@ public enum StatusCode {
     STORAGE_OBJECT_WRONG_KIND(4094, "Storage object kind does not match the expected kind", 400),
     STORAGE_OBJECT_ALREADY_USED(4095, "Storage object is already used by another answer", 409),
 
+    // ── Blueprint admin ──────────────────────────────────────────────────────
+    BLUEPRINT_NO_TOPICS(4002, "Blueprint must have at least one topic", 400),
+    BLUEPRINT_DUPLICATE(4096, "Another default blueprint already exists for this (role, level, type)", 409),
+    BLUEPRINT_IN_USE(4097, "Cannot delete blueprint — sessions still reference it", 409),
+
+    // ── Session finalization ────────────────────────────────────────────────
+    SESSION_NOT_COMPLETED(4098, "Session is not COMPLETED — cannot finalize", 409),
+    SESSION_REVIEW_FAILED(5005, "Overall review failed in AI service", 502),
+
     // ── Validation ───────────────────────────────────────────────────────────
     VALIDATION_ERROR(4001, "Validation failed: %s", 400);
 

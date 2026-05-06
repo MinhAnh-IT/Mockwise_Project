@@ -31,18 +31,27 @@ public record AnswerView(
         OffsetDateTime scoredAt
 ) {
 
-    public static AnswerView fromEntity(Answer a) {
+    /**
+     * Masks score / feedback / verdict / rubricScores when {@code revealResults}
+     * is false — used while the session is still in progress so the candidate
+     * cannot peek at per-question grading. Status, errorCode, errorMessage and
+     * the timestamps stay exposed so the FE can still render
+     * "submitted → scoring → done" transitions between questions. Once the
+     * session reaches SCORED the controller calls this with
+     * {@code revealResults = true}.
+     */
+    public static AnswerView fromEntity(Answer a, boolean revealResults) {
         return new AnswerView(
                 a.getId(),
                 a.getSessionId(),
                 a.getSessionQuestionId(),
                 a.getType(),
                 a.getStatus(),
-                a.getScore(),
-                a.getMaxScore(),
-                a.getFeedback(),
-                a.getVerdict(),
-                a.getRubricScores(),
+                revealResults ? a.getScore() : null,
+                revealResults ? a.getMaxScore() : null,
+                revealResults ? a.getFeedback() : null,
+                revealResults ? a.getVerdict() : null,
+                revealResults ? a.getRubricScores() : null,
                 a.getErrorCode(),
                 a.getErrorMessage(),
                 a.getSubmittedAt(),

@@ -69,8 +69,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class
-AnswerService {
+public class AnswerService {
 
     AnswerRepository answerRepo;
     AnswerEventLogRepository answerEventLogRepo;
@@ -88,6 +87,7 @@ AnswerService {
     NextQuestionPlanner planner;
     SideEffectApplier sideEffectApplier;
     QuestionPicker questionPicker;
+    SessionFinalizerService sessionFinalizer;
     ObjectMapper objectMapper;
 
     // ── Submit (FE → orchestrator) ───────────────────────────────────────────
@@ -212,12 +212,22 @@ AnswerService {
     // ── Get one answer (FE poll) ─────────────────────────────────────────────
 
     /**
-     * Returns the answer if the caller owns its session. The FE polls this
-     * to render scoring → ready → scored transitions; SSE will subsume it
-     * in Phase G but this is the deterministic fallback.
+     * Bundles an answer with the parent session's status. The FE poll endpoint
+     * needs the session status to decide whether to expose the per-question
+     * verdict (revealed only after the session reaches SCORED), and we already
+     * have to load the session for the ownership check — return both so the
+     * controller doesn't issue a second query.
      */
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public Answer getForUser(UUID sessionId, UUID answerId, String userId) {
+    public record AnswerWithSession(Answer answer, SessionStatus sessionStatus) {}
+
+    /**
+     * Returns the answer plus its session's current status if the caller owns
+     * the session. The FE polls this to render scoring → ready → scored
+     * transitions; SSE will subsume it in Phase G but this is the deterministic
+     * fallback.
+     */
+    @Transactional(readOnly = true)
+    public AnswerWithSession getForUser(UUID sessionId, UUID answerId, String userId) {
         Answer answer = answerRepo.findById(answerId)
                 .orElseThrow(() -> new BusinessException(StatusCode.ANSWER_NOT_FOUND));
         if (!answer.getSessionId().equals(sessionId)) {
@@ -228,7 +238,7 @@ AnswerService {
         if (!session.getUserId().equals(userId)) {
             throw new BusinessException(StatusCode.SESSION_NOT_OWNER);
         }
-        return answer;
+        return new AnswerWithSession(answer, session.getStatus());
     }
 
     // ── Apply transcript-ready / -failed (tts-stt → orchestrator) ────────────
@@ -370,6 +380,11 @@ AnswerService {
         logTransition(answerId, prev, AnswerStatus.FAILED, reason, Map.of(
                 "errorCode", String.valueOf(errorCode),
                 "errorMessage", String.valueOf(errorMessage)));
+
+        // After flipping the answer terminal, the session may now be ready
+        // for the cross-question overall review. Idempotent — only fires
+        // when COMPLETED + every answer terminal.
+        sessionFinalizer.maybeRequestOverallReview(answer.getSessionId());
     }
 
     // ── Apply evaluation-completed (Kafka consumer entry point) ──────────────
@@ -419,9 +434,18 @@ AnswerService {
             // Coding answers may not be tied to a topic in the matrix yet;
             // skip the planner for them until we extend the blueprint shape.
             log.info("Answer {} has no topic — skipping planner", answerId);
+            // Still check the gate — a session with only coding answers will
+            // never trip the planner-driven EndSession but its answers can
+            // all reach SCORED via the manual /finish path.
+            sessionFinalizer.maybeRequestOverallReview(session.getId());
             return;
         }
         runPlannerForAnswer(session, sq, verdict);
+
+        // Planner may have flipped the session to COMPLETED via EndSession.
+        // If so (or if a sibling answer's path already did), kick off the
+        // overall review. Idempotent — only fires once per session.
+        sessionFinalizer.maybeRequestOverallReview(session.getId());
     }
 
     private void runPlannerForAnswer(InterviewSession session, SessionQuestion sq, AssessmentVerdict verdict) {

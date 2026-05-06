@@ -36,4 +36,17 @@ public final class KafkaTopics {
 
     /** Produced when a session reaches SCORED — mail-service consumes for the report. */
     public static final String INTERVIEW_SCORED      = "interview-scored";
+
+    /**
+     * Produced when a session is COMPLETED and every answer has reached a
+     * terminal state (SCORED or FAILED). Carries the full per-answer payload
+     * so the AI can run an overall_reviewer graph in a single shot.
+     */
+    public static final String SESSION_EVALUATION_REQUESTED = "session-evaluation-requested";
+
+    /** Consumed: AI published the cross-question review for a session. */
+    public static final String SESSION_EVALUATION_COMPLETED = "session-evaluation-completed";
+
+    /** Consumed: AI hit a hard error producing the overall review. */
+    public static final String SESSION_EVALUATION_FAILED    = "session-evaluation-failed";
 }

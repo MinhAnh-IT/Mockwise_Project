@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -74,6 +75,8 @@ public class SessionService {
     SessionTopicStateRepository topicStateRepo;
     SessionQuestionRepository sessionQuestionRepo;
     AnswerRepository answerRepo;
+    SessionFinalizerService sessionFinalizer;
+    OutboxWriter outboxWriter;
 
     // ── /start ───────────────────────────────────────────────────────────────
 
@@ -178,8 +181,23 @@ public class SessionService {
                 questions.stream()
                         .map(PinnedQuestionView::fromEntity)
                         .map(this::signAudio)
-                        .toList()
+                        .toList(),
+                extractOverallReview(session)
         );
+    }
+
+    /**
+     * Returns the AI overall_reviewer output stashed in
+     * {@code metadata.overallReview} once the session reaches SCORED. Null
+     * for any other status — keeps mid-session polls from leaking the result.
+     */
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> extractOverallReview(InterviewSession session) {
+        if (session.getStatus() != SessionStatus.SCORED || session.getMetadata() == null) {
+            return null;
+        }
+        Object review = session.getMetadata().get("overallReview");
+        return review instanceof Map ? (Map<String, Object>) review : null;
     }
 
     /**
@@ -190,6 +208,84 @@ public class SessionService {
     private PinnedQuestionView signAudio(PinnedQuestionView view) {
         return view.withSignedAudio(
                 key -> storageAdapter.signQuestionAudioUrl(key).orElse(null));
+    }
+
+    // ── Apply overall review (Kafka consumer entry point) ────────────────────
+
+    /**
+     * Called by {@code SessionEvaluationConsumer.onCompleted}. Lands the
+     * AI {@code overall_reviewer} output on the session row and flips
+     * status to SCORED. Idempotent — duplicate deliveries are a no-op.
+     *
+     * <p>Concurrent calls are serialised via the row-level lock; a second
+     * delivery that arrives after the first has committed reads
+     * {@code status == SCORED} and bails before mutating anything.
+     */
+    @Transactional
+    public void applyOverallReview(UUID sessionId, Map<String, Object> result) {
+        InterviewSession s = sessionRepo.findByIdForUpdate(sessionId)
+                .orElseThrow(() -> new BusinessException(StatusCode.SESSION_NOT_FOUND));
+        if (s.getStatus() == SessionStatus.SCORED) {
+            log.debug("Session {} already SCORED — ignoring duplicate overall-review", sessionId);
+            return;
+        }
+
+        Float overallScore = parseFloat(result.get("overallScore"));
+        s.setFinalScore(overallScore);
+
+        Map<String, Object> meta = s.getMetadata() != null ? s.getMetadata() : new HashMap<>();
+        meta.put("overallReview", result);
+        meta.remove("overallReviewError");
+        s.setMetadata(meta);
+
+        s.setStatus(SessionStatus.SCORED);
+        s.setScoredAt(OffsetDateTime.now());
+        sessionRepo.save(s);
+
+        log.info("Session {} → SCORED finalScore={}", sessionId, overallScore);
+
+        // Stage interview-scored for mail-service.
+        Map<String, Object> mailPayload = new HashMap<>();
+        mailPayload.put("sessionId", s.getId().toString());
+        mailPayload.put("userId", s.getUserId());
+        mailPayload.put("finalScore", overallScore);
+        mailPayload.put("grade", result.get("grade"));
+        mailPayload.put("hireSignal", result.get("hireSignal"));
+        mailPayload.put("scoredAt", s.getScoredAt().toString());
+        outboxWriter.stage(
+                com.mockwise.interview.message.constants.KafkaTopics.INTERVIEW_SCORED,
+                "INTERVIEW_SCORED", s.getId(), mailPayload);
+    }
+
+    /**
+     * Called by {@code SessionEvaluationConsumer.onFailed}. Records the
+     * error on session metadata but leaves status at COMPLETED so an
+     * operator can clear {@code metadata.sessionEvalRequestedAt} and
+     * replay through {@link SessionFinalizerService#maybeRequestOverallReview}.
+     */
+    @Transactional
+    public void applyOverallReviewFailed(UUID sessionId, String error, String detail) {
+        InterviewSession s = sessionRepo.findByIdForUpdate(sessionId)
+                .orElseThrow(() -> new BusinessException(StatusCode.SESSION_NOT_FOUND));
+        if (s.getStatus() == SessionStatus.SCORED) {
+            log.debug("Session {} already SCORED — ignoring late overall-review-failed", sessionId);
+            return;
+        }
+        Map<String, Object> meta = s.getMetadata() != null ? s.getMetadata() : new HashMap<>();
+        Map<String, Object> err = new HashMap<>();
+        err.put("error", error);
+        err.put("detail", detail);
+        err.put("occurredAt", OffsetDateTime.now().toString());
+        meta.put("overallReviewError", err);
+        s.setMetadata(meta);
+        sessionRepo.save(s);
+        log.warn("Session {} overall-review failed: {} ({})", sessionId, error, detail);
+    }
+
+    private static Float parseFloat(Object o) {
+        if (o == null) return null;
+        if (o instanceof Number n) return n.floatValue();
+        try { return Float.parseFloat(o.toString()); } catch (NumberFormatException e) { return null; }
     }
 
     // ── /finish ──────────────────────────────────────────────────────────────
@@ -213,6 +309,10 @@ public class SessionService {
             log.info("Session {} → COMPLETED (user-stopped)", sessionId);
         }
         // Already COMPLETED / SCORED / CANCELLED → idempotent no-op.
+        // Try the gate every time — when the user clicks /finish before the
+        // last answer's evaluation lands, this call is a no-op and the
+        // gate fires later when the evaluation-completed consumer runs.
+        sessionFinalizer.maybeRequestOverallReview(sessionId);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

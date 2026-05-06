@@ -6,6 +6,7 @@ import com.mockwise.interview.client.questionbank.dto.FollowUpResponse;
 import com.mockwise.interview.client.questionbank.dto.MarkAskedResponse;
 import com.mockwise.interview.client.questionbank.dto.QuestionFilterRequest;
 import com.mockwise.interview.client.questionbank.dto.QuestionFilterResponse;
+import com.mockwise.interview.client.questionbank.dto.QuestionSnapshotResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,6 +40,19 @@ public interface QuestionBankClient {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     ApiResponse<QuestionFilterResponse> filter(@RequestBody QuestionFilterRequest request);
+
+    /**
+     * Frozen snapshot of the question with all evaluator-relevant fields
+     * (text, audioKey, competency/expectedSignals for behavioral; domain/
+     * keyConcepts/depthExpected for core; title/description/testCases for
+     * coding). Called by {@code QuestionPicker} after a filter pick so the
+     * pinned {@code SessionQuestion.snapshot} carries the full context.
+     */
+    @GetMapping(
+            value = "/questions/{id}/snapshot",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    ApiResponse<QuestionSnapshotResponse> getSnapshot(@PathVariable("id") String questionId);
 
     /** Pre-authored follow-up lookup. Both query params optional. */
     @GetMapping(

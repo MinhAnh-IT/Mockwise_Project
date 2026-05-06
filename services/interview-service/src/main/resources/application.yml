@@ -67,6 +67,8 @@ interview:
       transcript-failed:   ${KAFKA_TOPIC_TRANSCRIPT_FAILED:transcript-failed}
       evaluation-completed: ${KAFKA_TOPIC_EVALUATION_COMPLETED:evaluation-completed}
       evaluation-failed:   ${KAFKA_TOPIC_EVALUATION_FAILED:evaluation-failed}
+      session-evaluation-completed: ${KAFKA_TOPIC_SESSION_EVAL_COMPLETED:session-evaluation-completed}
+      session-evaluation-failed:    ${KAFKA_TOPIC_SESSION_EVAL_FAILED:session-evaluation-failed}
 
 # URLs to dependent services. Wired into Feign clients as they are added.
 external:
