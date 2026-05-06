@@ -12,7 +12,7 @@ import jakarta.validation.constraints.Size;
  * for this one session (per question-selection-design.md §2 mục 3).
  *
  * @param interviewType   BEHAVIORAL / CORE / MIXED — required
- * @param topicFocus      optional bumped-importance topic (e.g. "DATABASE")
+ //* @param topicFocus      optional bumped-importance topic (e.g. "DATABASE")
  * @param timeBudgetMinutesOverride  optional shortcut session
  */
 public record StartSessionInput(
@@ -20,8 +20,8 @@ public record StartSessionInput(
         @NotNull(message = "interviewType is required")
         InterviewType interviewType,
 
-        @Size(max = 50, message = "topicFocus must be at most 50 characters")
-        String topicFocus,
+//        @Size(max = 50, message = "topicFocus must be at most 50 characters")
+//        String topicFocus,
 
         @Min(value = 1, message = "timeBudgetMinutesOverride must be >= 1")
         Integer timeBudgetMinutesOverride
