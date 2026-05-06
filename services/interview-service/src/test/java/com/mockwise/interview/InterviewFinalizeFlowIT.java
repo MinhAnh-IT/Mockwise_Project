@@ -111,7 +111,7 @@ class InterviewFinalizeFlowIT {
         // ── Start session ─────────────────────────────────────────────────────
 
         StartSessionOutput started = sessionService.start(USER_ID,
-                new StartSessionInput(InterviewType.MIXED, null, null));
+                new StartSessionInput(InterviewType.MIXED, null));
         UUID sessionId = started.sessionId();
         int questionBudget = started.questionBudget();
         assertThat(questionBudget).isGreaterThan(0);
@@ -266,7 +266,7 @@ class InterviewFinalizeFlowIT {
                         "Q1", "OWNERSHIP", null, true, 0L))));
 
         StartSessionOutput started = sessionService.start(USER_ID,
-                new StartSessionInput(InterviewType.MIXED, null, null));
+                new StartSessionInput(InterviewType.MIXED, null));
         UUID sessionId = started.sessionId();
 
         // Force COMPLETED via the existing /finish path (the gate won't fire
