@@ -112,7 +112,7 @@ class InterviewFlowIT {
                 .thenReturn(Optional.of(new MarkAskedResponse("q-bank-001", 1L, OffsetDateTime.now())));
 
         StartSessionOutput out = sessionService.start(USER_ID,
-                new StartSessionInput(InterviewType.MIXED, null, null));
+                new StartSessionInput(InterviewType.MIXED, null));
 
         // Session metadata
         assertThat(out.sessionId()).isNotNull();
@@ -169,7 +169,7 @@ class InterviewFlowIT {
                 .thenReturn(Optional.of(new MarkAskedResponse("q-bank-001", 1L, OffsetDateTime.now())));
 
         StartSessionOutput started = sessionService.start(USER_ID,
-                new StartSessionInput(InterviewType.MIXED, null, null));
+                new StartSessionInput(InterviewType.MIXED, null));
         UUID sessionId = started.sessionId();
         UUID firstSqId = started.firstQuestion().sessionQuestionId();
 
