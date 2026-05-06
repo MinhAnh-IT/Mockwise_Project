@@ -1,19 +1,21 @@
-from typing import List, Literal, Optional, Any, Dict
-from pydantic import BaseModel, Field
+from typing import List, Optional, Any, Dict
 
+from pydantic import Field
+
+from models._base import CamelModel
 from models.selector.snapshot import QuestionSnapshot, QuestionType
 
 
 # ─── /next-question request ───────────────────────────────────────────────────
 
-class NextQuestionConstraints(BaseModel):
+class NextQuestionConstraints(CamelModel):
     target_role: Optional[str] = None  # BACKEND/FRONTEND/...
     difficulty_hint: Optional[str] = None  # EASY/MEDIUM/HARD
     competency: Optional[str] = None  # behavioral only
     domain: Optional[str] = None  # core_conceptual only
 
 
-class NextQuestionRequest(BaseModel):
+class NextQuestionRequest(CamelModel):
     session_id: str
     interview_type: QuestionType
     # The full output from the evaluation graph. None for the first turn.
@@ -24,7 +26,7 @@ class NextQuestionRequest(BaseModel):
 
 # ─── /next-question response ──────────────────────────────────────────────────
 
-class RetrievalCandidate(BaseModel):
+class RetrievalCandidate(CamelModel):
     question_id: str
     similarity: float
     competency: Optional[str] = None
@@ -32,13 +34,13 @@ class RetrievalCandidate(BaseModel):
     difficulty: Optional[str] = None
 
 
-class RetrievalMeta(BaseModel):
+class RetrievalMeta(CamelModel):
     strategy: str  # "exploit_weakness" | "first_turn" | "explore"
     candidates_considered: int
     top_candidates: List[RetrievalCandidate] = Field(default_factory=list)
 
 
-class NextQuestionResponse(BaseModel):
+class NextQuestionResponse(CamelModel):
     session_id: str
     question_id: str
     question_snapshot: QuestionSnapshot
@@ -48,7 +50,7 @@ class NextQuestionResponse(BaseModel):
 
 # ─── Reindex ──────────────────────────────────────────────────────────────────
 
-class ReindexResponse(BaseModel):
+class ReindexResponse(CamelModel):
     behavioral_indexed: int
     core_indexed: int
     failed: int = 0

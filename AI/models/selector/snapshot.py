@@ -1,11 +1,14 @@
 from typing import List, Literal, Optional
-from pydantic import BaseModel, Field
+
+from pydantic import Field
+
+from models._base import CamelModel
 
 
 QuestionType = Literal["BEHAVIORAL", "CORE_CONCEPTUAL"]
 
 
-class QuestionSnapshot(BaseModel):
+class QuestionSnapshot(CamelModel):
     """
     Question payload used for indexing and returned alongside /next-question
     responses so the caller does not need to re-fetch from question-bank.

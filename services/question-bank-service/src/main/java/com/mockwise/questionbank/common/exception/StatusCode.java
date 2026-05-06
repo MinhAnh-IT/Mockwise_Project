@@ -18,7 +18,13 @@ public enum StatusCode {
     FOR_JUDGE_NOT_SUPPORTED(4004, "for-judge payload is only available for LIVE_CODING questions", 400),
 
     // --- Validation ---
-    INVALID_QUESTION_TYPE(4005, "Invalid question type: %s", 400);
+    INVALID_QUESTION_TYPE(4005, "Invalid question type: %s", 400),
+    FILTER_TYPE_NOT_SUPPORTED(4006, "Filter only supports BEHAVIORAL or CORE_CONCEPTUAL types", 400),
+    FILTER_MISSING_COMPETENCY(4007, "competency is required when type=BEHAVIORAL", 400),
+    FILTER_MISSING_DOMAIN(4008, "domain is required when type=CORE_CONCEPTUAL", 400),
+
+    // --- Follow-up ---
+    FOLLOW_UP_PARENT_NOT_FOUND(4042, "Parent question not found for follow-up lookup", 404);
 
     int code;
     String message;

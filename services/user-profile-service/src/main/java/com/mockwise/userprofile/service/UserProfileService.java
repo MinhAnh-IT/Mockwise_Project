@@ -8,6 +8,7 @@ import com.mockwise.userprofile.dto.request.UserProfileUpdateRequest;
 import com.mockwise.userprofile.dto.response.AdminUserProfileResponse;
 import com.mockwise.userprofile.dto.response.ProfileStatsResponse;
 import com.mockwise.userprofile.dto.response.UserProfileResponse;
+import com.mockwise.userprofile.entity.Language;
 import com.mockwise.userprofile.entity.Position;
 import com.mockwise.userprofile.entity.UserProfile;
 import com.mockwise.userprofile.mapper.UserProfileMapper;
@@ -25,7 +26,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 
 @Slf4j
 @Service
@@ -50,11 +53,48 @@ public class UserProfileService {
         UserProfile profile = userProfileMapper.toEntity(request);
         profile.setUserId(userId);
         profile.setPosition(position);
+        normalizeAndValidate(profile);
 
         UserProfile saved = userProfileRepository.save(profile);
         log.info("Created user profile for userId={}", userId);
 
         return userProfileMapper.toResponse(saved);
+    }
+
+    /**
+     * Cleans free-form list inputs (lowercase, trim, dedupe, drop blanks) and
+     * enforces cross-field rules. Tech stack and industries are user-typed
+     * tokens; without normalization "Java", " java ", "JAVA" would all hit
+     * question-bank's tag matcher as different keys.
+     */
+    private void normalizeAndValidate(UserProfile profile) {
+        profile.setTechStack(normalizeTokens(profile.getTechStack()));
+        profile.setIndustries(normalizeTokens(profile.getIndustries()));
+
+        if (profile.getPreferredLanguage() == null) {
+            profile.setPreferredLanguage(Language.VI);
+        }
+
+        Integer years = profile.getYearsInCurrentRole();
+        if (years != null && profile.getExperience() != null && years > profile.getExperience()) {
+            throw new BusinessException(ResponseCode.BAD_REQUEST,
+                    "yearsInCurrentRole cannot exceed total experience");
+        }
+    }
+
+    private static List<String> normalizeTokens(List<String> input) {
+        if (input == null || input.isEmpty()) {
+            return new ArrayList<>();
+        }
+        LinkedHashSet<String> seen = new LinkedHashSet<>();
+        for (String raw : input) {
+            if (raw == null) continue;
+            String token = raw.trim().toLowerCase(Locale.ROOT);
+            if (!token.isEmpty()) {
+                seen.add(token);
+            }
+        }
+        return new ArrayList<>(seen);
     }
 
     public UserProfileResponse getProfileById(String userId) {
@@ -88,7 +128,11 @@ public class UserProfileService {
                 base.city(),
                 base.experience(),
                 url,
-                null);
+                null,
+                base.techStack(),
+                base.preferredLanguage(),
+                base.yearsInCurrentRole(),
+                base.industries());
     }
 
     private static String cacheBusterFor(String objectKey) {
@@ -108,6 +152,7 @@ public class UserProfileService {
 
         userProfileMapper.updateEntityFromDto(request, profile);
         applyPositionUpdate(profile, request);
+        normalizeAndValidate(profile);
 
         UserProfile saved = userProfileRepository.save(profile);
         log.info("Updated user profile for userId={}", userId);
@@ -184,6 +229,7 @@ public class UserProfileService {
 
         userProfileMapper.updateEntityFromDto(request, profile);
         applyPositionUpdate(profile, request);
+        normalizeAndValidate(profile);
 
         UserProfile saved = userProfileRepository.save(profile);
         log.info("Admin updated user profile for userId={}", userId);

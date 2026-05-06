@@ -16,13 +16,15 @@ public interface BehavioralMapper {
 
     // ── Request → Question (base fields only) ────────────────────────────────
 
-    @Mapping(target = "id",        ignore = true)
-    @Mapping(target = "type",      ignore = true)   // set by service
-    @Mapping(target = "status",    ignore = true)   // default DRAFT
-    @Mapping(target = "createdBy", ignore = true)   // set by service
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "tags",      expression = "java(toArray(req.getTags()))")
+    @Mapping(target = "id",          ignore = true)
+    @Mapping(target = "type",        ignore = true)   // set by service
+    @Mapping(target = "status",      ignore = true)   // default DRAFT
+    @Mapping(target = "createdBy",   ignore = true)   // set by service
+    @Mapping(target = "createdAt",   ignore = true)
+    @Mapping(target = "updatedAt",   ignore = true)
+    @Mapping(target = "askCount",    ignore = true)   // managed by markAsked endpoint
+    @Mapping(target = "lastAskedAt", ignore = true)
+    @Mapping(target = "tags",        expression = "java(toArray(req.getTags()))")
     Question toQuestion(BehavioralQuestionRequest req);
 
     // ── Request → BehavioralQuestion (type-specific fields) ──────────────────
@@ -30,19 +32,22 @@ public interface BehavioralMapper {
     @Mapping(target = "id",              ignore = true)
     @Mapping(target = "question",        ignore = true)  // set by service
     @Mapping(target = "audioKey",        ignore = true)  // managed separately
+    @Mapping(target = "isOpener",        ignore = true)  // admin-set, default false
     @Mapping(target = "competency",      source = "req.competency")
     @Mapping(target = "expectedSignals", expression = "java(toArray(req.getExpectedSignals()))")
     BehavioralQuestion toEntity(BehavioralQuestionRequest req);
 
     // ── Update base Question fields ───────────────────────────────────────────
 
-    @Mapping(target = "id",        ignore = true)
-    @Mapping(target = "type",      ignore = true)
-    @Mapping(target = "status",    ignore = true)
-    @Mapping(target = "createdBy", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "tags",      expression = "java(toArray(req.getTags()))")
+    @Mapping(target = "id",          ignore = true)
+    @Mapping(target = "type",        ignore = true)
+    @Mapping(target = "status",      ignore = true)
+    @Mapping(target = "createdBy",   ignore = true)
+    @Mapping(target = "createdAt",   ignore = true)
+    @Mapping(target = "updatedAt",   ignore = true)
+    @Mapping(target = "askCount",    ignore = true)
+    @Mapping(target = "lastAskedAt", ignore = true)
+    @Mapping(target = "tags",        expression = "java(toArray(req.getTags()))")
     void updateQuestion(@MappingTarget Question question, BehavioralQuestionRequest req);
 
     // ── Update BehavioralQuestion fields ─────────────────────────────────────
@@ -50,6 +55,7 @@ public interface BehavioralMapper {
     @Mapping(target = "id",              ignore = true)
     @Mapping(target = "question",        ignore = true)
     @Mapping(target = "audioKey",        ignore = true)
+    @Mapping(target = "isOpener",        ignore = true)
     @Mapping(target = "competency",      source = "req.competency")
     @Mapping(target = "expectedSignals", expression = "java(toArray(req.getExpectedSignals()))")
     void updateEntity(@MappingTarget BehavioralQuestion bq, BehavioralQuestionRequest req);

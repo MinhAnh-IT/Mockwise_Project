@@ -1,5 +1,9 @@
 package com.mockwise.userprofile.dto.response;
 
+import com.mockwise.userprofile.entity.Language;
+
+import java.util.List;
+
 public record AdminUserProfileResponse(
         String userId,
         String fullName,
@@ -7,5 +11,9 @@ public record AdminUserProfileResponse(
         Boolean isVerified,
         PositionResponse position,
         String city,
-        Integer experience
+        Integer experience,
+        List<String> techStack,
+        Language preferredLanguage,
+        Integer yearsInCurrentRole,
+        List<String> industries
 ) { }

@@ -123,6 +123,33 @@ services:
       - storage-service
     # No ports — internal only, callers use api-gateway or service DNS
 
+  # ─── Interview Service (internal only) ────────────────────────
+  interview-service:
+    build:
+      context: ../services
+      dockerfile: interview-service/Dockerfile
+    env_file: ../.env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/mockwise_interview
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      QUESTION_BANK_BASE_URL: http://question-bank-service:8084/api/v1/question-bank
+      STORAGE_BASE_URL: http://storage-service:8085/api/v1/storage
+      USER_PROFILE_BASE_URL: http://user-profile-service:8082/api/v1/profiles
+      TTS_STT_BASE_URL: http://tts-stt-service:8086
+      AI_BASE_URL: http://ai-service:8000
+      AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY}
+    networks:
+      - internal-net
+    depends_on:
+      - question-bank-service
+      - storage-service
+      - tts-stt-service
+      - user-profile-service
+      - ai-service
+
   # ─── Judge Service (internal only) ────────────────────────────
   judge-service:
     build:
@@ -158,6 +185,7 @@ services:
       - JUDGE_SERVICE_URL=http://judge-service:8083
       - STORAGE_SERVICE_URL=http://storage-service:8085
       - TTS_STT_SERVICE_URL=http://tts-stt-service:8086
+      - INTERVIEW_SERVICE_URL=http://interview-service:8088
       - AI_SERVICE_URL=http://ai-service:8000
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     networks:
@@ -169,6 +197,7 @@ services:
       - judge-service
       - storage-service
       - tts-stt-service
+      - interview-service
 
   # ─── AI Service (internal only) ────────────────────────────────
   # Single FastAPI service hosting both:
@@ -221,7 +250,8 @@ services:
       BASE_URL: /docs
       URLS: >-
         [{"url":"/api-spec/iam-service.yaml","name":"IAM Service"},
-         {"url":"/api-spec/user-profile-service.yaml","name":"User Profile Service"}]
+         {"url":"/api-spec/user-profile-service.yaml","name":"User Profile Service"},
+         {"url":"/api-spec/interview-service.yaml","name":"Interview Service"}]
     networks:
       - internal-net
 

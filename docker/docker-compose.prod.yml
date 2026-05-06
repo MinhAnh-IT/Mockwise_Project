@@ -131,6 +131,38 @@ services:
     networks: [internal-net]
     depends_on: [storage-service]
 
+  # ─── Interview Service (internal only) ────────────────────────
+  # Orchestrates the candidate's session: pins questions, runs the adaptive
+  # planner on per-answer evaluations, and finalises with a cross-question
+  # AI overall review. Uses the dedicated mockwise_interview Postgres DB.
+  interview-service:
+    image: ghcr.io/minhanh-it/mockwise_project/interview-service:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/mockwise_interview
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      # Service-to-service Feign URLs (resolved on internal-net)
+      QUESTION_BANK_BASE_URL: http://question-bank-service:8084/api/v1/question-bank
+      STORAGE_BASE_URL: http://storage-service:8085/api/v1/storage
+      USER_PROFILE_BASE_URL: http://user-profile-service:8082/api/v1/profiles
+      TTS_STT_BASE_URL: http://tts-stt-service:8086
+      AI_BASE_URL: http://ai-service:8000
+      AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY}
+      # Kafka topic names. Defaults match what the AI service & tts-stt expect.
+      KAFKA_TOPIC_TRANSCRIPT_READY: ${KAFKA_TOPIC_TRANSCRIPT_READY:-transcript-ready}
+      KAFKA_TOPIC_TRANSCRIPT_FAILED: ${KAFKA_TOPIC_TRANSCRIPT_FAILED:-transcript-failed}
+      KAFKA_TOPIC_EVALUATION_COMPLETED: ${KAFKA_TOPIC_EVALUATION_COMPLETED:-evaluation-completed}
+      KAFKA_TOPIC_EVALUATION_FAILED: ${KAFKA_TOPIC_EVALUATION_FAILED:-evaluation-failed}
+      KAFKA_TOPIC_SESSION_EVAL_COMPLETED: ${KAFKA_TOPIC_SESSION_EVAL_COMPLETED:-session-evaluation-completed}
+      KAFKA_TOPIC_SESSION_EVAL_FAILED: ${KAFKA_TOPIC_SESSION_EVAL_FAILED:-session-evaluation-failed}
+    networks: [internal-net]
+    depends_on: [question-bank-service, storage-service, tts-stt-service, user-profile-service, ai-service]
+
   # ─── Judge Service (internal only) ────────────────────────────
   judge-service:
     image: ghcr.io/minhanh-it/mockwise_project/judge-service:${IMAGE_TAG:-latest}
@@ -162,10 +194,11 @@ services:
       QUESTION_BANK_SERVICE_URL: http://question-bank-service:8084
       STORAGE_SERVICE_URL: http://storage-service:8085
       TTS_STT_SERVICE_URL: http://tts-stt-service:8086
+      INTERVIEW_SERVICE_URL: http://interview-service:8088
       AI_SERVICE_URL: http://ai-service:8000
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
     networks: [public-net, internal-net]
-    depends_on: [iam-service, user-profile-service, judge-service, question-bank-service, storage-service, tts-stt-service]
+    depends_on: [iam-service, user-profile-service, judge-service, question-bank-service, storage-service, tts-stt-service, interview-service]
 
   # ─── AI Service (internal only) ────────────────────────────────
   # Combined evaluation graph + question selector RAG. Selector half is
@@ -219,7 +252,8 @@ services:
          {"url":"/api-spec/judge-service.yaml","name":"Judge Service"},
          {"url":"/api-spec/question-bank-service.yaml","name":"Question Bank Service"},
          {"url":"/api-spec/storage-service.yaml","name":"Storage Service"},
-         {"url":"/api-spec/tts-stt-service.yaml","name":"TTS-STT Service"}]
+         {"url":"/api-spec/tts-stt-service.yaml","name":"TTS-STT Service"},
+         {"url":"/api-spec/interview-service.yaml","name":"Interview Service"}]
     networks: [internal-net]
 
   # ─── Nginx (only service exposed to the internet) ─────────────

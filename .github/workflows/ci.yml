@@ -21,6 +21,7 @@ jobs:
       question-bank-service: ${{ steps.filter.outputs.question-bank-service }}
       storage-service: ${{ steps.filter.outputs.storage-service }}
       tts-stt-service: ${{ steps.filter.outputs.tts-stt-service }}
+      interview-service: ${{ steps.filter.outputs.interview-service }}
       ai-service: ${{ steps.filter.outputs.ai-service }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
@@ -51,6 +52,9 @@ jobs:
               - 'services/pom.xml'
             tts-stt-service:
               - 'services/tts-stt-service/**'
+              - 'services/pom.xml'
+            interview-service:
+              - 'services/interview-service/**'
               - 'services/pom.xml'
             ai-service:
               - 'AI/**'
@@ -248,6 +252,31 @@ jobs:
           PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       - name: Build Docker image
         run: docker build -f services/tts-stt-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/tts-stt-service:${{ github.sha }} services
+
+  build-interview-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.interview-service == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: PACKAGES_TOKEN
+      - name: Build & test
+        run: mvn -B -pl interview-service clean package -DskipTests
+        working-directory: services
+        env:
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+      - name: Build Docker image
+        run: docker build -f services/interview-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/interview-service:${{ github.sha }} services
 
   build-ai-service:
     needs: detect-changes

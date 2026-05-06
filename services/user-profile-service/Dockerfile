@@ -15,6 +15,7 @@ COPY user-profile-service/pom.xml user-profile-service/pom.xml
 COPY question-bank-service/pom.xml question-bank-service/pom.xml
 COPY storage-service/pom.xml storage-service/pom.xml
 COPY tts-stt-service/pom.xml tts-stt-service/pom.xml
+COPY interview-service/pom.xml interview-service/pom.xml
 COPY user-profile-service/src user-profile-service/src
 RUN mvn -B -pl user-profile-service clean package -DskipTests
 

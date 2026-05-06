@@ -24,6 +24,7 @@ COPY --from=builder /install /usr/local
 COPY --chown=appuser:appgroup evaluator/  ./evaluator/
 COPY --chown=appuser:appgroup generator/  ./generator/
 COPY --chown=appuser:appgroup selector/   ./selector/
+COPY --chown=appuser:appgroup messaging/  ./messaging/
 COPY --chown=appuser:appgroup models/     ./models/
 COPY --chown=appuser:appgroup api.py      ./api.py
 COPY --chown=appuser:appgroup config.py   ./config.py

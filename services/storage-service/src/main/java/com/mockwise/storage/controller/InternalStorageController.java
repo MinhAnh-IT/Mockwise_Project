@@ -4,6 +4,7 @@ import com.core.apiresponse.response.ApiResponse;
 import com.mockwise.storage.dto.request.InternalDownloadUrlRequest;
 import com.mockwise.storage.dto.response.PresignedUrlResponse;
 import com.mockwise.storage.dto.response.QuestionAudioUploadResponse;
+import com.mockwise.storage.dto.response.StorageObjectResponse;
 import com.mockwise.storage.service.StorageService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -44,5 +45,16 @@ public class InternalStorageController {
             @Valid @RequestBody InternalDownloadUrlRequest req) {
         return ResponseEntity.ok(ApiResponse.success(
                 storageService.createDownloadUrl(req)));
+    }
+
+    /**
+     * Object lookup by id — interview-service hits this before pinning a
+     * {@code storageObjectId} to an answer to verify ownership / READY
+     * state / kind. Returns 404 (via STORAGE_OBJECT_NOT_FOUND in the
+     * global error decoder) when the id doesn't exist.
+     */
+    @GetMapping("/objects/{id}")
+    public ResponseEntity<ApiResponse<StorageObjectResponse>> getObject(@PathVariable("id") String id) {
+        return ResponseEntity.ok(ApiResponse.success(storageService.getObjectById(id)));
     }
 }

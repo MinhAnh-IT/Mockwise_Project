@@ -25,6 +25,7 @@
         <module>question-bank-service</module>
         <module>storage-service</module>
         <module>tts-stt-service</module>
+        <module>interview-service</module>
     </modules>
 
     <properties>

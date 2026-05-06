@@ -15,13 +15,15 @@ public interface CodingMapper {
 
     // ── Request → Question (base fields only) ────────────────────────────────
 
-    @Mapping(target = "id",        ignore = true)
-    @Mapping(target = "type",      ignore = true)
-    @Mapping(target = "status",    ignore = true)
-    @Mapping(target = "createdBy", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "tags",      expression = "java(toArray(req.getTags()))")
+    @Mapping(target = "id",          ignore = true)
+    @Mapping(target = "type",        ignore = true)
+    @Mapping(target = "status",      ignore = true)
+    @Mapping(target = "createdBy",   ignore = true)
+    @Mapping(target = "createdAt",   ignore = true)
+    @Mapping(target = "updatedAt",   ignore = true)
+    @Mapping(target = "askCount",    ignore = true)
+    @Mapping(target = "lastAskedAt", ignore = true)
+    @Mapping(target = "tags",        expression = "java(toArray(req.getTags()))")
     Question toQuestion(CodingQuestionRequest req);
 
     // ── Request → CodingQuestion (type-specific fields) ──────────────────────
@@ -32,13 +34,15 @@ public interface CodingMapper {
 
     // ── Update base Question fields ───────────────────────────────────────────
 
-    @Mapping(target = "id",        ignore = true)
-    @Mapping(target = "type",      ignore = true)
-    @Mapping(target = "status",    ignore = true)
-    @Mapping(target = "createdBy", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "tags",      expression = "java(toArray(req.getTags()))")
+    @Mapping(target = "id",          ignore = true)
+    @Mapping(target = "type",        ignore = true)
+    @Mapping(target = "status",      ignore = true)
+    @Mapping(target = "createdBy",   ignore = true)
+    @Mapping(target = "createdAt",   ignore = true)
+    @Mapping(target = "updatedAt",   ignore = true)
+    @Mapping(target = "askCount",    ignore = true)
+    @Mapping(target = "lastAskedAt", ignore = true)
+    @Mapping(target = "tags",        expression = "java(toArray(req.getTags()))")
     void updateQuestion(@MappingTarget Question question, CodingQuestionRequest req);
 
     // ── Update CodingQuestion fields ──────────────────────────────────────────

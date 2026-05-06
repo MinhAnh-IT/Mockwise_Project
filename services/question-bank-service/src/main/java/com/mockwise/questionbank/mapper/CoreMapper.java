@@ -16,13 +16,15 @@ public interface CoreMapper {
 
     // ── Request → Question (base fields only) ─────────────────────────────��──
 
-    @Mapping(target = "id",        ignore = true)
-    @Mapping(target = "type",      ignore = true)
-    @Mapping(target = "status",    ignore = true)
-    @Mapping(target = "createdBy", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "tags",      expression = "java(toArray(req.getTags()))")
+    @Mapping(target = "id",          ignore = true)
+    @Mapping(target = "type",        ignore = true)
+    @Mapping(target = "status",      ignore = true)
+    @Mapping(target = "createdBy",   ignore = true)
+    @Mapping(target = "createdAt",   ignore = true)
+    @Mapping(target = "updatedAt",   ignore = true)
+    @Mapping(target = "askCount",    ignore = true)
+    @Mapping(target = "lastAskedAt", ignore = true)
+    @Mapping(target = "tags",        expression = "java(toArray(req.getTags()))")
     Question toQuestion(CoreQuestionRequest req);
 
     // ── Request → CoreQuestion (type-specific fields) ────────────────────────
@@ -30,6 +32,7 @@ public interface CoreMapper {
     @Mapping(target = "id",            ignore = true)
     @Mapping(target = "question",      ignore = true)
     @Mapping(target = "audioKey",      ignore = true)
+    @Mapping(target = "isOpener",      ignore = true)
     @Mapping(target = "targetRoles",   expression = "java(roleListToArray(req.getTargetRoles()))")
     @Mapping(target = "domain",        source = "req.domain")
     @Mapping(target = "keyConcepts",   expression = "java(toArray(req.getKeyConcepts()))")
@@ -37,13 +40,15 @@ public interface CoreMapper {
 
     // ── Update base Question fields ───────────��──────────────────────────────���
 
-    @Mapping(target = "id",        ignore = true)
-    @Mapping(target = "type",      ignore = true)
-    @Mapping(target = "status",    ignore = true)
-    @Mapping(target = "createdBy", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "tags",      expression = "java(toArray(req.getTags()))")
+    @Mapping(target = "id",          ignore = true)
+    @Mapping(target = "type",        ignore = true)
+    @Mapping(target = "status",      ignore = true)
+    @Mapping(target = "createdBy",   ignore = true)
+    @Mapping(target = "createdAt",   ignore = true)
+    @Mapping(target = "updatedAt",   ignore = true)
+    @Mapping(target = "askCount",    ignore = true)
+    @Mapping(target = "lastAskedAt", ignore = true)
+    @Mapping(target = "tags",        expression = "java(toArray(req.getTags()))")
     void updateQuestion(@MappingTarget Question question, CoreQuestionRequest req);
 
     // ── Update CoreQuestion fields ────────────────────────────────────────────
@@ -51,6 +56,7 @@ public interface CoreMapper {
     @Mapping(target = "id",          ignore = true)
     @Mapping(target = "question",    ignore = true)
     @Mapping(target = "audioKey",    ignore = true)
+    @Mapping(target = "isOpener",    ignore = true)
     @Mapping(target = "targetRoles", expression = "java(roleListToArray(req.getTargetRoles()))")
     @Mapping(target = "domain",      source = "req.domain")
     @Mapping(target = "keyConcepts", expression = "java(toArray(req.getKeyConcepts()))")

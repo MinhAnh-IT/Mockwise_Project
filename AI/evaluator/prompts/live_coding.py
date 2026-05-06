@@ -16,8 +16,8 @@ def build_live_coding_prompt(inp: LiveCodingInput, retry_instruction: str = "") 
 RESPONSE LANGUAGE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 You MUST write ALL text fields (notes, feedback, verdicts, hints, issues) in {language_label.upper()}.
-This applies to: scores.*.note, feedback.*, analysis.code_issues.*.detail, summary.one_line_verdict.
-EXCEPTION: analysis.code_issues.*.type is a system identifier (e.g. "naming", "logic_error") — keep in English as-is.
+This applies to: scores.*.note, feedback.*, analysis.codeIssues.*.detail, summary.oneLineVerdict.
+EXCEPTION: analysis.codeIssues.*.type is a system identifier (e.g. "naming", "logic_error") — keep in English as-is.
 Do NOT mix languages in your own analysis text. Respond entirely in {language_label}.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
@@ -75,13 +75,13 @@ CANDIDATE'S SUBMITTED CODE:
 EVALUATION DIMENSIONS & SCORING WEIGHTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 You MUST evaluate the candidate on exactly FOUR dimensions. Each dimension has a defined weight
-that contributes to the overall_score. Score each dimension 0–100, then compute:
+that contributes to the overallScore. Score each dimension 0–100, then compute:
 
-  overall_score = round(
-      time_complexity.score  * 0.30 +
-      space_complexity.score * 0.15 +
-      code_quality.score     * 0.35 +
-      problem_solving.score  * 0.20
+  overallScore = round(
+      timeComplexity.score  * 0.30 +
+      spaceComplexity.score * 0.15 +
+      codeQuality.score     * 0.35 +
+      problemSolving.score  * 0.20
   )
 
 DIMENSION 1 — TIME COMPLEXITY (weight: 0.30)
@@ -91,7 +91,7 @@ DIMENSION 1 — TIME COMPLEXITY (weight: 0.30)
   - 60–79 : Two orders worse (e.g., O(n²) vs O(n log n))
   - 30–59 : Significantly suboptimal (e.g., O(n³) or exponential when O(n) is possible)
   - 0–29  : No meaningful complexity reasoning or clearly wrong (infinite loops, etc.)
-  NOTE: If test pass rate < 50%, cap time_complexity score at 40 regardless.
+  NOTE: If test pass rate < 50%, cap timeComplexity score at 40 regardless.
 
 DIMENSION 2 — SPACE COMPLEXITY (weight: 0.15)
   Evaluate memory usage and auxiliary space.
@@ -147,11 +147,11 @@ DIMENSION 4 — PROBLEM SOLVING APPROACH (weight: 0.20)
 COMPLEXITY ANALYSIS INSTRUCTIONS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Carefully analyze the submitted code to determine:
-1. detected_complexity.time  : the ACTUAL Big-O time complexity of the submitted code
-2. detected_complexity.space : the ACTUAL Big-O space complexity of the submitted code
-3. optimal_complexity.time   : use the hint provided above ({oc.time})
-4. optimal_complexity.space  : use the hint provided above ({oc.space})
-5. is_optimal                : true only if BOTH time AND space match optimal
+1. detectedComplexity.time  : the ACTUAL Big-O time complexity of the submitted code
+2. detectedComplexity.space : the ACTUAL Big-O space complexity of the submitted code
+3. optimalComplexity.time   : use the hint provided above ({oc.time})
+4. optimalComplexity.space  : use the hint provided above ({oc.space})
+5. isOptimal                : true only if BOTH time AND space match optimal
 
 When analyzing complexity:
 - Count loop nesting carefully
@@ -162,7 +162,7 @@ When analyzing complexity:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CODE ISSUES — HOW TO REPORT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-List ALL significant code issues in the code_issues array. For each issue:
+List ALL significant code issues in the codeIssues array. For each issue:
 - type     : one of [naming, magic_number, duplication, unnecessary_operation, readability,
                      missing_edge_case, wrong_complexity, style, logic_error]
 - line     : approximate line number if identifiable (null if not applicable)
@@ -174,9 +174,9 @@ If the code has no significant issues, return an empty list.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 GRADE & HIRE SIGNAL MAPPING
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Map the overall_score to grade and hire_signal as follows:
+Map the overallScore to grade and hireSignal as follows:
 
-  overall_score | grade | hire_signal
+  overallScore | grade | hireSignal
   ─────────────────────────────────────
   90 – 100      |   A   | strong_yes
   75 –  89      |   B   | yes
@@ -184,7 +184,7 @@ Map the overall_score to grade and hire_signal as follows:
   45 –  59      |   D   | no
    0 –  44      |   F   | strong_no
 
-The one_line_verdict should be a single sentence summarizing the candidate's performance
+The oneLineVerdict should be a single sentence summarizing the candidate's performance
 in plain language (e.g., "Candidate wrote a clean O(n) solution with minor naming issues.").
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -200,23 +200,43 @@ improvements:
   - Example: "Variable 'res' on line 3 should be renamed 'max_profit' for clarity —
     ambiguous names make code harder to maintain and debug during interviews."
 
-optimization_hint:
+optimizationHint:
   - If the solution is not optimal, provide a clear, specific hint pointing toward the optimal approach.
   - Example: "Consider using a monotonic stack to reduce the nested loop to a single pass."
   - If already optimal: "Solution is already at optimal complexity. Focus on code style polish."
 
-sample_optimal_solution:
-  - ONLY provide this if the candidate's solution is significantly suboptimal (overall_score < 65).
+sampleOptimalSolution:
+  - ONLY provide this if the candidate's solution is significantly suboptimal (overallScore < 65).
   - Provide a clean, commented reference solution in the SAME language as the submission.
   - If the solution is already good, set this to null.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPLETENESS CLASSIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Set the top-level `completeness` field to one of:
+
+  NO_ANSWER  — The candidate did not produce a real attempt: empty submission,
+               only comments / placeholder ("# TODO"), or code that obviously
+               does not engage with the problem (e.g. a single `pass`).
+               Orchestrator treats this as "topic not assessed".
+
+  INCOMPLETE — The candidate started but did not finish: stub/skeleton code,
+               missing core logic, or a brute-force partial that handles only
+               the trivial case. Test pass rate is typically very low.
+               Orchestrator may probe with a smaller follow-up.
+
+  COMPLETE   — The candidate produced a substantive solution attempt that
+               targets the full problem, regardless of correctness or
+               efficiency. A failing-but-real attempt is COMPLETE; only use
+               INCOMPLETE for unfinished/abandoned work.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 META BLOCK INSTRUCTIONS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 The meta block will be injected by the system after evaluation. Fill it with placeholder values:
-  evaluated_at           : "SYSTEM_INJECTED"
-  model_version          : "SYSTEM_INJECTED"
-  evaluation_duration_ms : 0
+  evaluatedAt           : "SYSTEM_INJECTED"
+  modelVersion          : "SYSTEM_INJECTED"
+  evaluationDurationMs : 0
 
 The system will overwrite these values. Do NOT try to generate real timestamps.
 
@@ -224,18 +244,18 @@ The system will overwrite these values. Do NOT try to generate real timestamps.
 OUTPUT REQUIREMENTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Fill ALL fields of the structured output. Do not omit any required field.
-session_id must be exactly: {inp.session_id}
-interview_type must be exactly: "live_coding"
+sessionId must be exactly: {inp.session_id}
+interviewType must be exactly: "live_coding"
 
 Think step by step:
 1. First, read and understand the problem description.
 2. Trace through the submitted code to understand what it does.
 3. Determine time and space complexity with explicit reasoning.
 4. Score each dimension independently with justification.
-5. Compute overall_score using the weighted formula.
-6. Map to grade and hire_signal using the table above.
+5. Compute overallScore using the weighted formula.
+6. Map to grade and hireSignal using the table above.
 7. Fill all feedback fields with specific, actionable content.
-8. Fill code_issues with real issues found (or empty list if none).
+8. Fill codeIssues with real issues found (or empty list if none).
 """.strip()
 
 

@@ -1,0 +1,70 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mockwise_interview}
+    username: ${POSTGRES_USER:mockwise}
+    password: ${POSTGRES_PASSWORD:mockwise_pg_password2026}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      # The schema is owned by Flyway (V1 + V2 already applied to the
+      # shared mockwise_interview DB on the VPS); we just want to talk
+      # to it, not migrate or auto-create.
+      ddl-auto: none
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  # Flyway disabled: the migrations were applied at deploy time, this
+  # test is only verifying entity↔schema mapping + service-layer flows.
+  flyway:
+    enabled: false
+
+  # Kafka stays unconfigured for the integration test — the consumers
+  # under test get hit directly via service method calls, the producer
+  # side (OutboxPoller) is allowed to fail-soft (the next tick retries,
+  # and the Tx rolls back at end-of-test anyway). bootstrap-servers
+  # points at a no-op port so even if a stray send sneaks through the
+  # client times out fast.
+  kafka:
+    bootstrap-servers: localhost:1
+    consumer:
+      group-id: interview-service-it
+    listener:
+      auto-startup: false   # don't try to subscribe to topics during tests
+
+internal:
+  auth:
+    api-key: integration-test-key
+
+# OutboxPoller is autowired but @ConditionalOnProperty would over-engineer
+# this — we just slow its tick way down so it never runs during a test
+# (each test method is short).
+interview:
+  outbox:
+    poll-interval-ms: 600000   # 10 min — effectively disabled for tests
+    batch-size: 1
+    send-timeout-ms: 1000
+  kafka:
+    topic:
+      transcript-ready: transcript-ready
+      transcript-failed: transcript-failed
+      evaluation-completed: evaluation-completed
+      evaluation-failed: evaluation-failed
+
+external:
+  services:
+    question-bank:
+      url: http://localhost:1
+    storage:
+      url: http://localhost:1
+    user-profile:
+      url: http://localhost:1
+    tts-stt:
+      url: http://localhost:1
+    ai:
+      url: http://localhost:1
+      api-key: ""
+
+logging:
+  level:
+    org.hibernate.SQL: WARN
+    org.springframework.kafka: WARN

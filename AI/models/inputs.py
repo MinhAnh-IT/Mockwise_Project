@@ -1,15 +1,21 @@
+"""Evaluator input schemas accepted by {@code POST /evaluate} and the
+{@code evaluation-requested} Kafka payload's {@code payload} subfield.
+All extend {@link CamelModel} so JSON keys are camelCase on the wire,
+matching the orchestrator's outgoing shape.
+"""
 from typing import Literal, List
-from pydantic import BaseModel
+
+from models._base import CamelModel
 
 
 # ─── Live Coding Input ────────────────────────────────────────────────────────
 
-class OptimalComplexity(BaseModel):
+class OptimalComplexity(CamelModel):
     time: str
     space: str
 
 
-class LiveCodingQuestion(BaseModel):
+class LiveCodingQuestion(CamelModel):
     id: str
     title: str
     description: str
@@ -19,19 +25,19 @@ class LiveCodingQuestion(BaseModel):
     optimal_complexity: OptimalComplexity
 
 
-class TestSummary(BaseModel):
+class TestSummary(CamelModel):
     total: int
     passed: int
 
 
-class LiveCodingSubmission(BaseModel):
+class LiveCodingSubmission(CamelModel):
     code: str
     language: str
     time_spent_minutes: int
     test_summary: TestSummary
 
 
-class LiveCodingInput(BaseModel):
+class LiveCodingInput(CamelModel):
     session_id: str
     interview_type: Literal["live_coding"]
     question: LiveCodingQuestion
@@ -41,20 +47,20 @@ class LiveCodingInput(BaseModel):
 
 # ─── Behavioral Input ─────────────────────────────────────────────────────────
 
-class BehavioralQuestion(BaseModel):
+class BehavioralQuestion(CamelModel):
     id: str
     text: str
     competency: str
     expected_signals: List[str]
 
 
-class BehavioralAnswer(BaseModel):
+class BehavioralAnswer(CamelModel):
     transcript: str
     duration_seconds: int
     language: str = "en"
 
 
-class BehavioralInput(BaseModel):
+class BehavioralInput(CamelModel):
     session_id: str
     interview_type: Literal["behavioral"]
     question: BehavioralQuestion
@@ -64,7 +70,7 @@ class BehavioralInput(BaseModel):
 
 # ─── Conceptual Input ─────────────────────────────────────────────────────────
 
-class ConceptualQuestion(BaseModel):
+class ConceptualQuestion(CamelModel):
     id: str
     text: str
     domain: str
@@ -72,13 +78,13 @@ class ConceptualQuestion(BaseModel):
     depth_expected: str
 
 
-class ConceptualAnswer(BaseModel):
+class ConceptualAnswer(CamelModel):
     transcript: str
     duration_seconds: int
     language: str = "en"
 
 
-class ConceptualInput(BaseModel):
+class ConceptualInput(CamelModel):
     session_id: str
     interview_type: Literal["core_conceptual"]
     question: ConceptualQuestion
