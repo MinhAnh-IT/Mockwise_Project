@@ -15,63 +15,31 @@ export type StorageObject = {
   status: StorageStatus;
 };
 
-export type CreateVideoUploadRequest = {
-  sessionId: string;
-  contentType: string;
-  sizeBytes: number;
-};
-
-export type VideoUploadTicket = {
-  objectId: string;
-  bucket: string;
-  objectKey: string;
-  uploadUrl: string;
-  expiresAt: string;
-};
-
 /**
- * Step 1 of the 3-step video upload: ask storage-service for a presigned PUT
- * URL pointing at MinIO. Browser uploads bytes to that URL directly (no
- * proxy through our backend) so a 50 MB clip doesn't touch our process.
+ * Single-step interview-video upload — replaces the 3-step presigned-PUT
+ * dance (createVideoUpload → MinIO PUT → completeVideoUpload). The previous
+ * flow died on Mixed Content blocking: the app loads over HTTPS but the
+ * MinIO host that the presigned URL points at is HTTP-only, so the browser
+ * refused the cross-origin PUT.
+ *
+ * Going through storage-service costs an extra hop (browser → our server →
+ * MinIO instead of browser → MinIO direct), but for a 5–10 minute clip on
+ * VPS bandwidth it's a flat ~few seconds and avoids any DNS / cert work.
+ *
+ * Returns the StorageObject with status = READY so the caller can pass
+ * `objectId` straight to interview-service's submit-answer endpoint.
  */
-export function createVideoUpload(
-  req: CreateVideoUploadRequest,
-): Promise<VideoUploadTicket> {
-  return unwrap(`${PREFIX}/uploads/videos`, {
-    method: 'POST',
-    body: req,
-  });
-}
-
-/**
- * Step 2: PUT the video bytes to the presigned URL. Uses native fetch (not the
- * authed client) since the URL is already signed and a Bearer header would be
- * rejected by MinIO. Throws if MinIO returns a non-2xx — caller decides how
- * to surface.
- */
-export async function putVideoBytes(
-  uploadUrl: string,
+export function uploadVideoMultipart(
   blob: Blob,
-  contentType: string,
-): Promise<void> {
-  const response = await fetch(uploadUrl, {
-    method: 'PUT',
-    body: blob,
-    headers: { 'Content-Type': contentType },
-  });
-  if (!response.ok) {
-    throw new Error(`Video upload to MinIO failed: ${response.status}`);
-  }
-}
-
-/**
- * Step 3: tell storage-service the upload is done. Storage flips status from
- * PENDING_UPLOAD to READY after verifying object exists in MinIO. The object
- * is only safe to reference in /answers after this returns.
- */
-export function completeVideoUpload(objectId: string): Promise<StorageObject> {
-  return unwrap(`${PREFIX}/uploads/videos/${objectId}/complete`, {
+  sessionId: string,
+  filename = 'answer.webm',
+): Promise<StorageObject> {
+  const form = new FormData();
+  form.append('file', blob, filename);
+  form.append('sessionId', sessionId);
+  return unwrap(`${PREFIX}/uploads/videos/multipart`, {
     method: 'POST',
+    body: form,
   });
 }
 
