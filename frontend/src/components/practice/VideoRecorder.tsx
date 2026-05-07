@@ -76,6 +76,7 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
   const [phase, setPhase] = useState<Phase>('requesting');
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [audioBlocked, setAudioBlocked] = useState(false);
+  const [audioReplaying, setAudioReplaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [micLevel, setMicLevel] = useState(0); // 0..1
 
@@ -257,6 +258,9 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
     }
   });
 
+  // ── Per-question reset clears the replay flag ──────────────────────────
+  // Reset audio replay state on question swap (kept above the main reset
+  // effect so the latter can drive phase transitions without races).
   // ── Per-question reset ────────────────────────────────────────────────────
   // When the parent swaps in a new question, snap back to `intro`. Bail on
   // the very first mount (phase still `requesting`) — the post-stream
@@ -274,6 +278,7 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
       }
     }
     setAudioBlocked(false);
+    setAudioReplaying(false);
     setElapsed(0);
     finalisedRef.current = false;
     setPhase('intro');
@@ -327,11 +332,13 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
   // them up and drive MediaRecorder.
 
   const handleAudioEnded = useCallback(() => {
+    setAudioReplaying(false);
     setPhase((p) => (p === 'intro' ? 'recording' : p));
   }, []);
 
   const handleAudioError = useCallback(() => {
     // Treat a 404 / decode error as "no audio" and proceed.
+    setAudioReplaying(false);
     setPhase((p) => (p === 'intro' ? 'recording' : p));
   }, []);
 
@@ -353,6 +360,26 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
     }
     setPhase('recording');
   }, []);
+
+  /**
+   * Replay the question's TTS clip on demand while the candidate is
+   * already in the recording phase. Recording continues — the candidate
+   * uses up wall-clock time replaying — and the mic stays open, so a
+   * speaker setup will let the playback bleed into the answer audio.
+   * Headphones recommended; the question text is on screen as a fallback
+   * either way.
+   */
+  const handleReplayAudio = useCallback(() => {
+    const a = audioRef.current;
+    if (!a || !question.audioUrl) return;
+    a.currentTime = 0;
+    setAudioReplaying(true);
+    a.play().catch(() => {
+      // Browser refused to replay — drop the flag so the button can be
+      // re-tried on the next user gesture.
+      setAudioReplaying(false);
+    });
+  }, [question.audioUrl]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -446,14 +473,28 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
           )}
 
           {phase === 'recording' && (
-            <button
-              type="button"
-              onClick={stopRecording}
-              className="w-full py-3 rounded-xl bg-red-500 text-white font-semibold text-sm hover:bg-red-600 transition-colors inline-flex items-center justify-center gap-2"
-            >
-              <Square className="w-4 h-4 fill-current" />
-              Kết thúc & nộp
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={stopRecording}
+                className="w-full py-3 rounded-xl bg-red-500 text-white font-semibold text-sm hover:bg-red-600 transition-colors inline-flex items-center justify-center gap-2"
+              >
+                <Square className="w-4 h-4 fill-current" />
+                Kết thúc & nộp
+              </button>
+              {question.audioUrl && (
+                <button
+                  type="button"
+                  onClick={handleReplayAudio}
+                  disabled={audioReplaying}
+                  className="w-full mt-2 py-2 rounded-xl border border-outline-variant text-on-surface-variant font-medium text-xs hover:bg-surface-container-low transition-colors inline-flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                  title="Đeo tai nghe để tránh micro thu lại tiếng câu hỏi"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                  {audioReplaying ? 'Đang phát lại câu hỏi…' : 'Nghe lại câu hỏi'}
+                </button>
+              )}
+            </>
           )}
 
           {phase === 'submitting' && (
