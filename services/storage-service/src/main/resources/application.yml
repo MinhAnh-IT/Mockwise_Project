@@ -36,8 +36,11 @@ spring:
   servlet:
     multipart:
       enabled: true
-      max-file-size: 25MB
-      max-request-size: 25MB
+      # Sized for a 10-min interview video at modest bitrate. Real cap lives
+      # in `minio.upload-limits.video-max-bytes` (500MB); these limits exist
+      # to stop a runaway request before Spring even allocates a buffer.
+      max-file-size: 500MB
+      max-request-size: 500MB
 
 server:
   port: 8085

@@ -7,11 +7,7 @@ import {
   getSession,
   submitAnswer,
 } from '@/api/interviews';
-import {
-  completeVideoUpload,
-  createVideoUpload,
-  putVideoBytes,
-} from '@/api/storage';
+import { uploadVideoMultipart } from '@/api/storage';
 import QuestionCard from '@/components/practice/QuestionCard';
 import SessionHeader from '@/components/practice/SessionHeader';
 import VideoRecorder from '@/components/practice/VideoRecorder';
@@ -144,21 +140,17 @@ export default function PracticeSessionPage() {
   }, [phase, sid, navigate, type]);
 
   const handleSubmit = useCallback(
-    async (blob: Blob, mimeType: string) => {
+    async (blob: Blob, _mimeType: string) => {
       if (!sid || !current) return;
       setPhase('submitting');
       setError(null);
       try {
-        const ticket = await createVideoUpload({
-          sessionId: sid,
-          contentType: mimeType,
-          sizeBytes: blob.size,
-        });
-        await putVideoBytes(ticket.uploadUrl, blob, mimeType);
-        await completeVideoUpload(ticket.objectId);
+        // Single-step multipart upload through storage-service. Avoids the
+        // Mixed Content block that came with browser → MinIO direct PUT.
+        const stored = await uploadVideoMultipart(blob, sid);
         await submitAnswer(sid, current.sessionQuestionId, {
           type: 'VIDEO',
-          storageObjectId: ticket.objectId,
+          storageObjectId: stored.objectId,
         });
         setPhase('waiting');
       } catch (err) {

@@ -132,6 +132,88 @@ public class StorageService {
         return StorageObjectResponse.from(obj);
     }
 
+    /**
+     * Streams the user's interview-video bytes through this service in a single
+     * multipart POST. Mirrors the avatar pattern — see {@link #uploadAvatar} —
+     * because the browser-direct presigned PUT to MinIO trips mixed-content
+     * blocking when the app is served over HTTPS but MinIO is HTTP-only.
+     *
+     * <p>The object lands in the same place {@link #createVideoUpload} would
+     * have written it, with status {@code READY} on return so the caller can
+     * forward {@code objectId} straight to interview-service. Re-uses
+     * {@link #ALLOWED_VIDEO_TYPES} so the validator stays consistent with the
+     * presigned-PUT path.
+     */
+    @Transactional
+    public StorageObjectResponse uploadVideoMultipart(
+            MultipartFile file, String sessionId, String ownerUserId) {
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_VIDEO_TYPES.contains(contentType)) {
+            throw new BusinessException(StatusCode.INVALID_CONTENT_TYPE,
+                    contentType, StorageKind.INTERVIEW_VIDEO);
+        }
+        if (file.getSize() > properties.uploadLimits().videoMaxBytes()) {
+            throw new BusinessException(StatusCode.UPLOAD_SIZE_EXCEEDED,
+                    file.getSize(), properties.uploadLimits().videoMaxBytes(),
+                    StorageKind.INTERVIEW_VIDEO);
+        }
+
+        String bucket = properties.buckets().interviewVideo();
+        String objectKey = "%s/%s/%s".formatted(ownerUserId, sessionId, UUID.randomUUID());
+
+        try (var stream = file.getInputStream()) {
+            minioGateway.putObject(bucket, objectKey, stream, file.getSize(), contentType);
+        } catch (IOException e) {
+            log.error("Failed to read video upload stream: {}", e.getMessage());
+            throw new BusinessException(StatusCode.STORAGE_BACKEND_ERROR);
+        }
+
+        StorageObject saved = storageObjectRepository.save(StorageObject.builder()
+                .kind(StorageKind.INTERVIEW_VIDEO)
+                .bucket(bucket)
+                .objectKey(objectKey)
+                .contentType(contentType)
+                .sizeBytes(file.getSize())
+                .status(StorageStatus.READY)
+                .ownerUserId(ownerUserId)
+                .sessionId(sessionId)
+                .completedAt(OffsetDateTime.now())
+                .build());
+
+        log.info("Uploaded video id={} session={} owner={} size={}",
+                saved.getId(), sessionId, ownerUserId, file.getSize());
+        return StorageObjectResponse.from(saved);
+    }
+
+    /**
+     * Streams a question-audio clip identified by its MinIO object key. Mirrors
+     * {@link #streamLatestAvatar} — the browser fetches the bytes from this
+     * service over HTTPS, side-stepping mixed-content blocking on the
+     * MinIO-direct presigned URLs the FE used to consume.
+     *
+     * <p>Lookup is by {@code objectKey} (not numeric id) because that's what
+     * interview-service already snapshots into {@code session_question.snapshot}
+     * — no extra ID round-trip required.
+     */
+    @Transactional(readOnly = true)
+    public AvatarStream streamQuestionAudio(String objectKey) {
+        StorageObject obj = storageObjectRepository
+                .findByBucketAndObjectKey(properties.buckets().questionAudio(), objectKey)
+                .orElseThrow(() -> new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND));
+        if (obj.getKind() != StorageKind.QUESTION_AUDIO) {
+            // The (bucket, key) pair is unique per kind already, but defend
+            // against an admin tool ever cross-writing to the wrong bucket.
+            throw new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND);
+        }
+        if (obj.getStatus() != StorageStatus.READY) {
+            throw new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND);
+        }
+
+        GetObjectResponse stream = minioGateway.getObject(obj.getBucket(), obj.getObjectKey());
+        return new AvatarStream(stream, obj.getContentType(),
+                obj.getSizeBytes() != null ? obj.getSizeBytes() : -1);
+    }
+
     // ── Avatar upload (user-facing) ──────────────────────────────────────────
 
     /**

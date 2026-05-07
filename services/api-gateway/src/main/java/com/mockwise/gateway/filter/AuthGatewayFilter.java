@@ -70,6 +70,12 @@ public class AuthGatewayFilter implements GlobalFilter, Ordered {
 
             // Storage Service — liveness probe (uploads/** still require JWT)
             new PublicRoute(HttpMethod.GET,  "/api/v1/storage/health"),
+            // Question-audio download — TTS clip for an interview question.
+            // Same access surface the previous MinIO presigned URLs had:
+            // anyone with the random objectKey UUID can play it. Keeping it
+            // public lets the FE wire <audio src> directly instead of doing
+            // an authed-fetch + blob-URL dance.
+            new PublicRoute(HttpMethod.GET,  "/api/v1/storage/question-audio/**"),
 
             // TTS-STT Service — liveness probe (internal/** is blocked by isInternalPath)
             new PublicRoute(HttpMethod.GET,  "/api/v1/tts-stt/health")
