@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Camera, Mic, MicOff, Square, VideoOff, Volume2 } from 'lucide-react';
+import { Camera, Mic, MicOff, Pause, Square, VideoOff, Volume2 } from 'lucide-react';
 import type { PinnedQuestionView } from '@/types/interview';
 
 type Phase =
@@ -76,6 +76,7 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
   const [phase, setPhase] = useState<Phase>('requesting');
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [audioBlocked, setAudioBlocked] = useState(false);
+  const [audioReplaying, setAudioReplaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [micLevel, setMicLevel] = useState(0); // 0..1
 
@@ -111,9 +112,10 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
         audio: true,
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
+      // Don't bind srcObject here — the <video> element is gated by
+      // `phase !== 'requesting'` and isn't in the DOM yet, so videoRef
+      // is still null. The dedicated effect below picks up the binding
+      // once React re-renders with phase='intro'.
       // Mic level meter — view-only analyser, not tied to MediaRecorder.
       const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const ctx = new Ctx();
@@ -186,6 +188,16 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
       window.clearInterval(timerRef.current);
       timerRef.current = null;
     }
+    // Cut off any in-flight question replay so the candidate's outgoing
+    // upload doesn't carry a few extra seconds of TTS audio they didn't
+    // want — and so the next question's intro audio starts from a clean
+    // slate.
+    const a = audioRef.current;
+    if (a && !a.paused) {
+      a.pause();
+      a.currentTime = 0;
+    }
+    setAudioReplaying(false);
     setPhase('submitting');
     const rec = recorderRef.current;
     if (rec && rec.state !== 'inactive') {
@@ -241,6 +253,24 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
     }, 1000);
   }, [finalise, maxSeconds, stopRecording]);
 
+  // ── Bind stream to <video> once both are available ───────────────────────
+  // The <video> tag is gated by `phase !== 'requesting'`, so it doesn't
+  // exist in the DOM at the moment getUserMedia resolves. We re-attempt the
+  // bind after every render that has the element AND a live stream — set
+  // srcObject only when it's not already pointing at the stream so we don't
+  // restart the underlying video element on every render.
+  useEffect(() => {
+    const el = videoRef.current;
+    const stream = streamRef.current;
+    if (!el || !stream) return;
+    if (el.srcObject !== stream) {
+      el.srcObject = stream;
+    }
+  });
+
+  // ── Per-question reset clears the replay flag ──────────────────────────
+  // Reset audio replay state on question swap (kept above the main reset
+  // effect so the latter can drive phase transitions without races).
   // ── Per-question reset ────────────────────────────────────────────────────
   // When the parent swaps in a new question, snap back to `intro`. Bail on
   // the very first mount (phase still `requesting`) — the post-stream
@@ -258,6 +288,7 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
       }
     }
     setAudioBlocked(false);
+    setAudioReplaying(false);
     setElapsed(0);
     finalisedRef.current = false;
     setPhase('intro');
@@ -311,11 +342,13 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
   // them up and drive MediaRecorder.
 
   const handleAudioEnded = useCallback(() => {
+    setAudioReplaying(false);
     setPhase((p) => (p === 'intro' ? 'recording' : p));
   }, []);
 
   const handleAudioError = useCallback(() => {
     // Treat a 404 / decode error as "no audio" and proceed.
+    setAudioReplaying(false);
     setPhase((p) => (p === 'intro' ? 'recording' : p));
   }, []);
 
@@ -337,6 +370,35 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
     }
     setPhase('recording');
   }, []);
+
+  /**
+   * Toggle the question's TTS replay during recording. Behaves like a
+   * play/pause control on the same button:
+   *   - idle → start playback from the beginning, flip the flag.
+   *   - playing → pause + rewind so the next click starts cleanly.
+   *
+   * Recording continues throughout — the wall-clock cap keeps counting
+   * and the mic stays open, so a speaker setup will let the playback
+   * bleed into the answer audio. Headphones recommended; question text
+   * is on screen as a fallback either way.
+   */
+  const handleReplayAudio = useCallback(() => {
+    const a = audioRef.current;
+    if (!a || !question.audioUrl) return;
+    if (audioReplaying) {
+      a.pause();
+      a.currentTime = 0;
+      setAudioReplaying(false);
+      return;
+    }
+    a.currentTime = 0;
+    setAudioReplaying(true);
+    a.play().catch(() => {
+      // Browser refused to replay — drop the flag so the button can be
+      // re-tried on the next user gesture.
+      setAudioReplaying(false);
+    });
+  }, [audioReplaying, question.audioUrl]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -430,14 +492,36 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
           )}
 
           {phase === 'recording' && (
-            <button
-              type="button"
-              onClick={stopRecording}
-              className="w-full py-3 rounded-xl bg-red-500 text-white font-semibold text-sm hover:bg-red-600 transition-colors inline-flex items-center justify-center gap-2"
-            >
-              <Square className="w-4 h-4 fill-current" />
-              Kết thúc & nộp
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={stopRecording}
+                className="w-full py-3 rounded-xl bg-red-500 text-white font-semibold text-sm hover:bg-red-600 transition-colors inline-flex items-center justify-center gap-2"
+              >
+                <Square className="w-4 h-4 fill-current" />
+                Kết thúc & nộp
+              </button>
+              {question.audioUrl && (
+                <button
+                  type="button"
+                  onClick={handleReplayAudio}
+                  className="w-full mt-2 py-2 rounded-xl border border-outline-variant text-on-surface-variant font-medium text-xs hover:bg-surface-container-low transition-colors inline-flex items-center justify-center gap-1.5"
+                  title="Đeo tai nghe để tránh micro thu lại tiếng câu hỏi"
+                >
+                  {audioReplaying ? (
+                    <>
+                      <Pause className="w-3.5 h-3.5" />
+                      Dừng phát lại
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="w-3.5 h-3.5" />
+                      Nghe lại câu hỏi
+                    </>
+                  )}
+                </button>
+              )}
+            </>
           )}
 
           {phase === 'submitting' && (
