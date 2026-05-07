@@ -95,7 +95,12 @@ def output_validator_node(state: AgentState) -> dict:
     retry_count: int = state.get("retry_count", 0)
     interview_type: str = state.get("interview_type", "")
     evaluation_start_ms: int = state.get("evaluation_start_ms", int(time.time() * 1000))
-    session_id: str = state["raw_input"].get("session_id", "unknown")
+    raw_input: dict = state["raw_input"]
+    # Producers vary on case (orchestrator emits `sessionId`, REST examples
+    # use `session_id`); accept both rather than coupling either side.
+    session_id: str = (
+        raw_input.get("session_id") or raw_input.get("sessionId") or "unknown"
+    )
 
     # ── 1. Check raw_output is present ───────────────────────────────────────
     if raw_output is None:
