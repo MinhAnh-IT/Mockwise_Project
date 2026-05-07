@@ -11,6 +11,8 @@ import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import PracticeIntroPage from '@/pages/practice/PracticeIntroPage';
 import PracticePage from '@/pages/practice/PracticePage';
+import PracticeReportPage from '@/pages/practice/PracticeReportPage';
+import PracticeSessionPage from '@/pages/practice/PracticeSessionPage';
 import EditProfilePage from '@/pages/profile/EditProfilePage';
 import ProfilePage from '@/pages/profile/ProfilePage';
 
@@ -56,6 +58,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <PracticeIntroPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/practice/:type/session/:sid"
+            element={
+              <ProtectedRoute>
+                <PracticeSessionPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/practice/:type/session/:sid/report"
+            element={
+              <ProtectedRoute>
+                <PracticeReportPage />
               </ProtectedRoute>
             }
           />

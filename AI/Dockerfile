@@ -20,16 +20,20 @@ RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 COPY --from=builder /install /usr/local
 
-# Source — both feature areas under one image.
-COPY --chown=appuser:appgroup evaluator/  ./evaluator/
-COPY --chown=appuser:appgroup generator/  ./generator/
-COPY --chown=appuser:appgroup selector/   ./selector/
-COPY --chown=appuser:appgroup messaging/  ./messaging/
-COPY --chown=appuser:appgroup models/     ./models/
-COPY --chown=appuser:appgroup api.py      ./api.py
-COPY --chown=appuser:appgroup config.py   ./config.py
-COPY --chown=appuser:appgroup llm.py      ./llm.py
-COPY --chown=appuser:appgroup main.py     ./main.py
+# Source — every feature area shipped in this image. `messaging/` imports
+# from `overall_reviewer/` at lifespan startup, so missing the latter folder
+# crashes the container in a restart loop with `ModuleNotFoundError: No
+# module named 'overall_reviewer'`.
+COPY --chown=appuser:appgroup evaluator/         ./evaluator/
+COPY --chown=appuser:appgroup generator/         ./generator/
+COPY --chown=appuser:appgroup selector/          ./selector/
+COPY --chown=appuser:appgroup overall_reviewer/  ./overall_reviewer/
+COPY --chown=appuser:appgroup messaging/         ./messaging/
+COPY --chown=appuser:appgroup models/            ./models/
+COPY --chown=appuser:appgroup api.py             ./api.py
+COPY --chown=appuser:appgroup config.py          ./config.py
+COPY --chown=appuser:appgroup llm.py             ./llm.py
+COPY --chown=appuser:appgroup main.py            ./main.py
 
 USER appuser
 

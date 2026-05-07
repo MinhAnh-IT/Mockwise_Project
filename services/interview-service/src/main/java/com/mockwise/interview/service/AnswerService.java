@@ -120,9 +120,13 @@ public class AnswerService {
             throw new BusinessException(StatusCode.QUESTION_NOT_IN_SESSION);
         }
 
-        // Pre-flight checks specific to type.
+        // Pre-flight checks specific to type. For VIDEO we keep the storage
+        // metadata around — tts-stt's `answer-submitted` consumer needs the
+        // bucket / objectKey to download the file, and we already pay the
+        // round-trip to storage-service for ownership verification.
+        StorageObjectResponse storageObject = null;
         if (input.type() == AnswerType.VIDEO) {
-            verifyStorageObject(input.storageObjectId(), userId);
+            storageObject = verifyStorageObject(input.storageObjectId(), userId);
         } else {
             if (input.code() == null || input.code().isBlank()) {
                 throw new BusinessException(StatusCode.VALIDATION_ERROR, "code is required for CODE answers");
@@ -144,12 +148,12 @@ public class AnswerService {
                 input.type() == AnswerType.VIDEO ? "video-answer-submitted" : "code-answer-submitted",
                 Map.of());
 
-        stageOutbound(answer, sq);
+        stageOutbound(answer, sq, session.getUserId(), storageObject);
 
         return new SubmitAnswerOutput(answer.getId(), answer.getStatus(), answer.getSubmittedAt());
     }
 
-    private void verifyStorageObject(UUID storageObjectId, String userId) {
+    private StorageObjectResponse verifyStorageObject(UUID storageObjectId, String userId) {
         if (storageObjectId == null) {
             throw new BusinessException(StatusCode.VALIDATION_ERROR, "storageObjectId is required for VIDEO answers");
         }
@@ -177,22 +181,37 @@ public class AnswerService {
         // Storage object reuse is checked via answer.storage_object_id index +
         // a follow-up uniqueness query — added when we build the answers index in
         // V2. For now the FE flow makes a fresh upload per submission.
+        return object;
     }
 
-    private void stageOutbound(Answer answer, SessionQuestion sq) {
+    private void stageOutbound(
+            Answer answer, SessionQuestion sq, String ownerUserId, StorageObjectResponse storageObject) {
         if (answer.getType() == AnswerType.VIDEO) {
-            // tts-stt picks this up.
+            // tts-stt picks this up. Schema must match
+            // tts-stt-service/.../kafka/event/AnswerSubmittedEvent.java —
+            // `ownerUserId` is NOT NULL on the stt_job table, and
+            // `videoMeta.objectKey` is required for SttOrchestrator to
+            // download the bytes from MinIO.
+            HashMap<String, Object> payload = new HashMap<>();
+            payload.put("answerId", answer.getId().toString());
+            payload.put("sessionId", answer.getSessionId().toString());
+            payload.put("sessionQuestionId", sq.getId().toString());
+            payload.put("questionId", String.valueOf(sq.getQuestionId()));
+            payload.put("ownerUserId", ownerUserId);
+            payload.put("storageObjectId", answer.getStorageObjectId().toString());
+            if (storageObject != null) {
+                HashMap<String, Object> videoMeta = new HashMap<>();
+                videoMeta.put("bucket", storageObject.bucket());
+                videoMeta.put("objectKey", storageObject.objectKey());
+                videoMeta.put("contentType", storageObject.contentType());
+                videoMeta.put("sizeBytes", storageObject.sizeBytes());
+                payload.put("videoMeta", videoMeta);
+            }
             outboxWriter.stage(
                     KafkaTopics.ANSWER_SUBMITTED,
                     "ANSWER_SUBMITTED",
                     answer.getId(),
-                    Map.of(
-                            "answerId", answer.getId().toString(),
-                            "sessionId", answer.getSessionId().toString(),
-                            "sessionQuestionId", sq.getId().toString(),
-                            "questionId", String.valueOf(sq.getQuestionId()),
-                            "storageObjectId", answer.getStorageObjectId().toString()
-                    ));
+                    payload);
         } else {
             // judge-service picks this up.
             outboxWriter.stage(
