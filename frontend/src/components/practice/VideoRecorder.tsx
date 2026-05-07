@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Camera, Mic, MicOff, Square, VideoOff, Volume2 } from 'lucide-react';
+import { Camera, Mic, MicOff, Pause, Square, VideoOff, Volume2 } from 'lucide-react';
 import type { PinnedQuestionView } from '@/types/interview';
 
 type Phase =
@@ -188,6 +188,16 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
       window.clearInterval(timerRef.current);
       timerRef.current = null;
     }
+    // Cut off any in-flight question replay so the candidate's outgoing
+    // upload doesn't carry a few extra seconds of TTS audio they didn't
+    // want — and so the next question's intro audio starts from a clean
+    // slate.
+    const a = audioRef.current;
+    if (a && !a.paused) {
+      a.pause();
+      a.currentTime = 0;
+    }
+    setAudioReplaying(false);
     setPhase('submitting');
     const rec = recorderRef.current;
     if (rec && rec.state !== 'inactive') {
@@ -362,16 +372,25 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
   }, []);
 
   /**
-   * Replay the question's TTS clip on demand while the candidate is
-   * already in the recording phase. Recording continues — the candidate
-   * uses up wall-clock time replaying — and the mic stays open, so a
-   * speaker setup will let the playback bleed into the answer audio.
-   * Headphones recommended; the question text is on screen as a fallback
-   * either way.
+   * Toggle the question's TTS replay during recording. Behaves like a
+   * play/pause control on the same button:
+   *   - idle → start playback from the beginning, flip the flag.
+   *   - playing → pause + rewind so the next click starts cleanly.
+   *
+   * Recording continues throughout — the wall-clock cap keeps counting
+   * and the mic stays open, so a speaker setup will let the playback
+   * bleed into the answer audio. Headphones recommended; question text
+   * is on screen as a fallback either way.
    */
   const handleReplayAudio = useCallback(() => {
     const a = audioRef.current;
     if (!a || !question.audioUrl) return;
+    if (audioReplaying) {
+      a.pause();
+      a.currentTime = 0;
+      setAudioReplaying(false);
+      return;
+    }
     a.currentTime = 0;
     setAudioReplaying(true);
     a.play().catch(() => {
@@ -379,7 +398,7 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
       // re-tried on the next user gesture.
       setAudioReplaying(false);
     });
-  }, [question.audioUrl]);
+  }, [audioReplaying, question.audioUrl]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -486,12 +505,20 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
                 <button
                   type="button"
                   onClick={handleReplayAudio}
-                  disabled={audioReplaying}
-                  className="w-full mt-2 py-2 rounded-xl border border-outline-variant text-on-surface-variant font-medium text-xs hover:bg-surface-container-low transition-colors inline-flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full mt-2 py-2 rounded-xl border border-outline-variant text-on-surface-variant font-medium text-xs hover:bg-surface-container-low transition-colors inline-flex items-center justify-center gap-1.5"
                   title="Đeo tai nghe để tránh micro thu lại tiếng câu hỏi"
                 >
-                  <Volume2 className="w-3.5 h-3.5" />
-                  {audioReplaying ? 'Đang phát lại câu hỏi…' : 'Nghe lại câu hỏi'}
+                  {audioReplaying ? (
+                    <>
+                      <Pause className="w-3.5 h-3.5" />
+                      Dừng phát lại
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="w-3.5 h-3.5" />
+                      Nghe lại câu hỏi
+                    </>
+                  )}
                 </button>
               )}
             </>
