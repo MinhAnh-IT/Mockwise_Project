@@ -32,12 +32,26 @@ def build_overall_review_prompt(
 
     retry_block = f"\n\nIMPORTANT — previous attempt was rejected. {retry_instruction}\n" if retry_instruction else ""
 
+    lang_map = {"en": "English", "vi": "Vietnamese"}
+    language_label = lang_map.get(payload.response_language, "English")
+    language_block = f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RESPONSE LANGUAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+You MUST write ALL narrative text in {language_label.upper()}: summary,
+every entry in strengths / weaknesses / recommendations, and each
+per_topic_summary[].comment. Do NOT mix languages within a single field.
+Enum values (grade, hire_signal, status) and field names stay as the
+schema specifies — only the prose changes.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+
     return f"""You are a senior interviewer summarising a finished mock interview.
 The candidate has already answered every pinned question; each answer carries
 a per-question verdict produced earlier. Your job is the cross-question
 narrative — strengths, weaknesses, per-topic coverage, and concrete
 recommendations.
-
+{language_block}
 INPUT
 ─────
 session_id: {payload.session_id}
