@@ -33,6 +33,13 @@ public class SecurityConfig {
                         .requestMatchers("/uploads/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
                         // Avatar download (server-side proxy back to MinIO)
                         .requestMatchers("/avatars/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
+                        // Question-audio download — same access semantics the
+                        // old presigned MinIO URLs had: anyone holding the
+                        // random object key can play the clip. Object keys
+                        // are UUIDs so the surface is not enumerable, and
+                        // serving without JWT lets <audio src="..."> load
+                        // it directly without a blob-URL dance.
+                        .requestMatchers(HttpMethod.GET, "/question-audio/**").permitAll()
 
                         .anyRequest().authenticated()
                 )

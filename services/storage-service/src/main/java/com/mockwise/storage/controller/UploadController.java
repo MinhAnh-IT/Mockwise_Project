@@ -58,4 +58,25 @@ public class UploadController {
         return ResponseEntity.ok(ApiResponse.success(
                 storageService.uploadAvatar(file, user.getUserId())));
     }
+
+    /**
+     * Single-step interview-video upload. Replaces the 3-step presigned-PUT
+     * dance ({@code /videos} → MinIO PUT → {@code /complete}) for browser
+     * clients, which the dance broke for: the MinIO host is HTTP-only and the
+     * app is served over HTTPS, so the browser blocks the cross-origin PUT
+     * with a Mixed Content error.
+     *
+     * <p>Returns the stored object with {@code status = READY} so the FE can
+     * forward {@code objectId} straight to interview-service. Server-to-server
+     * callers (e.g. tts-stt warm-up) keep using the presigned-PUT path; this
+     * endpoint is purely for the user-facing recorder.
+     */
+    @PostMapping(value = "/videos/multipart", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<StorageObjectResponse>> uploadVideoMultipart(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("sessionId") String sessionId,
+            @AuthenticationPrincipal CustomUserDetails user) {
+        return ResponseEntity.ok(ApiResponse.success(
+                storageService.uploadVideoMultipart(file, sessionId, user.getUserId())));
+    }
 }
