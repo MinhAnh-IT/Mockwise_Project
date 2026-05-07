@@ -24,9 +24,12 @@ import org.springframework.web.bind.annotation.RestController;
  * blocking would otherwise stop {@code <audio>} from loading the TTS clip
  * for an interview question).
  *
- * <p>{@code objectKey} segments contain a slash ({@code audio/<uuid>}) so
- * the path variable uses {@code :.+} to capture the rest of the URL — Spring
- * otherwise stops at the first slash.
+ * <p>Object keys are stored with a slash ({@code audio/<uuid>}). Using a
+ * normal path-variable regex {@code {key:.+}} doesn't work in Spring 6 with
+ * PathPatternParser — that engine matches segment-by-segment, so a single
+ * variable never captures past the first slash. The {@code {*objectKey}}
+ * "catch-all" syntax does, with the caveat that the captured value starts
+ * with a leading {@code /} which we strip.
  */
 @Slf4j
 @RestController
@@ -37,9 +40,11 @@ public class QuestionAudioController {
 
     StorageService storageService;
 
-    @GetMapping("/{objectKey:.+}")
+    @GetMapping("/{*objectKey}")
     public ResponseEntity<InputStreamResource> getAudio(@PathVariable String objectKey) {
-        AvatarStream audio = storageService.streamQuestionAudio(objectKey);
+        // {*objectKey} captures the remainder including the leading "/".
+        String key = objectKey.startsWith("/") ? objectKey.substring(1) : objectKey;
+        AvatarStream audio = storageService.streamQuestionAudio(key);
 
         ResponseEntity.BodyBuilder builder = ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(audio.contentType()))

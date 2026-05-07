@@ -80,7 +80,12 @@ external:
     user-profile:
       url: ${USER_PROFILE_BASE_URL:http://user-profile-service:8082/api/v1/profiles}
     tts-stt:
-      url: ${TTS_STT_BASE_URL:http://tts-stt-service:8086}
+      # tts-stt-service mounts every endpoint under /api/v1/tts-stt (servlet
+      # context-path), so the Feign URL must include it — otherwise Spring's
+      # default 404 page comes back as HTML and the consumer dies trying to
+      # parse it as JSON. Other clients (storage, question-bank, user-profile)
+      # already include their context path.
+      url: ${TTS_STT_BASE_URL:http://tts-stt-service:8086/api/v1/tts-stt}
     ai:
       url: ${AI_BASE_URL:http://ai-service:8000}
       api-key: ${AI_SERVICE_API_KEY:}
