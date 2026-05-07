@@ -111,9 +111,10 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
         audio: true,
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
+      // Don't bind srcObject here — the <video> element is gated by
+      // `phase !== 'requesting'` and isn't in the DOM yet, so videoRef
+      // is still null. The dedicated effect below picks up the binding
+      // once React re-renders with phase='intro'.
       // Mic level meter — view-only analyser, not tied to MediaRecorder.
       const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const ctx = new Ctx();
@@ -240,6 +241,21 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
       });
     }, 1000);
   }, [finalise, maxSeconds, stopRecording]);
+
+  // ── Bind stream to <video> once both are available ───────────────────────
+  // The <video> tag is gated by `phase !== 'requesting'`, so it doesn't
+  // exist in the DOM at the moment getUserMedia resolves. We re-attempt the
+  // bind after every render that has the element AND a live stream — set
+  // srcObject only when it's not already pointing at the stream so we don't
+  // restart the underlying video element on every render.
+  useEffect(() => {
+    const el = videoRef.current;
+    const stream = streamRef.current;
+    if (!el || !stream) return;
+    if (el.srcObject !== stream) {
+      el.srcObject = stream;
+    }
+  });
 
   // ── Per-question reset ────────────────────────────────────────────────────
   // When the parent swaps in a new question, snap back to `intro`. Bail on
