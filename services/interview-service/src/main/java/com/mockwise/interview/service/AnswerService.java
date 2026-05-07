@@ -311,9 +311,33 @@ public class AnswerService {
         // AI/models/inputs.py exactly so the payload deserialises into
         // BehavioralInput / ConceptualInput on the Python side.
         Map<String, Object> snap = sq.getSnapshot() != null ? sq.getSnapshot() : Map.of();
-        String responseLanguage = languageCode != null
-                ? languageCode.toLowerCase().contains("vi") ? "vi" : "en"
-                : "vi";
+
+        // Prefer the candidate's profile language for the AI's response —
+        // STT auto-detect is a hint about what the candidate SPOKE, but the
+        // feedback should land in the language the candidate set on their
+        // profile (e.g. a Vietnamese candidate who says "let me think" mid-
+        // answer still wants the writeup in Vietnamese). Fallback chain:
+        //   profile.preferredLanguage  →  STT detected language  →  "vi"
+        InterviewSession session = sessionRepo.findById(answer.getSessionId())
+                .orElseThrow(() -> new BusinessException(StatusCode.SESSION_NOT_FOUND));
+        String preferred = null;
+        try {
+            UserProfileResponse profile = userProfileAdapter.getProfile(session.getUserId());
+            if (profile != null && profile.preferredLanguage() != null) {
+                preferred = profile.preferredLanguage().toLowerCase();
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to load profile for response-language hint, falling back to STT: {}",
+                    ex.getMessage());
+        }
+        String responseLanguage;
+        if ("vi".equals(preferred) || "en".equals(preferred)) {
+            responseLanguage = preferred;
+        } else if (languageCode != null) {
+            responseLanguage = languageCode.toLowerCase().contains("vi") ? "vi" : "en";
+        } else {
+            responseLanguage = "vi";
+        }
 
         // Field names are camelCase to match the AI service's Pydantic
         // CamelModel base — the AI side accepts both (populate_by_name=True)

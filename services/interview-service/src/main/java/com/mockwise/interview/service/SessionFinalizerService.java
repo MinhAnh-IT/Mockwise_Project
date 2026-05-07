@@ -1,5 +1,7 @@
 package com.mockwise.interview.service;
 
+import com.mockwise.interview.client.userprofile.UserProfileAdapter;
+import com.mockwise.interview.client.userprofile.dto.UserProfileResponse;
 import com.mockwise.interview.common.exception.BusinessException;
 import com.mockwise.interview.common.exception.StatusCode;
 import com.mockwise.interview.entity.Answer;
@@ -49,6 +51,7 @@ public class SessionFinalizerService {
     SessionQuestionRepository sessionQuestionRepo;
     AnswerRepository answerRepo;
     OutboxWriter outboxWriter;
+    UserProfileAdapter userProfileAdapter;
 
     /**
      * Evaluates the gate and stages a {@code session-evaluation-requested}
@@ -156,12 +159,32 @@ public class SessionFinalizerService {
             blueprintSummary.put("topics", bp.getTopics());
         }
 
+        // Pull the candidate's preferred output language so the overall
+        // reviewer narrative (summary / strengths / weaknesses / per-topic
+        // comments / recommendations) lands in Vietnamese for VN candidates.
+        // Profile fetch is soft-fail — a transient user-profile-service
+        // outage shouldn't block the session report.
+        String responseLanguage = "vi";
+        try {
+            UserProfileResponse profile = userProfileAdapter.getProfile(s.getUserId());
+            if (profile != null && profile.preferredLanguage() != null) {
+                String pref = profile.preferredLanguage().toLowerCase();
+                if ("vi".equals(pref) || "en".equals(pref)) {
+                    responseLanguage = pref;
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to load profile for overall-review language for session {}: {}",
+                    s.getId(), ex.getMessage());
+        }
+
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("sessionId", s.getId().toString());
         payload.put("userId", s.getUserId());
         payload.put("targetRole", s.getTargetRole());
         payload.put("level", s.getLevel());
         payload.put("interviewType", s.getInterviewType().name());
+        payload.put("responseLanguage", responseLanguage);
         payload.put("blueprint", blueprintSummary);
         payload.put("answers", answers);
         payload.put("answerCount", answers.size());

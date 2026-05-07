@@ -61,6 +61,11 @@ class SessionEvaluationPayload(CamelModel):
     blueprint: SessionBlueprintSummary = Field(default_factory=SessionBlueprintSummary)
     answers: List[SessionAnswerSummary] = Field(default_factory=list)
     answer_count: Optional[int] = None
+    # Output language for the cross-question narrative (summary / strengths /
+    # weaknesses / recommendations / per-topic comments). Mirrors the
+    # per-answer payload's responseLanguage and tracks the candidate's
+    # profile.preferredLanguage. Default vi to match the platform default.
+    response_language: str = "vi"
 
 
 class TopicReviewItem(CamelModel):
