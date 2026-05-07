@@ -1,5 +1,8 @@
-import { ArrowLeft, CheckCircle2, Clock, ListChecks } from 'lucide-react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, Loader2, ListChecks } from 'lucide-react';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { ApiError } from '@/api/client';
+import { startSession } from '@/api/interviews';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
 import { findPracticeOption, type PracticeOption } from '@/data/practice';
@@ -13,10 +16,34 @@ import { findPracticeOption, type PracticeOption } from '@/data/practice';
 export default function PracticeIntroPage() {
   const { type } = useParams<{ type: string }>();
   const option = type ? findPracticeOption(type) : undefined;
+  const navigate = useNavigate();
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!option) {
     return <Navigate to="/practice" replace />;
   }
+
+  const handleStart = async () => {
+    if (!option.interviewType) return;
+    setStarting(true);
+    setError(null);
+    try {
+      const output = await startSession({ interviewType: option.interviewType });
+      navigate(`/practice/${option.id}/session/${output.sessionId}`, {
+        state: { bootstrap: output },
+      });
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Không bắt đầu được phiên phỏng vấn.';
+      setError(msg);
+      setStarting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-surface">
@@ -38,7 +65,18 @@ export default function PracticeIntroPage() {
 
           <Checklist items={option.readiness.checklist} />
 
-          <StartCta />
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-700 leading-relaxed">{error}</p>
+            </div>
+          )}
+
+          <StartCta
+            disabled={option.interviewType === null}
+            loading={starting}
+            onStart={handleStart}
+          />
         </div>
       </main>
 
@@ -123,18 +161,36 @@ function Checklist({ items }: { items: string[] }) {
   );
 }
 
-function StartCta() {
-  // Disabled until the interview-orchestrator service is wired up. Keep the
-  // visual design close to an enabled button so the layout doesn't shift the
-  // day it goes live.
+function StartCta({
+  disabled,
+  loading,
+  onStart,
+}: {
+  disabled: boolean;
+  loading: boolean;
+  onStart: () => void;
+}) {
+  if (disabled) {
+    return (
+      <button
+        type="button"
+        disabled
+        className="w-full py-3 rounded-xl bg-secondary/40 text-on-secondary font-semibold cursor-not-allowed"
+        title="Loại phỏng vấn này đang được phát triển"
+      >
+        Bắt đầu (sắp có)
+      </button>
+    );
+  }
   return (
     <button
       type="button"
-      disabled
-      className="w-full py-3 rounded-xl bg-secondary/40 text-on-secondary font-semibold cursor-not-allowed"
-      title="Phiên trực tiếp đang được phát triển"
+      onClick={onStart}
+      disabled={loading}
+      className="w-full py-3 rounded-xl bg-secondary text-on-secondary font-semibold hover:bg-secondary-container transition-colors inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
     >
-      Bắt đầu (sắp có)
+      {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+      {loading ? 'Đang khởi tạo phiên…' : 'Bắt đầu phỏng vấn'}
     </button>
   );
 }

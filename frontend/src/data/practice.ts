@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { BrainCircuit, Briefcase, Code2 } from 'lucide-react';
+import type { InterviewType } from '@/types/interview';
 
 export type PracticeType = 'behavioral' | 'core' | 'coding';
 
@@ -10,6 +11,18 @@ export type PracticeOption = {
   Icon: LucideIcon;
   /** Tailwind classes for the icon tile background. */
   accentClassName: string;
+  /**
+   * Maps to the backend `interviewType` enum. `coding` is unsupported until
+   * the live-coding flow ships — left null so the intro page can disable
+   * the start button.
+   */
+  interviewType: InterviewType | null;
+  /**
+   * Wall-clock cap per question. Behavioral STAR-style answers are short
+   * (~3 min), Core conceptual deep-dives need more room. Hitting the cap
+   * auto-stops + auto-submits.
+   */
+  recordingMaxSeconds: number;
   /**
    * Pre-session readiness details. Length and question count are decided by
    * the backend (mocked here until the interview-orchestrator service exists),
@@ -31,6 +44,8 @@ export const PRACTICE_OPTIONS: PracticeOption[] = [
     shortDescription: 'Câu hỏi tình huống — luyện cấu trúc trả lời theo phương pháp STAR.',
     Icon: BrainCircuit,
     accentClassName: 'bg-secondary-fixed text-on-secondary-fixed',
+    interviewType: 'BEHAVIORAL',
+    recordingMaxSeconds: 5 * 60,
     readiness: {
       estimatedMinutes: '20–25 phút',
       questionCount: '5–7 câu',
@@ -49,6 +64,8 @@ export const PRACTICE_OPTIONS: PracticeOption[] = [
     shortDescription: 'Câu hỏi lý thuyết & tình huống đặc thù cho lĩnh vực bạn ứng tuyển.',
     Icon: Briefcase,
     accentClassName: 'bg-secondary/10 text-secondary',
+    interviewType: 'CORE',
+    recordingMaxSeconds: 10 * 60,
     readiness: {
       estimatedMinutes: '25–35 phút',
       questionCount: '6–8 câu',
@@ -67,6 +84,8 @@ export const PRACTICE_OPTIONS: PracticeOption[] = [
     shortDescription: 'Bài lập trình LeetCode-style, chấm tự động qua sandbox.',
     Icon: Code2,
     accentClassName: 'bg-emerald-100 text-emerald-700',
+    interviewType: null,
+    recordingMaxSeconds: 0,
     readiness: {
       estimatedMinutes: '45–60 phút',
       questionCount: '1–2 bài',
