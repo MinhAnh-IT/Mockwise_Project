@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -209,7 +210,13 @@ public class SttOrchestrator {
         try {
             Path tmp = Paths.get(System.getProperty("java.io.tmpdir"),
                     prefix + "-" + UUID.randomUUID() + ".bin");
-            byte[] bytes = minioClient.get().uri(url).retrieve().body(byte[].class);
+            // Wrap in URI so Spring's RestClient does not re-encode the
+            // already-encoded MinIO presigned URL. The `.uri(String)`
+            // overload runs the value through UriComponentsBuilder which
+            // double-encodes `%2F` → `%252F`, corrupting the
+            // {@code X-Amz-Credential} param and turning the request into
+            // a "AuthorizationQueryParametersError" from MinIO.
+            byte[] bytes = minioClient.get().uri(URI.create(url)).retrieve().body(byte[].class);
             if (bytes == null) {
                 throw new BusinessException(StatusCode.STT_OBJECT_NOT_AVAILABLE);
             }
