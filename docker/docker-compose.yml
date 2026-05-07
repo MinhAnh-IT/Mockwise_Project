@@ -138,7 +138,7 @@ services:
       QUESTION_BANK_BASE_URL: http://question-bank-service:8084/api/v1/question-bank
       STORAGE_BASE_URL: http://storage-service:8085/api/v1/storage
       USER_PROFILE_BASE_URL: http://user-profile-service:8082/api/v1/profiles
-      TTS_STT_BASE_URL: http://tts-stt-service:8086
+      TTS_STT_BASE_URL: http://tts-stt-service:8086/api/v1/tts-stt
       AI_BASE_URL: http://ai-service:8000
       AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY}
     networks:
