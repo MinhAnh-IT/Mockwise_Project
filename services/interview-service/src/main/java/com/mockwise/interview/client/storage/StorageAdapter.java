@@ -28,6 +28,15 @@ public class StorageAdapter {
      */
     private static final String QUESTION_AUDIO_PATH_PREFIX = "/api/v1/storage/question-audio/";
 
+    /**
+     * Same-origin path the FE hits to stream the candidate's submitted
+     * answer video. JWT-protected end-to-end (api-gateway introspect →
+     * storage-service ACL check on {@code ownerUserId}); MinIO bytes are
+     * proxied through storage-service for the same Mixed-Content reason
+     * the question-audio path exists.
+     */
+    private static final String INTERVIEW_VIDEO_PATH_PREFIX = "/api/v1/storage/interview-videos/";
+
     StorageClient client;
 
     public StorageObjectResponse getObject(UUID objectId) {
@@ -50,6 +59,19 @@ public class StorageAdapter {
             return Optional.empty();
         }
         return Optional.of(QUESTION_AUDIO_PATH_PREFIX + objectKey);
+    }
+
+    /**
+     * Same-origin URL for replaying a candidate's submitted answer video.
+     * No round-trip to storage-service — we just synthesise the path.
+     * Storage-service enforces ACL when the URL is hit, so a user can only
+     * stream videos whose {@code ownerUserId} matches their JWT subject.
+     */
+    public Optional<String> signInterviewVideoUrl(UUID storageObjectId) {
+        if (storageObjectId == null) {
+            return Optional.empty();
+        }
+        return Optional.of(INTERVIEW_VIDEO_PATH_PREFIX + storageObjectId);
     }
 
     private static <T> T unwrap(ApiResponse<T> response) {

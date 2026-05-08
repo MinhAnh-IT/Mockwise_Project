@@ -1,6 +1,7 @@
 package com.mockwise.interview.controller;
 
 import com.core.apiresponse.response.ApiResponse;
+import com.mockwise.interview.client.storage.StorageAdapter;
 import com.mockwise.interview.common.security.CustomUserDetails;
 import com.mockwise.interview.dto.request.SubmitAnswerInput;
 import com.mockwise.interview.dto.response.AnswerView;
@@ -40,6 +41,7 @@ import java.util.UUID;
 public class AnswerController {
 
     AnswerService answerService;
+    StorageAdapter storageAdapter;
 
     @PostMapping("/{sid}/questions/{sqid}/answers")
     public ResponseEntity<ApiResponse<SubmitAnswerOutput>> submit(
@@ -61,6 +63,14 @@ public class AnswerController {
         // reaches SCORED — the candidate only sees the consolidated overall
         // review at the end of the interview.
         boolean reveal = pair.sessionStatus() == SessionStatus.SCORED;
-        return ResponseEntity.ok(ApiResponse.success(AnswerView.fromEntity(pair.answer(), reveal)));
+        AnswerView view = AnswerView.fromEntity(pair.answer(), reveal);
+        if (reveal) {
+            // Same-origin video URL for the report's per-question replay.
+            // Skipping signing while not revealing keeps mid-flight polls
+            // free of the storage adapter call AND avoids leaking the id.
+            view = view.withSignedMedia(
+                    id -> storageAdapter.signInterviewVideoUrl(id).orElse(null));
+        }
+        return ResponseEntity.ok(ApiResponse.success(view));
     }
 }

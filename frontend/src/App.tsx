@@ -15,6 +15,7 @@ import PracticeReportPage from '@/pages/practice/PracticeReportPage';
 import PracticeSessionPage from '@/pages/practice/PracticeSessionPage';
 import EditProfilePage from '@/pages/profile/EditProfilePage';
 import ProfilePage from '@/pages/profile/ProfilePage';
+import HistoryPage from '@/pages/history/HistoryPage';
 
 export default function App() {
   return (
@@ -81,7 +82,7 @@ export default function App() {
             path="/history"
             element={
               <ProtectedRoute>
-                <ComingSoonPage title="Lịch sử phỏng vấn" />
+                <HistoryPage />
               </ProtectedRoute>
             }
           />

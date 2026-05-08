@@ -214,6 +214,37 @@ public class StorageService {
                 obj.getSizeBytes() != null ? obj.getSizeBytes() : -1);
     }
 
+    /**
+     * Streams a user's submitted answer video back to them. Mirrors
+     * {@link #streamQuestionAudio} / {@link #streamLatestAvatar} — proxies
+     * MinIO bytes through HTTPS so the browser doesn't see the HTTP-only
+     * MinIO host (mixed-content blocking on {@code <video>}).
+     *
+     * <p>ACL: object's {@code ownerUserId} must equal the requester's id.
+     * Mismatches return {@link StatusCode#STORAGE_OBJECT_NOT_FOUND} (not 403)
+     * so a probing user can't tell whether the id belongs to someone else
+     * or doesn't exist at all.
+     */
+    @Transactional(readOnly = true)
+    public AvatarStream streamInterviewVideo(String objectId, String requesterUserId) {
+        StorageObject obj = storageObjectRepository.findById(objectId)
+                .orElseThrow(() -> new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND));
+
+        if (obj.getKind() != StorageKind.INTERVIEW_VIDEO) {
+            throw new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND);
+        }
+        if (obj.getStatus() != StorageStatus.READY) {
+            throw new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND);
+        }
+        if (!Objects.equals(obj.getOwnerUserId(), requesterUserId)) {
+            throw new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND);
+        }
+
+        GetObjectResponse stream = minioGateway.getObject(obj.getBucket(), obj.getObjectKey());
+        return new AvatarStream(stream, obj.getContentType(),
+                obj.getSizeBytes() != null ? obj.getSizeBytes() : -1);
+    }
+
     // ── Avatar upload (user-facing) ──────────────────────────────────────────
 
     /**
