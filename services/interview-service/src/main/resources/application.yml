@@ -45,6 +45,11 @@ server:
   port: 8088
   servlet:
     context-path: /api/v1/interviews
+  tomcat:
+    # Don't 302-redirect "/api/v1/interviews" → "/api/v1/interviews/". The
+    # history list endpoint (@GetMapping with empty path) sits on the context
+    # root, and the FE calls it without a trailing slash.
+    mapper-context-root-redirect-enabled: false
 
 api:
   response:
