@@ -34,15 +34,19 @@ export type TopicStatus =
   | 'WEAK'
   | 'UNKNOWN';
 
+// Backend redacts rubric/classification fields while a session is in flight
+// (see PinnedQuestionView#redacted on the server). Only the post-SCORED
+// report response carries the full set, so all of those fields are nullable
+// here and the UI must guard against null before rendering them.
 export type PinnedQuestionView = {
   sessionQuestionId: string;
   sequence: number;
   questionId: string | null;
   questionType: QuestionType;
-  topicKind: TopicKind;
-  topicValue: string;
-  difficulty: Difficulty;
-  source: QuestionSource;
+  topicKind: TopicKind | null;
+  topicValue: string | null;
+  difficulty: Difficulty | null;
+  source: QuestionSource | null;
   isFollowUp: boolean;
   parentSessionQuestionId: string | null;
   text: string;
@@ -113,6 +117,7 @@ export type SessionView = {
   interviewType: InterviewType;
   status: SessionStatus;
   questionCount: number;
+  timeBudgetMinutes: number;
   finalScore: number | null;
   startedAt: string;
   finishedAt: string | null;

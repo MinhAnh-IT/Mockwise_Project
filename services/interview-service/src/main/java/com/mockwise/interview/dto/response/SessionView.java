@@ -17,11 +17,16 @@ public record SessionView(
         InterviewType interviewType,
         SessionStatus status,
         int questionCount,
+        int timeBudgetMinutes,
         Float finalScore,
         OffsetDateTime startedAt,
         OffsetDateTime finishedAt,
         OffsetDateTime scoredAt,
         List<TopicProgress> topicProgress,
+        // While the session is in flight (status != SCORED), each entry has
+        // its rubric/classification fields nulled via PinnedQuestionView#redacted
+        // so the candidate can't see expectedPoints, difficulty, topic, etc.
+        // Once SCORED, the full record is returned for the report view.
         List<PinnedQuestionView> questions,
         // Populated only when status == SCORED (Task C). Carries the AI's
         // overall_reviewer output: overallScore / grade / hireSignal /
