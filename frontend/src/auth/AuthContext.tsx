@@ -75,14 +75,18 @@ export function AuthProvider({ children }: Props) {
     setStatus('unauthenticated');
   }, []);
 
-  useEffect(() => {
-    configureApiClient({
-      getAccessToken: () => accessTokenRef.current,
-      setAccessToken,
-      refresh,
-      onAuthFailure,
-    });
-  }, [setAccessToken, refresh, onAuthFailure]);
+  // Wire the API client during render rather than in a useEffect. React runs
+  // child useEffects BEFORE the parent's, so a child like HistoryPage that
+  // fires getSession on mount would otherwise read `accessor === null` and
+  // dispatch the request without an Authorization header. The accessor is a
+  // small, idempotent object — re-assigning it on every render is cheap and
+  // keeps it available throughout the entire render-commit-effects cycle.
+  configureApiClient({
+    getAccessToken: () => accessTokenRef.current,
+    setAccessToken,
+    refresh,
+    onAuthFailure,
+  });
 
   const loadProfile = useCallback(async () => {
     const data = await getMyProfile();

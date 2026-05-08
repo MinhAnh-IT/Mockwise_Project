@@ -94,7 +94,17 @@ async function rawRequest(
 
 async function authedFetch(path: string, options: RequestOptions): Promise<Response> {
   const useAuth = options.auth ?? true;
-  const token = useAuth ? accessor?.getAccessToken() ?? null : null;
+  let token = useAuth ? accessor?.getAccessToken() ?? null : null;
+
+  // Token cold-start: a child component's mount effect can fire before
+  // AuthContext's initial refresh seeds accessTokenRef, so the first authed
+  // call after a hard reload would otherwise go without an Authorization
+  // header. Refresh proactively (deduped via refreshPromiseRef) so we skip
+  // the wasted 401 round-trip and catch cases where the retry path below
+  // wouldn't fire (accessor missing the first time `accessor` was read).
+  if (useAuth && !token && accessor) {
+    token = await accessor.refresh();
+  }
 
   let response = await rawRequest(path, options, token);
 
