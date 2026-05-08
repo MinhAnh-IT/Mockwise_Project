@@ -1,5 +1,6 @@
 package com.mockwise.interview.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.mockwise.interview.entity.SessionQuestion;
 import com.mockwise.interview.enums.Difficulty;
 import com.mockwise.interview.enums.QuestionSource;
@@ -16,6 +17,12 @@ import java.util.function.Function;
  * for the player UI plus follow-up linkage so the FE can show "Câu này
  * tiếp nối câu trước".
  *
+ * <p>{@code @JsonInclude(NON_NULL)} keeps the wire shrunk: when
+ * {@link #redacted} nulls every rubric/classification field, those keys
+ * vanish from the JSON entirely instead of leaking as {@code "field": null}.
+ * {@code isFollowUp} is the wrapper {@link Boolean} (not primitive) so it
+ * can be nulled and dropped the same way.
+ *
  * <p>Two ways to render audio:
  * <ul>
  *   <li>{@code audioUrl} (preferred) — short-lived presigned GET URL the
@@ -25,6 +32,7 @@ import java.util.function.Function;
  *       the URL signer is unavailable (storage down, key missing).</li>
  * </ul>
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record PinnedQuestionView(
         UUID sessionQuestionId,
         int sequence,
@@ -34,7 +42,7 @@ public record PinnedQuestionView(
         String topicValue,
         Difficulty difficulty,
         QuestionSource source,
-        boolean isFollowUp,
+        Boolean isFollowUp,
         UUID parentSessionQuestionId,
         String text,
         String audioKey,
@@ -115,7 +123,7 @@ public record PinnedQuestionView(
                 /* topicValue */ null,
                 /* difficulty */ null,
                 /* source */ null,
-                /* isFollowUp */ false,
+                /* isFollowUp */ null,
                 /* parentSessionQuestionId */ null,
                 text,
                 /* audioKey */ null,
