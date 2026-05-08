@@ -34,7 +34,7 @@ import java.util.UUID;
  *
  * <ul>
  *   <li>{@code POST /start} — create a session, return the first question.</li>
- *   <li>{@code GET  /} — list the caller's sessions (history page).</li>
+ *   <li>{@code GET  /result} — list the caller's sessions (history page).</li>
  *   <li>{@code GET  /{sid}} — full session detail incl. topic progress + pinned questions.</li>
  *   <li>{@code POST /{sid}/finish} — user-stopped end-of-session.</li>
  * </ul>
@@ -55,7 +55,7 @@ public class SessionController {
                 .body(ApiResponse.success(output));
     }
 
-    @GetMapping
+    @GetMapping("/result")
     public ResponseEntity<ApiResponse<PageResponse<SessionSummaryView>>> list(
             @AuthenticationPrincipal CustomUserDetails user,
             @RequestParam(defaultValue = "0") int page,

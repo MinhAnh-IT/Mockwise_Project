@@ -23,7 +23,7 @@ export function listSessions(
   page = 0,
   size = 20,
 ): Promise<PageResponse<SessionSummaryView>> {
-  return unwrap(PREFIX, {
+  return unwrap(`${PREFIX}/result`, {
     query: { page, size },
   });
 }
