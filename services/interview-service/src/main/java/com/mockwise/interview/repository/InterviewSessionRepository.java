@@ -3,6 +3,8 @@ package com.mockwise.interview.repository;
 import com.mockwise.interview.entity.InterviewSession;
 import com.mockwise.interview.enums.SessionStatus;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -15,6 +17,9 @@ import java.util.UUID;
 public interface InterviewSessionRepository extends JpaRepository<InterviewSession, UUID> {
 
     List<InterviewSession> findByUserIdOrderByCreatedAtDesc(String userId);
+
+    /** Paginated variant for the history list — sort lives on the Pageable. */
+    Page<InterviewSession> findByUserId(String userId, Pageable pageable);
 
     List<InterviewSession> findByStatus(SessionStatus status);
 

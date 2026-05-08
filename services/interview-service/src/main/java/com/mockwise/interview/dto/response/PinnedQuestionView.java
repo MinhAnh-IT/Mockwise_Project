@@ -47,7 +47,13 @@ public record PinnedQuestionView(
         String text,
         String audioKey,
         String audioUrl,
-        List<String> expectedPoints
+        List<String> expectedPoints,
+        // Latest answer pinned to this session_question — populated only on
+        // the SCORED report response so the FE can lazily fetch the per-
+        // question verdict + media. While the session is in flight the
+        // candidate's view of their own previous answers stays hidden, so
+        // {@link #redacted} drops this field too.
+        UUID latestAnswerId
 ) {
 
     /** Build from an entity. {@code audioUrl} stays null — call {@link #withSignedAudio}. */
@@ -75,7 +81,8 @@ public record PinnedQuestionView(
                 text,
                 audioKey,
                 /* audioUrl */ null,
-                expectedPoints
+                expectedPoints,
+                /* latestAnswerId */ null
         );
     }
 
@@ -96,7 +103,23 @@ public record PinnedQuestionView(
         return new PinnedQuestionView(
                 sessionQuestionId, sequence, questionId, questionType,
                 topicKind, topicValue, difficulty, source, isFollowUp,
-                parentSessionQuestionId, text, audioKey, url, expectedPoints);
+                parentSessionQuestionId, text, audioKey, url, expectedPoints,
+                latestAnswerId);
+    }
+
+    /**
+     * Returns a copy with {@code latestAnswerId} filled in. Called from the
+     * SCORED report path so the FE can lazily fetch the per-question verdict
+     * + media; mid-flight callers leave this null and let {@link #redacted}
+     * keep it hidden.
+     */
+    public PinnedQuestionView withLatestAnswerId(UUID answerId) {
+        if (answerId == null) return this;
+        return new PinnedQuestionView(
+                sessionQuestionId, sequence, questionId, questionType,
+                topicKind, topicValue, difficulty, source, isFollowUp,
+                parentSessionQuestionId, text, audioKey, audioUrl, expectedPoints,
+                answerId);
     }
 
     /**
@@ -128,7 +151,8 @@ public record PinnedQuestionView(
                 text,
                 /* audioKey */ null,
                 audioUrl,
-                /* expectedPoints */ null);
+                /* expectedPoints */ null,
+                /* latestAnswerId */ null);
     }
 
     @SuppressWarnings("unchecked")

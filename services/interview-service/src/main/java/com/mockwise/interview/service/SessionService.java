@@ -20,6 +20,7 @@ import com.mockwise.interview.repository.InterviewSessionRepository;
 import com.mockwise.interview.repository.SessionQuestionRepository;
 import com.mockwise.interview.repository.SessionTopicStateRepository;
 import com.mockwise.interview.dto.response.PinnedQuestionView;
+import com.mockwise.interview.dto.response.SessionSummaryView;
 import com.mockwise.interview.dto.response.SessionView;
 import com.mockwise.interview.dto.request.StartSessionInput;
 import com.mockwise.interview.dto.response.StartSessionOutput;
@@ -28,6 +29,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -149,6 +152,19 @@ public class SessionService {
                 signAudio(PinnedQuestionView.fromEntity(firstQuestion)).redacted());
     }
 
+    // ── /list (history) ──────────────────────────────────────────────────────
+
+    /**
+     * Returns the caller's sessions newest-first as a slim summary list.
+     * Used by the FE history page; full topic / question / overall-review
+     * detail is loaded via {@link #getForUser} on click.
+     */
+    @Transactional(readOnly = true)
+    public Page<SessionSummaryView> listForUser(String userId, Pageable pageable) {
+        return sessionRepo.findByUserId(userId, pageable)
+                .map(SessionSummaryView::fromEntity);
+    }
+
     // ── /get ─────────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
@@ -167,6 +183,13 @@ public class SessionService {
         // Mid-flight polls strip them so a candidate hitting reload can't read
         // the answer key or topic distribution off the API.
         boolean revealFull = session.getStatus() == SessionStatus.SCORED;
+
+        // Look up latest-answer per question only when revealing — the
+        // candidate doesn't see their own past answers mid-flight, so
+        // we'd just throw the data away for redacted views.
+        Map<UUID, UUID> latestAnswerBySq = revealFull
+                ? loadLatestAnswerIds(questions)
+                : Map.of();
 
         return new SessionView(
                 session.getId(),
@@ -193,10 +216,27 @@ public class SessionService {
                 questions.stream()
                         .map(PinnedQuestionView::fromEntity)
                         .map(this::signAudio)
+                        .map(v -> v.withLatestAnswerId(latestAnswerBySq.get(v.sessionQuestionId())))
                         .map(v -> revealFull ? v : v.redacted())
                         .toList(),
                 extractOverallReview(session)
         );
+    }
+
+    /**
+     * Maps each {@code session_question.id} → its (single) {@code answer.id}.
+     * The schema enforces one answer per session_question (see
+     * {@code AnswerRepository.findBySessionQuestionId} returning Optional),
+     * so a row-per-question scan is fine for the report view's typical
+     * 5–15 questions.
+     */
+    private Map<UUID, UUID> loadLatestAnswerIds(List<SessionQuestion> questions) {
+        Map<UUID, UUID> out = new HashMap<>(questions.size());
+        for (SessionQuestion sq : questions) {
+            answerRepo.findBySessionQuestionId(sq.getId())
+                    .ifPresent(a -> out.put(sq.getId(), a.getId()));
+        }
+        return out;
     }
 
     /**

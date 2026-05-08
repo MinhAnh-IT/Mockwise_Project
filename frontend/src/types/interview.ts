@@ -53,6 +53,11 @@ export type PinnedQuestionView = {
   audioKey: string | null;
   audioUrl: string | null;
   expectedPoints: string[] | null;
+  // Populated only on the SCORED report response so the FE can lazily
+  // fetch the per-question verdict + media replay. Null mid-flight (the
+  // candidate doesn't see their own past answers until scoring completes)
+  // and on follow-up questions that were skipped.
+  latestAnswerId: string | null;
 };
 
 export type StartSessionInput = {
@@ -98,6 +103,11 @@ export type AnswerView = {
   errorMessage: string | null;
   submittedAt: string;
   scoredAt: string | null;
+  // Same-origin path to the candidate's submitted video. Null until the
+  // session reaches SCORED, and null for CODE answers regardless. The path
+  // requires a JWT — fetch via fetchAuthedBlobUrl, then bind to <video src>.
+  storageObjectId: string | null;
+  mediaUrl: string | null;
 };
 
 export type TopicProgress = {
@@ -107,6 +117,45 @@ export type TopicProgress = {
   questionsAsked: number;
   followUpsUsed: number;
   lastScore: number | null;
+};
+
+/**
+ * Slim per-card projection for the history page. Backend trims topic /
+ * question / overall-review detail; full data is loaded via getSession on
+ * click. {@code hireSignal} / {@code grade} are extracted server-side from
+ * the overallReview JSON when the session has reached SCORED, null otherwise.
+ */
+export type SessionSummaryView = {
+  sessionId: string;
+  targetRole: string;
+  level: string;
+  interviewType: InterviewType;
+  status: SessionStatus;
+  questionCount: number;
+  timeBudgetMinutes: number;
+  finalScore: number | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  scoredAt: string | null;
+  createdAt: string;
+  hireSignal: string | null;
+  grade: string | null;
+};
+
+/**
+ * Mirror of the shared `com.core.apiresponse.pagination.PageResponse`
+ * envelope used by the BE for list endpoints. Page index is 0-based.
+ */
+export type PageResponse<T> = {
+  items: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  numberOfElements: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  empty: boolean;
 };
 
 export type SessionView = {
