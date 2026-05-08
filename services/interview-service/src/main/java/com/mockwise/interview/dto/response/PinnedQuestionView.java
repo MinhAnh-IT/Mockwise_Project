@@ -91,6 +91,38 @@ public record PinnedQuestionView(
                 parentSessionQuestionId, text, audioKey, url, expectedPoints);
     }
 
+    /**
+     * Strips every field that isn't strictly needed for the candidate to
+     * read and answer the question: {@code expectedPoints} (the answer key),
+     * {@code difficulty} (biases the candidate), {@code topicKind} /
+     * {@code topicValue} / {@code source} (internal pipeline metadata),
+     * {@code questionId} (internal DB id), {@code audioKey} (raw object key
+     * — {@code audioUrl} is already presigned), {@code parentSessionQuestionId}
+     * and {@code isFollowUp} (planner classification — the audio itself
+     * conveys whether a question follows up on the previous one).
+     *
+     * <p>Keeps the five fields the FE actually needs to render and submit
+     * answers: {@code sessionQuestionId}, {@code sequence},
+     * {@code questionType}, {@code text}, {@code audioUrl}.
+     */
+    public PinnedQuestionView redacted() {
+        return new PinnedQuestionView(
+                sessionQuestionId,
+                sequence,
+                /* questionId */ null,
+                questionType,
+                /* topicKind */ null,
+                /* topicValue */ null,
+                /* difficulty */ null,
+                /* source */ null,
+                /* isFollowUp */ false,
+                /* parentSessionQuestionId */ null,
+                text,
+                /* audioKey */ null,
+                audioUrl,
+                /* expectedPoints */ null);
+    }
+
     @SuppressWarnings("unchecked")
     private static List<String> extractStringList(Object o) {
         return o instanceof List<?> l ? (List<String>) l : null;

@@ -99,6 +99,10 @@ public class SessionService {
 
         int globalOffset = computeDifficultyOffset(profile, level);
 
+        int timeBudget = input.timeBudgetMinutesOverride() != null
+                ? input.timeBudgetMinutesOverride()
+                : blueprint.getTimeBudgetMinutes();
+
         InterviewSession session = sessionRepo.save(InterviewSession.builder()
                 .userId(userId)
                 .blueprintId(blueprint.getId())
@@ -110,6 +114,7 @@ public class SessionService {
                 // question, and a separate CREATED tick adds no value.
                 .status(SessionStatus.IN_PROGRESS)
                 .questionCount(blueprint.getQuestionBudget())
+                .timeBudgetMinutes(timeBudget)
                 .globalDifficultyOffset(globalOffset)
                 .startedAt(OffsetDateTime.now())
                 .build());
@@ -138,10 +143,10 @@ public class SessionService {
                 level,
                 input.interviewType(),
                 blueprint.getQuestionBudget(),
-                input.timeBudgetMinutesOverride() != null
-                        ? input.timeBudgetMinutesOverride()
-                        : blueprint.getTimeBudgetMinutes(),
-                signAudio(PinnedQuestionView.fromEntity(firstQuestion)));
+                timeBudget,
+                // Session is IN_PROGRESS — strip rubric/classification fields
+                // so the candidate doesn't see expectedPoints, difficulty, topic, etc.
+                signAudio(PinnedQuestionView.fromEntity(firstQuestion)).redacted());
     }
 
     // ── /get ─────────────────────────────────────────────────────────────────
@@ -157,6 +162,12 @@ public class SessionService {
         List<SessionTopicState> states = topicStateRepo.findByIdSessionId(sessionId);
         List<SessionQuestion> questions = sessionQuestionRepo.findBySessionIdOrderBySequenceAsc(sessionId);
 
+        // Only the SCORED report view is allowed to expose rubric and
+        // classification fields (expectedPoints, difficulty, topic, source...).
+        // Mid-flight polls strip them so a candidate hitting reload can't read
+        // the answer key or topic distribution off the API.
+        boolean revealFull = session.getStatus() == SessionStatus.SCORED;
+
         return new SessionView(
                 session.getId(),
                 session.getUserId(),
@@ -165,6 +176,7 @@ public class SessionService {
                 session.getInterviewType(),
                 session.getStatus(),
                 session.getQuestionCount(),
+                session.getTimeBudgetMinutes(),
                 session.getFinalScore(),
                 session.getStartedAt(),
                 session.getFinishedAt(),
@@ -181,6 +193,7 @@ public class SessionService {
                 questions.stream()
                         .map(PinnedQuestionView::fromEntity)
                         .map(this::signAudio)
+                        .map(v -> revealFull ? v : v.redacted())
                         .toList(),
                 extractOverallReview(session)
         );

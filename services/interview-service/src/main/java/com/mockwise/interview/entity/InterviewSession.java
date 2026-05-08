@@ -61,6 +61,10 @@ public class InterviewSession {
     @Column(name = "question_count", nullable = false)
     int questionCount;
 
+    @Column(name = "time_budget_minutes", nullable = false)
+    @Builder.Default
+    int timeBudgetMinutes = 45;
+
     @Column(name = "consecutive_unknown_count", nullable = false)
     @Builder.Default
     int consecutiveUnknownCount = 0;

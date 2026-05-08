@@ -383,9 +383,11 @@ function QuestionList({ questions }: { questions: PinnedQuestionView[] }) {
               <span className="text-[10px] font-bold uppercase tracking-widest text-secondary bg-secondary/10 px-2 py-1 rounded-md">
                 #{q.sequence}
               </span>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-                {q.topicValue.replace(/_/g, ' ')}
-              </span>
+              {q.topicValue && (
+                <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                  {q.topicValue.replace(/_/g, ' ')}
+                </span>
+              )}
               {q.isFollowUp && (
                 <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant bg-surface-container px-2 py-1 rounded-md">
                   Nối tiếp
