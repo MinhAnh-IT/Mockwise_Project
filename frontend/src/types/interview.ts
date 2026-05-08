@@ -47,7 +47,7 @@ export type PinnedQuestionView = {
   topicValue: string | null;
   difficulty: Difficulty | null;
   source: QuestionSource | null;
-  isFollowUp: boolean;
+  isFollowUp: boolean | null;
   parentSessionQuestionId: string | null;
   text: string;
   audioKey: string | null;
