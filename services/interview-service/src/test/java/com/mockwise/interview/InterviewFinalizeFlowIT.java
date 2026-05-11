@@ -190,7 +190,7 @@ class InterviewFinalizeFlowIT {
 
         var firstAnswer = answerRepo.findBySessionId(sessionId).get(0);
         var pair = answerService.getForUser(sessionId, firstAnswer.getId(), USER_ID);
-        AnswerView maskedView = AnswerView.fromEntity(pair.answer(),
+        AnswerView maskedView = AnswerView.fromEntity(pair.answer(), pair.questionType(),
                 pair.sessionStatus() == SessionStatus.SCORED, objectMapper);
         assertThat(pair.answer().getScore())
                 .as("entity carries the real score — planner needs it")
@@ -247,6 +247,7 @@ class InterviewFinalizeFlowIT {
 
         var revealedPair = answerService.getForUser(sessionId, firstAnswer.getId(), USER_ID);
         AnswerView revealedView = AnswerView.fromEntity(revealedPair.answer(),
+                revealedPair.questionType(),
                 revealedPair.sessionStatus() == SessionStatus.SCORED, objectMapper);
         assertThat(revealedView.score()).isNotNull();
         assertThat(revealedView.verdict()).isNotNull();

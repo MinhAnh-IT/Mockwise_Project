@@ -54,6 +54,11 @@ api:
 minio:
   endpoint: ${MINIO_ENDPOINT}
   public-endpoint: ${MINIO_PUBLIC_ENDPOINT:${MINIO_ENDPOINT}}
+  # When set, the SDK-generated URL prefix (= public-endpoint) is replaced with
+  # this value before returning to the caller. Lets the browser hit a same-origin
+  # HTTPS proxy (e.g. https://app.example.com/minio) while SigV4 still validates
+  # against the upstream MinIO host. Leave empty in dev to fetch MinIO directly.
+  proxy-public-base-url: ${MINIO_PROXY_PUBLIC_BASE_URL:}
   access-key: ${MINIO_ACCESS_KEY}
   secret-key: ${MINIO_SECRET_KEY}
   region: ${MINIO_REGION:us-east-1}

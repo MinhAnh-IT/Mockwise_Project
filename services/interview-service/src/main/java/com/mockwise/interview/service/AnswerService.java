@@ -231,13 +231,18 @@ public class AnswerService {
     // ── Get one answer (FE poll) ─────────────────────────────────────────────
 
     /**
-     * Bundles an answer with the parent session's status. The FE poll endpoint
-     * needs the session status to decide whether to expose the per-question
-     * verdict (revealed only after the session reaches SCORED), and we already
-     * have to load the session for the ownership check — return both so the
-     * controller doesn't issue a second query.
+     * Bundles an answer with the parent session's status and the parent
+     * session_question's type. The FE poll endpoint needs the session status
+     * to decide whether to expose the per-question verdict (revealed only
+     * after the session reaches SCORED), and the question type to pick the
+     * right {@code EvaluationDetail} variant when projecting {@code raw_evaluation}.
+     * We already have to load the session for the ownership check — return
+     * the bundle so the controller doesn't issue a second query.
      */
-    public record AnswerWithSession(Answer answer, SessionStatus sessionStatus) {}
+    public record AnswerWithSession(
+            Answer answer,
+            SessionStatus sessionStatus,
+            com.mockwise.interview.enums.QuestionType questionType) {}
 
     /**
      * Returns the answer plus its session's current status if the caller owns
@@ -257,7 +262,14 @@ public class AnswerService {
         if (!session.getUserId().equals(userId)) {
             throw new BusinessException(StatusCode.SESSION_NOT_OWNER);
         }
-        return new AnswerWithSession(answer, session.getStatus());
+        // Question type drives EvaluationDetail variant. We load the session_question
+        // here (instead of forcing the controller to do it) so the call site stays
+        // a one-liner.
+        com.mockwise.interview.enums.QuestionType qType = sessionQuestionRepo
+                .findById(answer.getSessionQuestionId())
+                .map(SessionQuestion::getQuestionType)
+                .orElse(null);
+        return new AnswerWithSession(answer, session.getStatus(), qType);
     }
 
     // ── Apply transcript-ready / -failed (tts-stt → orchestrator) ────────────

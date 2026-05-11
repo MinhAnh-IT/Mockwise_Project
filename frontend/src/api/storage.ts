@@ -16,31 +16,61 @@ export type StorageObject = {
 };
 
 /**
- * Single-step interview-video upload — replaces the 3-step presigned-PUT
- * dance (createVideoUpload → MinIO PUT → completeVideoUpload). The previous
- * flow died on Mixed Content blocking: the app loads over HTTPS but the
- * MinIO host that the presigned URL points at is HTTP-only, so the browser
- * refused the cross-origin PUT.
+ * 3-step presigned upload for interview-video answers:
+ *   1. POST /uploads/videos to reserve an object + obtain a presigned PUT URL
+ *   2. PUT the bytes straight to MinIO at that URL
+ *   3. POST /uploads/videos/{objectId}/complete so storage-service flips
+ *      the row to READY (stats MinIO, validates declared size)
  *
- * Going through storage-service costs an extra hop (browser → our server →
- * MinIO instead of browser → MinIO direct), but for a 5–10 minute clip on
- * VPS bandwidth it's a flat ~few seconds and avoids any DNS / cert work.
+ * Going browser → MinIO direct skips the streaming-through-server hop the
+ * old multipart endpoint had, so a 10-minute 720p clip lands seconds faster
+ * and storage-service doesn't sit on the bytes. Mixed-content blocking is
+ * neutralised because the presigned URL points at the same-origin nginx
+ * /minio/ proxy (HTTPS) which forwards to MinIO upstream.
  *
  * Returns the StorageObject with status = READY so the caller can pass
  * `objectId` straight to interview-service's submit-answer endpoint.
  */
-export function uploadVideoMultipart(
+export type VideoUploadTicket = {
+  objectId: string;
+  bucket: string;
+  objectKey: string;
+  uploadUrl: string;
+  expiresAt: string;
+};
+
+export async function uploadVideoPresigned(
   blob: Blob,
   sessionId: string,
-  filename = 'answer.webm',
+  contentType = 'video/webm',
 ): Promise<StorageObject> {
-  const form = new FormData();
-  form.append('file', blob, filename);
-  form.append('sessionId', sessionId);
-  return unwrap(`${PREFIX}/uploads/videos/multipart`, {
+  const ticket = await unwrap<VideoUploadTicket>(`${PREFIX}/uploads/videos`, {
     method: 'POST',
-    body: form,
+    body: {
+      sessionId,
+      contentType,
+      sizeBytes: blob.size,
+    },
   });
+
+  // PUT bytes straight to MinIO. The presigned URL signature covers method,
+  // path, host, and the X-Amz-* query params; we must NOT send extra signed
+  // headers (e.g. an explicit Content-Type) or the signature breaks.
+  // Using bare fetch — `requestRaw`/`unwrap` would attach our auth headers.
+  const putResp = await fetch(ticket.uploadUrl, {
+    method: 'PUT',
+    body: blob,
+  });
+  if (!putResp.ok) {
+    throw new Error(
+      `Tải video lên MinIO thất bại (HTTP ${putResp.status})`,
+    );
+  }
+
+  return unwrap<StorageObject>(
+    `${PREFIX}/uploads/videos/${ticket.objectId}/complete`,
+    { method: 'POST' },
+  );
 }
 
 /**

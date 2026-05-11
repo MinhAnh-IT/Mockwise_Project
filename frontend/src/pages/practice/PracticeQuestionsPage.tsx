@@ -9,13 +9,16 @@ import {
 } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import { getSession } from '@/api/interviews';
-import { fetchAuthedBlobUrl } from '@/api/storage';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
 import { findPracticeOption } from '@/data/practice';
 import type {
   AnswerView,
   AssessmentVerdict,
+  BehavioralEvaluationDetail,
+  ConceptualEvaluationDetail,
+  EvaluationDetail,
+  LiveCodingEvaluationDetail,
   PinnedQuestionView,
   SessionView,
 } from '@/types/interview';
@@ -36,6 +39,18 @@ export default function PracticeQuestionsPage() {
   const [error, setError] = useState<string | null>(null);
   const attemptsRef = useRef(0);
 
+  // Refetches the session in-place. Used both by the post-recording poll
+  // loop (while we wait for the session to reach SCORED) and by the video
+  // <retry> button — a presigned URL that expired between page-load and
+  // playback is fixed by simply re-fetching, since the BE re-signs on each
+  // GET /interviews/{sid}.
+  const loadSession = useCallback(async () => {
+    if (!sid) return null;
+    const s = await getSession(sid);
+    setSession(s);
+    return s;
+  }, [sid]);
+
   useEffect(() => {
     if (!sid) return;
     let cancelled = false;
@@ -43,9 +58,8 @@ export default function PracticeQuestionsPage() {
 
     const tick = async () => {
       try {
-        const s = await getSession(sid);
-        if (cancelled) return;
-        setSession(s);
+        const s = await loadSession();
+        if (cancelled || s === null) return;
         if (s.status === 'SCORED') return;
         attemptsRef.current += 1;
         if (attemptsRef.current >= MAX_POLL_ATTEMPTS) {
@@ -65,7 +79,7 @@ export default function PracticeQuestionsPage() {
       cancelled = true;
       if (timer !== null) window.clearTimeout(timer);
     };
-  }, [sid]);
+  }, [sid, loadSession]);
 
   if (!option || !sid) {
     navigate('/practice', { replace: true });
@@ -108,7 +122,7 @@ export default function PracticeQuestionsPage() {
           )}
 
           {isScored && session && session.questions.length > 0 && (
-            <QuestionPager questions={session.questions} />
+            <QuestionPager questions={session.questions} onReload={loadSession} />
           )}
 
           {isScored && session && session.questions.length === 0 && (
@@ -156,8 +170,10 @@ function StatusPlaceholder({
 
 function QuestionPager({
   questions,
+  onReload,
 }: {
   questions: PinnedQuestionView[];
+  onReload: () => Promise<SessionView | null>;
 }) {
   const [index, setIndex] = useState(0);
   const safeIndex = Math.min(index, questions.length - 1);
@@ -175,7 +191,7 @@ function QuestionPager({
         </span>
       </div>
 
-      <QuestionPanel question={current} />
+      <QuestionPanel question={current} onReload={onReload} />
 
       <div className="mt-5 flex items-center justify-between gap-3">
         <button
@@ -201,7 +217,13 @@ function QuestionPager({
   );
 }
 
-function QuestionPanel({ question }: { question: PinnedQuestionView }) {
+function QuestionPanel({
+  question,
+  onReload,
+}: {
+  question: PinnedQuestionView;
+  onReload: () => Promise<SessionView | null>;
+}) {
   const answer = question.answer;
   const hasAnswer = !!(answer ?? question.latestAnswerId);
 
@@ -243,7 +265,7 @@ function QuestionPanel({ question }: { question: PinnedQuestionView }) {
         )}
         {hasAnswer ? (
           answer ? (
-            <AnswerDetail answer={answer} />
+            <AnswerDetail answer={answer} onReload={onReload} />
           ) : (
             <p className="text-xs text-on-surface-variant italic">
               Đang chuẩn bị chi tiết câu trả lời…
@@ -259,7 +281,13 @@ function QuestionPanel({ question }: { question: PinnedQuestionView }) {
   );
 }
 
-function AnswerDetail({ answer }: { answer: AnswerView }) {
+function AnswerDetail({
+  answer,
+  onReload,
+}: {
+  answer: AnswerView;
+  onReload: () => Promise<SessionView | null>;
+}) {
   const verdict = answer.verdict;
   const score = answer.score;
   const maxScore = answer.maxScore ?? 10;
@@ -285,6 +313,8 @@ function AnswerDetail({ answer }: { answer: AnswerView }) {
 
       <VerdictChips verdict={verdict} />
 
+      <EvaluationBreakdown detail={answer.evaluationDetail} />
+
       {answer.feedback && (
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5">
@@ -301,7 +331,7 @@ function AnswerDetail({ answer }: { answer: AnswerView }) {
           <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5">
             Xem lại video bạn đã quay
           </p>
-          <AnswerVideo mediaUrl={answer.mediaUrl} />
+          <AnswerVideo mediaUrl={answer.mediaUrl} onReload={onReload} />
         </div>
       )}
     </div>
@@ -369,61 +399,281 @@ function VerdictChips({ verdict }: { verdict: AssessmentVerdict | null }) {
   );
 }
 
-function AnswerVideo({ mediaUrl }: { mediaUrl: string }) {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const createdRef = useRef<string | null>(null);
+const DIMENSION_LABELS: Record<string, string> = {
+  // Behavioral
+  starStructure: 'Cấu trúc STAR',
+  relevance: 'Liên quan',
+  specificity: 'Cụ thể',
+  impactResult: 'Kết quả/Tác động',
+  selfAwareness: 'Tự nhận thức',
+  // Conceptual
+  accuracy: 'Độ chính xác',
+  depth: 'Độ sâu',
+  practicalApplication: 'Ứng dụng thực tế',
+  clarity: 'Rõ ràng',
+  // Live coding
+  timeComplexity: 'Độ phức tạp thời gian',
+  spaceComplexity: 'Độ phức tạp bộ nhớ',
+  codeQuality: 'Chất lượng code',
+  problemSolving: 'Giải quyết vấn đề',
+};
 
-  const load = useCallback(() => {
-    setError(null);
-    fetchAuthedBlobUrl(mediaUrl)
-      .then((url) => {
-        createdRef.current = url;
-        setBlobUrl(url);
-      })
-      .catch((err) => {
-        if (err instanceof ApiError && err.status === 401) return;
-        setError(err instanceof Error ? err.message : 'Không tải được video.');
-      });
-  }, [mediaUrl]);
+const SEVERITY_LABEL: Record<string, string> = {
+  high: 'Cao',
+  medium: 'Vừa',
+  med: 'Vừa',
+  low: 'Thấp',
+};
 
-  useEffect(() => {
-    load();
-    return () => {
-      if (createdRef.current) {
-        URL.revokeObjectURL(createdRef.current);
-        createdRef.current = null;
-      }
-    };
-  }, [load]);
+function EvaluationBreakdown({ detail }: { detail: EvaluationDetail | null }) {
+  if (!detail) return null;
+  switch (detail.kind) {
+    case 'BEHAVIORAL':
+      return <BehavioralBreakdown detail={detail} />;
+    case 'CORE_CONCEPTUAL':
+      return <ConceptualBreakdown detail={detail} />;
+    case 'LIVE_CODING':
+      return <LiveCodingBreakdown detail={detail} />;
+  }
+}
 
-  if (error) {
+function ScoreBars({ scores }: { scores: Record<string, number | null> | null }) {
+  if (!scores) return null;
+  const entries = Object.entries(scores).filter(
+    ([, v]) => typeof v === 'number',
+  ) as [string, number][];
+  if (entries.length === 0) return null;
+  return (
+    <div className="space-y-2">
+      {entries.map(([key, value]) => (
+        <div key={key} className="flex items-center gap-3">
+          <span className="text-[11px] font-semibold text-on-surface-variant w-40 shrink-0">
+            {DIMENSION_LABELS[key] ?? key}
+          </span>
+          <div className="flex-1 h-2 rounded-full bg-surface-container overflow-hidden">
+            <div
+              className="h-full bg-secondary rounded-full"
+              style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+            />
+          </div>
+          <span className="text-[11px] font-bold text-on-surface w-10 text-right tabular-nums">
+            {value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5">
+      {children}
+    </p>
+  );
+}
+
+function BehavioralBreakdown({ detail }: { detail: BehavioralEvaluationDetail }) {
+  return (
+    <div className="space-y-4">
+      {detail.scores && (
+        <div>
+          <SectionTitle>Điểm theo tiêu chí</SectionTitle>
+          <ScoreBars scores={detail.scores} />
+        </div>
+      )}
+      {detail.signalCoverage.length > 0 && (
+        <div>
+          <SectionTitle>Tín hiệu mong đợi</SectionTitle>
+          <ul className="space-y-1">
+            {detail.signalCoverage.map((s) => (
+              <li
+                key={s.signalName}
+                className="flex items-center gap-2 text-xs text-on-surface"
+              >
+                <span
+                  className={
+                    s.detected
+                      ? 'inline-block w-1.5 h-1.5 rounded-full bg-green-500'
+                      : 'inline-block w-1.5 h-1.5 rounded-full bg-on-surface-variant/40'
+                  }
+                />
+                <span>{s.signalName.replace(/_/g, ' ')}</span>
+                <span className="text-on-surface-variant">
+                  {s.detected ? '— có' : '— chưa rõ'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {detail.redFlags.length > 0 && (
+        <div>
+          <SectionTitle>Điểm cần lưu ý</SectionTitle>
+          <ul className="space-y-1">
+            {detail.redFlags.map((f, i) => (
+              <li key={`${f.type}-${i}`} className="text-xs text-on-surface">
+                <span className="font-semibold">{f.type.replace(/_/g, ' ')}</span>
+                <span className="text-on-surface-variant">
+                  {' '}
+                  · mức độ {SEVERITY_LABEL[f.severity?.toLowerCase()] ?? f.severity}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConceptualBreakdown({ detail }: { detail: ConceptualEvaluationDetail }) {
+  return (
+    <div className="space-y-4">
+      {detail.scores && (
+        <div>
+          <SectionTitle>Điểm theo tiêu chí</SectionTitle>
+          <ScoreBars scores={detail.scores} />
+        </div>
+      )}
+      {detail.conceptCoverage.length > 0 && (
+        <div>
+          <SectionTitle>Khái niệm cốt lõi</SectionTitle>
+          <ul className="space-y-1">
+            {detail.conceptCoverage.map((c) => {
+              const status = !c.mentioned
+                ? { color: 'bg-on-surface-variant/40', text: 'không nhắc tới' }
+                : c.correct === false
+                  ? { color: 'bg-red-500', text: 'nói sai' }
+                  : c.correct === true
+                    ? { color: 'bg-green-500', text: 'đúng' }
+                    : { color: 'bg-amber-500', text: 'có nhắc, chưa rõ đúng/sai' };
+              return (
+                <li
+                  key={c.conceptName}
+                  className="flex items-center gap-2 text-xs text-on-surface"
+                >
+                  <span className={`inline-block w-1.5 h-1.5 rounded-full ${status.color}`} />
+                  <span>{c.conceptName.replace(/_/g, ' ')}</span>
+                  <span className="text-on-surface-variant">— {status.text}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+      {detail.misconceptions.length > 0 && (
+        <div>
+          <SectionTitle>Hiểu nhầm cần sửa</SectionTitle>
+          <ul className="space-y-1 list-disc list-inside">
+            {detail.misconceptions.map((m, i) => (
+              <li key={i} className="text-xs text-on-surface">
+                {m.claim}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LiveCodingBreakdown({ detail }: { detail: LiveCodingEvaluationDetail }) {
+  return (
+    <div className="space-y-4">
+      {detail.scores && (
+        <div>
+          <SectionTitle>Điểm theo tiêu chí</SectionTitle>
+          <ScoreBars scores={detail.scores} />
+        </div>
+      )}
+      {typeof detail.isOptimal === 'boolean' && (
+        <p className="text-xs text-on-surface">
+          <span className="font-semibold">Giải pháp tối ưu:</span>{' '}
+          <span className="text-on-surface-variant">
+            {detail.isOptimal ? 'Có' : 'Chưa'}
+          </span>
+        </p>
+      )}
+      {detail.codeIssues.length > 0 && (
+        <div>
+          <SectionTitle>Vấn đề trong code</SectionTitle>
+          <ul className="space-y-1">
+            {detail.codeIssues.map((i, idx) => (
+              <li key={`${i.type}-${idx}`} className="text-xs text-on-surface">
+                <span className="font-semibold">{i.type.replace(/_/g, ' ')}</span>
+                {i.detail && (
+                  <>
+                    <span className="text-on-surface-variant"> · {i.detail}</span>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AnswerVideo({
+  mediaUrl,
+  onReload,
+}: {
+  mediaUrl: string;
+  onReload: () => Promise<SessionView | null>;
+}) {
+  // Drop the blob-URL fetch: mediaUrl is now a presigned MinIO URL behind the
+  // nginx /minio/ proxy, so the browser can play it directly. SigV4 lives in
+  // the query string — no Authorization header to attach.
+  const [errored, setErrored] = useState(false);
+  const [reloading, setReloading] = useState(false);
+  const [reloadFailed, setReloadFailed] = useState(false);
+
+  const retry = useCallback(async () => {
+    setReloadFailed(false);
+    setReloading(true);
+    try {
+      // Re-fetch the session — the BE issues a fresh presigned URL on each
+      // call, so an expired signature is healed by simply reloading.
+      await onReload();
+      setErrored(false);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) return;
+      setReloadFailed(true);
+    } finally {
+      setReloading(false);
+    }
+  }, [onReload]);
+
+  if (errored) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
-        <p className="mb-1.5">{error}</p>
+        <p className="mb-1.5">
+          {reloadFailed
+            ? 'Không tải lại được video. Vui lòng thử lại sau.'
+            : 'Không tải được video. URL có thể đã hết hạn.'}
+        </p>
         <button
           type="button"
-          onClick={load}
-          className="text-red-700 underline font-semibold"
+          onClick={retry}
+          disabled={reloading}
+          className="text-red-700 underline font-semibold disabled:opacity-50"
         >
-          Thử lại
+          {reloading ? 'Đang thử lại…' : 'Thử lại'}
         </button>
-      </div>
-    );
-  }
-  if (!blobUrl) {
-    return (
-      <div className="flex items-center gap-2 text-xs text-on-surface-variant">
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-        Đang tải video…
       </div>
     );
   }
   return (
     <video
-      src={blobUrl}
+      // key forces a fresh element when the URL changes after onReload,
+      // otherwise <video> would stick with the previous (expired) src.
+      key={mediaUrl}
+      src={mediaUrl}
       controls
       playsInline
+      onError={() => setErrored(true)}
       className="w-full max-h-[60vh] rounded-xl bg-black"
     />
   );
