@@ -7,7 +7,7 @@ import {
   getSession,
   submitAnswer,
 } from '@/api/interviews';
-import { uploadVideoMultipart } from '@/api/storage';
+import { uploadVideoPresigned } from '@/api/storage';
 import QuestionCard from '@/components/practice/QuestionCard';
 import SessionHeader from '@/components/practice/SessionHeader';
 import VideoRecorder from '@/components/practice/VideoRecorder';
@@ -140,14 +140,16 @@ export default function PracticeSessionPage() {
   }, [phase, sid, navigate, type]);
 
   const handleSubmit = useCallback(
-    async (blob: Blob, _mimeType: string) => {
+    async (blob: Blob, mimeType: string) => {
       if (!sid || !current) return;
       setPhase('submitting');
       setError(null);
       try {
-        // Single-step multipart upload through storage-service. Avoids the
-        // Mixed Content block that came with browser → MinIO direct PUT.
-        const stored = await uploadVideoMultipart(blob, sid);
+        // 3-step presigned-PUT: ask storage-service for an upload ticket,
+        // stream the bytes browser→MinIO directly through the nginx /minio/
+        // proxy, then mark the row READY. Avoids the per-byte hop through
+        // storage-service the legacy multipart endpoint cost.
+        const stored = await uploadVideoPresigned(blob, sid, mimeType || undefined);
         await submitAnswer(sid, current.sessionQuestionId, {
           type: 'VIDEO',
           storageObjectId: stored.objectId,

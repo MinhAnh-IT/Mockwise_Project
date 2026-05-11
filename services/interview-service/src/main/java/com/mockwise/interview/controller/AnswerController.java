@@ -65,13 +65,14 @@ public class AnswerController {
         // reaches SCORED — the candidate only sees the consolidated overall
         // review at the end of the interview.
         boolean reveal = pair.sessionStatus() == SessionStatus.SCORED;
-        AnswerView view = AnswerView.fromEntity(pair.answer(), reveal, objectMapper);
+        AnswerView view = AnswerView.fromEntity(
+                pair.answer(), pair.questionType(), reveal, objectMapper);
         if (reveal) {
-            // Same-origin video URL for the report's per-question replay.
+            // Presigned MinIO URL for the report's per-question replay.
             // Skipping signing while not revealing keeps mid-flight polls
             // free of the storage adapter call AND avoids leaking the id.
             view = view.withSignedMedia(
-                    id -> storageAdapter.signInterviewVideoUrl(id).orElse(null));
+                    id -> storageAdapter.signInterviewVideoUrl(id, user.getUserId()).orElse(null));
         }
         return ResponseEntity.ok(ApiResponse.success(view));
     }

@@ -53,13 +53,14 @@ public class MinioStorageGateway {
     /** Sign a PUT URL the browser will use to upload bytes directly to MinIO. */
     public String presignPutUrl(String bucket, String objectKey, int ttlSeconds) {
         try {
-            return minioPublicClient.getPresignedObjectUrl(
+            String signed = minioPublicClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.PUT)
                             .bucket(bucket)
                             .object(objectKey)
                             .expiry(ttlSeconds, TimeUnit.SECONDS)
                             .build());
+            return rewriteProxyUrl(signed);
         } catch (MinioException | java.io.IOException
                  | java.security.NoSuchAlgorithmException
                  | java.security.InvalidKeyException e) {
@@ -71,19 +72,49 @@ public class MinioStorageGateway {
     /** Sign a GET URL the browser/player will use to download bytes directly from MinIO. */
     public String presignGetUrl(String bucket, String objectKey, int ttlSeconds) {
         try {
-            return minioPublicClient.getPresignedObjectUrl(
+            String signed = minioPublicClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
                             .bucket(bucket)
                             .object(objectKey)
                             .expiry(ttlSeconds, TimeUnit.SECONDS)
                             .build());
+            return rewriteProxyUrl(signed);
         } catch (MinioException | java.io.IOException
                  | java.security.NoSuchAlgorithmException
                  | java.security.InvalidKeyException e) {
             log.error("Failed to presign GET for {}/{}: {}", bucket, objectKey, e.getMessage());
             throw new BusinessException(StatusCode.STORAGE_BACKEND_ERROR);
         }
+    }
+
+    /**
+     * Swap the SDK-signed URL's host prefix (the upstream MinIO endpoint) for
+     * the public-facing nginx proxy URL. The SigV4 signature is over the
+     * <em>host header MinIO sees</em>, so we don't re-sign — nginx must
+     * forward the request with {@code Host: <publicEndpoint host>} so the
+     * upstream sees the same canonical request the SDK signed.
+     *
+     * <p>Returns the URL unchanged when the proxy base URL is not configured
+     * (local dev where the browser hits MinIO directly).
+     */
+    private String rewriteProxyUrl(String signedUrl) {
+        String proxyBase = properties.proxyPublicBaseUrl();
+        if (proxyBase == null || proxyBase.isBlank()) {
+            return signedUrl;
+        }
+        String prefix = stripTrailingSlash(properties.publicEndpoint());
+        if (prefix == null || prefix.isBlank() || !signedUrl.startsWith(prefix)) {
+            log.warn("Signed URL does not start with public endpoint prefix {}; returning unmodified",
+                    prefix);
+            return signedUrl;
+        }
+        return stripTrailingSlash(proxyBase) + signedUrl.substring(prefix.length());
+    }
+
+    private static String stripTrailingSlash(String s) {
+        if (s == null) return null;
+        return s.endsWith("/") ? s.substring(0, s.length() - 1) : s;
     }
 
     /** Look up an object's metadata. Empty when not found; throws on transport errors. */

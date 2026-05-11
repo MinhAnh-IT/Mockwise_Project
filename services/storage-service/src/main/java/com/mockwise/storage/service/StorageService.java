@@ -5,6 +5,7 @@ import com.mockwise.storage.common.exception.BusinessException;
 import com.mockwise.storage.common.exception.StatusCode;
 import com.mockwise.storage.dto.request.CreateVideoUploadRequest;
 import com.mockwise.storage.dto.request.InternalDownloadUrlRequest;
+import com.mockwise.storage.dto.request.InternalVideoDownloadUrlRequest;
 import com.mockwise.storage.dto.response.AvatarStream;
 import com.mockwise.storage.dto.response.PresignedUrlResponse;
 import com.mockwise.storage.dto.response.QuestionAudioUploadResponse;
@@ -363,6 +364,49 @@ public class StorageService {
     }
 
     // ── Presigned download (internal: interview-service → storage) ───────────
+
+    /**
+     * Returns a short-lived presigned GET URL for an interview-video looked
+     * up by storage object id. Mirrors {@link #createDownloadUrl} but takes
+     * the object id (which interview-service already has on the answer row)
+     * and enforces the ownership check itself — defense in depth on top of
+     * interview-service's session-level ACL.
+     *
+     * <p>Caller must pass the user id it has already authenticated; we still
+     * compare against the row's {@code ownerUserId}. Mismatches collapse to
+     * {@link StatusCode#STORAGE_OBJECT_NOT_FOUND} so a probing caller can't
+     * tell whether the id belongs to someone else or doesn't exist at all.
+     */
+    @Transactional(readOnly = true)
+    public PresignedUrlResponse createVideoDownloadUrlById(
+            String objectId, InternalVideoDownloadUrlRequest req) {
+        StorageObject obj = storageObjectRepository.findById(objectId)
+                .orElseThrow(() -> new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND));
+
+        if (obj.getKind() != StorageKind.INTERVIEW_VIDEO) {
+            throw new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND);
+        }
+        if (obj.getStatus() != StorageStatus.READY) {
+            throw new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND);
+        }
+        if (!Objects.equals(obj.getOwnerUserId(), req.getOwnerUserId())) {
+            throw new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND);
+        }
+
+        int requestedTtl = req.getTtlSeconds() != null
+                ? req.getTtlSeconds()
+                : properties.presign().downloadTtlSeconds();
+        int ttl = capTtl(StorageKind.INTERVIEW_VIDEO, requestedTtl);
+
+        String url = minioGateway.presignGetUrl(obj.getBucket(), obj.getObjectKey(), ttl);
+        log.info("Issued video GET URL for object {} owner={} ttl={}s",
+                objectId, req.getOwnerUserId(), ttl);
+
+        return PresignedUrlResponse.builder()
+                .url(url)
+                .expiresAt(OffsetDateTime.now().plusSeconds(ttl))
+                .build();
+    }
 
     /**
      * Returns a short-lived presigned GET URL for an existing object.

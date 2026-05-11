@@ -194,8 +194,11 @@ public class SessionService {
         // we'd just throw the data away for redacted views. Embed the
         // signed video URL + verdict directly so the FE can render the
         // per-question card without a follow-up call to /answers/{aid}.
+        Map<UUID, com.mockwise.interview.enums.QuestionType> typeBySq = questions.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        SessionQuestion::getId, SessionQuestion::getQuestionType));
         Map<UUID, AnswerView> answerBySq = revealFull
-                ? loadAnswersBySessionQuestion(sessionId)
+                ? loadAnswersBySessionQuestion(sessionId, typeBySq, userId)
                 : Map.of();
 
         return new SessionView(
@@ -246,12 +249,18 @@ public class SessionService {
      * if a duplicate sneaks in we keep the last one written, which matches
      * how the planner overwrites prior verdicts on replay.
      */
-    private Map<UUID, AnswerView> loadAnswersBySessionQuestion(UUID sessionId) {
+    private Map<UUID, AnswerView> loadAnswersBySessionQuestion(
+            UUID sessionId,
+            Map<UUID, com.mockwise.interview.enums.QuestionType> questionTypeBySessionQuestionId,
+            String requesterUserId) {
         List<Answer> answers = answerRepo.findBySessionId(sessionId);
         Map<UUID, AnswerView> out = new HashMap<>(answers.size());
         for (Answer a : answers) {
-            AnswerView view = AnswerView.fromEntity(a, /* revealResults */ true, objectMapper)
-                    .withSignedMedia(id -> storageAdapter.signInterviewVideoUrl(id).orElse(null));
+            com.mockwise.interview.enums.QuestionType qType =
+                    questionTypeBySessionQuestionId.get(a.getSessionQuestionId());
+            AnswerView view = AnswerView.fromEntity(a, qType, /* revealResults */ true, objectMapper)
+                    .withSignedMedia(id -> storageAdapter
+                            .signInterviewVideoUrl(id, requesterUserId).orElse(null));
             out.put(a.getSessionQuestionId(), view);
         }
         return out;

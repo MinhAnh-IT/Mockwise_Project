@@ -3,9 +3,11 @@ package com.mockwise.interview.dto.response;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mockwise.interview.dto.assessment.AssessmentVerdict;
+import com.mockwise.interview.dto.assessment.EvaluationDetail;
 import com.mockwise.interview.entity.Answer;
 import com.mockwise.interview.enums.AnswerStatus;
 import com.mockwise.interview.enums.AnswerType;
+import com.mockwise.interview.enums.QuestionType;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
@@ -20,9 +22,13 @@ import java.util.function.Function;
  * verdict + feedback once SCORED.
  *
  * <p>{@code verdict} is the strongly-typed canonical
- * {@link AssessmentVerdict} the planner reads — replaces the old free-form
- * {@code Map<String, Object>} so the FE has a discoverable schema instead
- * of guessing keys.
+ * {@link AssessmentVerdict} the planner reads — distilled from the AI
+ * payload to a flat set of categorical decisions.
+ *
+ * <p>{@code evaluationDetail} is the curated user-facing projection of
+ * the same AI payload (per-dimension scores, signal / concept coverage,
+ * red flags, code issues) — what the report UI actually renders. Variants
+ * are discriminated by {@code kind} (matches the question type one-for-one).
  *
  * <p>{@code mediaUrl} is a same-origin path to the candidate's submitted
  * video, populated only when results are revealed (session SCORED) and
@@ -40,6 +46,7 @@ public record AnswerView(
         Float maxScore,
         String feedback,
         AssessmentVerdict verdict,
+        EvaluationDetail evaluationDetail,
         String errorCode,
         String errorMessage,
         OffsetDateTime submittedAt,
@@ -49,12 +56,18 @@ public record AnswerView(
 ) {
 
     /**
-     * Masks score / feedback / verdict when {@code revealResults} is false —
-     * used while the session is still in progress so the candidate cannot
-     * peek at per-question grading. Status, errorCode, errorMessage and the
-     * timestamps stay exposed so the FE can still render
-     * "submitted → scoring → done" transitions between questions. Once the
-     * session reaches SCORED the caller passes {@code revealResults = true}.
+     * Masks score / feedback / verdict / evaluation detail when
+     * {@code revealResults} is false — used while the session is still in
+     * progress so the candidate cannot peek at per-question grading. Status,
+     * errorCode, errorMessage and the timestamps stay exposed so the FE can
+     * still render "submitted → scoring → done" transitions between questions.
+     * Once the session reaches SCORED the caller passes {@code revealResults
+     * = true}.
+     *
+     * <p>{@code questionType} is needed to deserialise {@code raw_evaluation}
+     * into the right {@link EvaluationDetail} variant. Callers that don't
+     * have the type handy (e.g. transient polls before the planner has
+     * pinned a follow-up) may pass null — the detail is dropped.
      *
      * <p>{@code mediaUrl} stays null here — the caller invokes
      * {@link #withSignedMedia} after the fact so {@code AnswerView} stays
@@ -62,8 +75,15 @@ public record AnswerView(
      * effort: a malformed JSONB blob falls back to null rather than failing
      * the whole response.
      */
-    public static AnswerView fromEntity(Answer a, boolean revealResults, ObjectMapper objectMapper) {
+    public static AnswerView fromEntity(
+            Answer a,
+            QuestionType questionType,
+            boolean revealResults,
+            ObjectMapper objectMapper) {
         AssessmentVerdict typedVerdict = revealResults ? toVerdict(a.getVerdict(), objectMapper) : null;
+        EvaluationDetail detail = revealResults
+                ? EvaluationDetail.fromRaw(questionType, a.getRawEvaluation(), objectMapper)
+                : null;
         return new AnswerView(
                 a.getId(),
                 a.getSessionId(),
@@ -74,6 +94,7 @@ public record AnswerView(
                 revealResults ? a.getMaxScore() : null,
                 revealResults ? a.getFeedback() : null,
                 typedVerdict,
+                detail,
                 a.getErrorCode(),
                 a.getErrorMessage(),
                 a.getSubmittedAt(),
@@ -84,8 +105,8 @@ public record AnswerView(
 
     /**
      * Returns a copy with {@code mediaUrl} filled in. {@code signer} takes
-     * a {@code storageObjectId} and yields a same-origin URL the FE can drop
-     * into a {@code <video src>}. Caller is expected to only invoke this when
+     * a {@code storageObjectId} and yields a URL the FE can drop into a
+     * {@code <video src>}. Caller is expected to only invoke this when
      * results are revealed; we still soft-fail if the answer has no storage
      * object (CODE answers, or VIDEO answers that never reached READY).
      */
@@ -99,7 +120,7 @@ public record AnswerView(
         }
         return new AnswerView(
                 answerId, sessionId, sessionQuestionId, type, status,
-                score, maxScore, feedback, verdict,
+                score, maxScore, feedback, verdict, evaluationDetail,
                 errorCode, errorMessage, submittedAt, scoredAt,
                 storageObjectId, url);
     }

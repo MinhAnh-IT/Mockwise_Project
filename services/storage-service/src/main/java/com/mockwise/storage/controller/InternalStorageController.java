@@ -2,6 +2,7 @@ package com.mockwise.storage.controller;
 
 import com.core.apiresponse.response.ApiResponse;
 import com.mockwise.storage.dto.request.InternalDownloadUrlRequest;
+import com.mockwise.storage.dto.request.InternalVideoDownloadUrlRequest;
 import com.mockwise.storage.dto.response.PresignedUrlResponse;
 import com.mockwise.storage.dto.response.QuestionAudioUploadResponse;
 import com.mockwise.storage.dto.response.StorageObjectResponse;
@@ -45,6 +46,21 @@ public class InternalStorageController {
             @Valid @RequestBody InternalDownloadUrlRequest req) {
         return ResponseEntity.ok(ApiResponse.success(
                 storageService.createDownloadUrl(req)));
+    }
+
+    /**
+     * Short-lived presigned GET URL for an interview-video by storage object
+     * id. Lets the browser hit MinIO directly through the nginx /minio/
+     * proxy instead of streaming bytes through this service. Ownership is
+     * enforced here as well — interview-service has already done a session
+     * ACL check, this is defense in depth.
+     */
+    @PostMapping("/objects/{id}/video-download-url")
+    public ResponseEntity<ApiResponse<PresignedUrlResponse>> createVideoDownloadUrlById(
+            @PathVariable("id") String id,
+            @Valid @RequestBody InternalVideoDownloadUrlRequest req) {
+        return ResponseEntity.ok(ApiResponse.success(
+                storageService.createVideoDownloadUrlById(id, req)));
     }
 
     /**

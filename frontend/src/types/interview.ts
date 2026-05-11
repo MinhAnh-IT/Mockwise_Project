@@ -110,6 +110,63 @@ export type AssessmentVerdict = {
   strongTargets: unknown[] | null;
 };
 
+/**
+ * Curated, user-facing projection of the AI evaluator output (mirrors the BE
+ * {@code EvaluationDetail} sealed interface). Discriminated by {@code kind}
+ * which matches the parent question's {@code QuestionType} one-for-one, so
+ * the UI can pattern-match without a separate lookup.
+ *
+ * <p>Only fields with a sensible presentation are exposed here — internal
+ * planner / meta fields stay on the row's {@code raw_evaluation} blob.
+ */
+export type EvaluationDetail =
+  | BehavioralEvaluationDetail
+  | ConceptualEvaluationDetail
+  | LiveCodingEvaluationDetail;
+
+export type BehavioralEvaluationDetail = {
+  kind: 'BEHAVIORAL';
+  overallScore: number | null;
+  completeness: string | null;
+  scores: {
+    starStructure: number | null;
+    relevance: number | null;
+    specificity: number | null;
+    impactResult: number | null;
+    selfAwareness: number | null;
+  } | null;
+  signalCoverage: { signalName: string; detected: boolean }[];
+  redFlags: { type: string; severity: string }[];
+};
+
+export type ConceptualEvaluationDetail = {
+  kind: 'CORE_CONCEPTUAL';
+  overallScore: number | null;
+  completeness: string | null;
+  scores: {
+    accuracy: number | null;
+    depth: number | null;
+    practicalApplication: number | null;
+    clarity: number | null;
+  } | null;
+  conceptCoverage: { conceptName: string; mentioned: boolean; correct: boolean | null }[];
+  misconceptions: { claim: string }[];
+};
+
+export type LiveCodingEvaluationDetail = {
+  kind: 'LIVE_CODING';
+  overallScore: number | null;
+  completeness: string | null;
+  scores: {
+    timeComplexity: number | null;
+    spaceComplexity: number | null;
+    codeQuality: number | null;
+    problemSolving: number | null;
+  } | null;
+  isOptimal: boolean | null;
+  codeIssues: { type: string; detail: string }[];
+};
+
 export type AnswerView = {
   answerId: string;
   sessionId: string;
@@ -120,13 +177,16 @@ export type AnswerView = {
   maxScore: number | null;
   feedback: string | null;
   verdict: AssessmentVerdict | null;
+  evaluationDetail: EvaluationDetail | null;
   errorCode: string | null;
   errorMessage: string | null;
   submittedAt: string;
   scoredAt: string | null;
-  // Same-origin path to the candidate's submitted video. Null until the
-  // session reaches SCORED, and null for CODE answers regardless. The path
-  // requires a JWT — fetch via fetchAuthedBlobUrl, then bind to <video src>.
+  // Presigned MinIO URL for the candidate's submitted video, served via the
+  // nginx /minio/ proxy. Null until the session reaches SCORED, and null for
+  // CODE answers regardless. Bind straight to <video src> — auth is in the
+  // signed query params, no Authorization header needed. URL expires per the
+  // server's download-ttl-seconds; re-fetch the session to get a fresh one.
   storageObjectId: string | null;
   mediaUrl: string | null;
 };
