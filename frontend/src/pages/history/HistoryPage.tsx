@@ -52,22 +52,6 @@ const STATUS_TONE: Record<SessionStatus, string> = {
   SCORED: 'bg-emerald-50 text-emerald-700',
 };
 
-const HIRE_LABEL: Record<string, string> = {
-  strong_yes: 'Rất nên tuyển',
-  yes: 'Đề xuất tuyển',
-  weak_yes: 'Có thể tuyển',
-  no: 'Không nên tuyển',
-  strong_no: 'Rất không nên tuyển',
-};
-
-const HIRE_TONE: Record<string, string> = {
-  strong_yes: 'bg-emerald-100 text-emerald-700',
-  yes: 'bg-emerald-50 text-emerald-700',
-  weak_yes: 'bg-amber-50 text-amber-700',
-  no: 'bg-red-50 text-red-700',
-  strong_no: 'bg-red-100 text-red-700',
-};
-
 const DATE_FMT = new Intl.DateTimeFormat('vi-VN', {
   day: '2-digit',
   month: '2-digit',
@@ -79,7 +63,10 @@ const DATE_FMT = new Intl.DateTimeFormat('vi-VN', {
 export default function HistoryPage() {
   const [items, setItems] = useState<SessionSummaryView[]>([]);
   const [page, setPage] = useState(0);
-  const [hasNext, setHasNext] = useState(false);
+  // totalCount comes back on every page; the FE derives hasNext from the
+  // running offset (items already on screen) vs that total so we don't lean
+  // on a server-supplied hasNext flag.
+  const [totalCount, setTotalCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,8 +79,8 @@ export default function HistoryPage() {
       .then((res) => {
         if (cancelled) return;
         setItems(res.items);
-        setPage(res.page);
-        setHasNext(res.hasNext);
+        setPage(0);
+        setTotalCount(res.totalCount);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -108,6 +95,8 @@ export default function HistoryPage() {
     };
   }, []);
 
+  const hasNext = totalCount !== null && items.length < totalCount;
+
   const onLoadMore = async () => {
     if (loadingMore || !hasNext) return;
     setLoadingMore(true);
@@ -115,8 +104,8 @@ export default function HistoryPage() {
     try {
       const next = await listSessions(page + 1, PAGE_SIZE);
       setItems((prev) => [...prev, ...next.items]);
-      setPage(next.page);
-      setHasNext(next.hasNext);
+      setPage((prev) => prev + 1);
+      setTotalCount(next.totalCount);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) return;
       setError(err instanceof Error ? err.message : 'Không tải thêm được.');
@@ -212,15 +201,6 @@ function SessionCard({ summary }: { summary: SessionSummaryView }) {
             >
               {STATUS_LABEL[summary.status] ?? summary.status}
             </span>
-            {summary.hireSignal && (
-              <span
-                className={`inline-flex items-center text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md ${
-                  HIRE_TONE[summary.hireSignal] ?? 'bg-surface-container text-on-surface-variant'
-                }`}
-              >
-                {HIRE_LABEL[summary.hireSignal] ?? summary.hireSignal}
-              </span>
-            )}
           </div>
           <p className="text-base font-semibold text-on-surface truncate">
             {summary.targetRole} · {summary.level}

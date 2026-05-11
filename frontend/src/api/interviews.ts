@@ -1,7 +1,7 @@
 import { unwrap } from '@/api/client';
 import type {
   AnswerView,
-  PageResponse,
+  ApiListResponse,
   SessionSummaryView,
   SessionView,
   StartSessionInput,
@@ -22,7 +22,7 @@ export function startSession(input: StartSessionInput): Promise<StartSessionOutp
 export function listSessions(
   page = 0,
   size = 20,
-): Promise<PageResponse<SessionSummaryView>> {
+): Promise<ApiListResponse<SessionSummaryView>> {
   return unwrap(`${PREFIX}/result`, {
     query: { page, size },
   });

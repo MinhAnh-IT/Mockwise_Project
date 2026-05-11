@@ -53,7 +53,13 @@ public record PinnedQuestionView(
         // question verdict + media. While the session is in flight the
         // candidate's view of their own previous answers stays hidden, so
         // {@link #redacted} drops this field too.
-        UUID latestAnswerId
+        UUID latestAnswerId,
+        // Embedded answer payload (score / verdict / feedback / signed video
+        // URL). Populated only on the SCORED report response so the FE can
+        // render the per-question detail card without a follow-up call to
+        // /answers/{aid}. Mid-flight responses leave this null via
+        // {@link #redacted}.
+        AnswerView answer
 ) {
 
     /** Build from an entity. {@code audioUrl} stays null — call {@link #withSignedAudio}. */
@@ -82,7 +88,8 @@ public record PinnedQuestionView(
                 audioKey,
                 /* audioUrl */ null,
                 expectedPoints,
-                /* latestAnswerId */ null
+                /* latestAnswerId */ null,
+                /* answer */ null
         );
     }
 
@@ -104,7 +111,7 @@ public record PinnedQuestionView(
                 sessionQuestionId, sequence, questionId, questionType,
                 topicKind, topicValue, difficulty, source, isFollowUp,
                 parentSessionQuestionId, text, audioKey, url, expectedPoints,
-                latestAnswerId);
+                latestAnswerId, answer);
     }
 
     /**
@@ -119,7 +126,22 @@ public record PinnedQuestionView(
                 sessionQuestionId, sequence, questionId, questionType,
                 topicKind, topicValue, difficulty, source, isFollowUp,
                 parentSessionQuestionId, text, audioKey, audioUrl, expectedPoints,
-                answerId);
+                answerId, answer);
+    }
+
+    /**
+     * Returns a copy with the embedded answer payload filled in. Used by the
+     * SCORED report path so the FE gets per-question score / verdict /
+     * feedback / signed video URL in one round trip. Mid-flight callers leave
+     * this null and {@link #redacted} drops it anyway.
+     */
+    public PinnedQuestionView withAnswer(AnswerView answerView) {
+        if (answerView == null) return this;
+        return new PinnedQuestionView(
+                sessionQuestionId, sequence, questionId, questionType,
+                topicKind, topicValue, difficulty, source, isFollowUp,
+                parentSessionQuestionId, text, audioKey, audioUrl, expectedPoints,
+                latestAnswerId, answerView);
     }
 
     /**
@@ -152,7 +174,8 @@ public record PinnedQuestionView(
                 /* audioKey */ null,
                 audioUrl,
                 /* expectedPoints */ null,
-                /* latestAnswerId */ null);
+                /* latestAnswerId */ null,
+                /* answer */ null);
     }
 
     @SuppressWarnings("unchecked")

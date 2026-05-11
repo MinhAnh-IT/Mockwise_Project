@@ -6,7 +6,6 @@ import com.mockwise.interview.enums.TopicStatus;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public record SessionView(
@@ -28,10 +27,10 @@ public record SessionView(
         // so the candidate can't see expectedPoints, difficulty, topic, etc.
         // Once SCORED, the full record is returned for the report view.
         List<PinnedQuestionView> questions,
-        // Populated only when status == SCORED (Task C). Carries the AI's
+        // Populated only when status == SCORED. Carries the AI's
         // overall_reviewer output: overallScore / grade / hireSignal /
         // summary / strengths / weaknesses / perTopicSummary / recommendations.
-        Map<String, Object> overallReview
+        OverallReviewView overallReview
 ) {
 
     public record TopicProgress(

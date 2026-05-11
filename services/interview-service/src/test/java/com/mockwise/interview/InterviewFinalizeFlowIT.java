@@ -1,5 +1,6 @@
 package com.mockwise.interview;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mockwise.interview.client.ai.AiServiceAdapter;
 import com.mockwise.interview.client.questionbank.QuestionBankAdapter;
 import com.mockwise.interview.client.questionbank.dto.MarkAskedResponse;
@@ -86,6 +87,7 @@ class InterviewFinalizeFlowIT {
     @Autowired InterviewSessionRepository sessionRepo;
     @Autowired SessionQuestionRepository sessionQuestionRepo;
     @Autowired OutboxEventRepository outboxRepo;
+    @Autowired ObjectMapper objectMapper;
 
     @Test
     void fullFlow_loopsThroughBlueprint_finalizes_andStagesOverallReview() {
@@ -189,7 +191,7 @@ class InterviewFinalizeFlowIT {
         var firstAnswer = answerRepo.findBySessionId(sessionId).get(0);
         var pair = answerService.getForUser(sessionId, firstAnswer.getId(), USER_ID);
         AnswerView maskedView = AnswerView.fromEntity(pair.answer(),
-                pair.sessionStatus() == SessionStatus.SCORED);
+                pair.sessionStatus() == SessionStatus.SCORED, objectMapper);
         assertThat(pair.answer().getScore())
                 .as("entity carries the real score — planner needs it")
                 .isNotNull();
@@ -241,13 +243,13 @@ class InterviewFinalizeFlowIT {
         assertThat(view.status()).isEqualTo(SessionStatus.SCORED);
         assertThat(view.finalScore()).isEqualTo(8.4f);
         assertThat(view.overallReview()).isNotNull();
-        assertThat(view.overallReview().get("overallScore")).isEqualTo(8.4f);
+        assertThat(view.overallReview().overallScore()).isEqualTo(8.4f);
 
         var revealedPair = answerService.getForUser(sessionId, firstAnswer.getId(), USER_ID);
         AnswerView revealedView = AnswerView.fromEntity(revealedPair.answer(),
-                revealedPair.sessionStatus() == SessionStatus.SCORED);
+                revealedPair.sessionStatus() == SessionStatus.SCORED, objectMapper);
         assertThat(revealedView.score()).isNotNull();
-        assertThat(revealedView.verdict()).isNotEmpty();
+        assertThat(revealedView.verdict()).isNotNull();
     }
 
     @Test
