@@ -58,6 +58,11 @@ export type PinnedQuestionView = {
   // candidate doesn't see their own past answers until scoring completes)
   // and on follow-up questions that were skipped.
   latestAnswerId: string | null;
+  // Embedded answer payload (score / verdict / feedback / signed video URL)
+  // — populated only on the SCORED report response so the FE can render the
+  // per-question card without a follow-up call to /answers/{aid}. Same null
+  // semantics as latestAnswerId.
+  answer: AnswerView | null;
 };
 
 export type StartSessionInput = {
@@ -88,6 +93,23 @@ export type SubmitAnswerOutput = {
   submittedAt: string;
 };
 
+/**
+ * Strongly-typed mirror of the BE {@code AssessmentVerdict} record. Replaces
+ * the previous free-form {@code Record<string, unknown>} so the report page
+ * can read fields directly without runtime guards.
+ */
+export type AssessmentVerdict = {
+  scoreNormalized: number | null;
+  hireSignal: string | null;
+  grade: string | null;
+  signalStrength: string | null;
+  completeness: string | null;
+  correctness: string | null;
+  depth: string | null;
+  weakTargets: unknown[] | null;
+  strongTargets: unknown[] | null;
+};
+
 export type AnswerView = {
   answerId: string;
   sessionId: string;
@@ -97,8 +119,7 @@ export type AnswerView = {
   score: number | null;
   maxScore: number | null;
   feedback: string | null;
-  verdict: Record<string, unknown> | null;
-  rubricScores: Record<string, unknown> | null;
+  verdict: AssessmentVerdict | null;
   errorCode: string | null;
   errorMessage: string | null;
   submittedAt: string;
@@ -143,19 +164,37 @@ export type SessionSummaryView = {
 };
 
 /**
- * Mirror of the shared `com.core.apiresponse.pagination.PageResponse`
- * envelope used by the BE for list endpoints. Page index is 0-based.
+ * Mirror of the shared `com.core.apiresponse.response.ApiListResponse`
+ * envelope used by the BE for list endpoints. Carries the current page of
+ * items plus the server-side total — the FE derives "has next" from
+ * (running offset) vs totalCount.
  */
-export type PageResponse<T> = {
+export type ApiListResponse<T> = {
+  totalCount: number | null;
   items: T[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  numberOfElements: number;
-  hasPrevious: boolean;
-  hasNext: boolean;
-  empty: boolean;
+};
+
+/**
+ * Strongly-typed mirror of the BE {@code OverallReviewView}. Replaces the
+ * previous free-form map so the report page can read fields directly.
+ */
+export type TopicReviewItem = {
+  topicKind: string | null;
+  topicValue: string | null;
+  status: string | null;
+  comment: string | null;
+};
+
+export type OverallReviewView = {
+  sessionId: string | null;
+  overallScore: number | null;
+  grade: string | null;
+  hireSignal: string | null;
+  summary: string | null;
+  strengths: string[] | null;
+  weaknesses: string[] | null;
+  perTopicSummary: TopicReviewItem[] | null;
+  recommendations: string[] | null;
 };
 
 export type SessionView = {
@@ -173,5 +212,5 @@ export type SessionView = {
   scoredAt: string | null;
   topicProgress: TopicProgress[];
   questions: PinnedQuestionView[];
-  overallReview: Record<string, unknown> | null;
+  overallReview: OverallReviewView | null;
 };

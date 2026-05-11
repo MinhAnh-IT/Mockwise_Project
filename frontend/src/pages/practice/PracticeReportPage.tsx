@@ -1,24 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
+  ArrowRight,
   CheckCircle2,
-  ChevronDown,
   Loader2,
   ThumbsDown,
   ThumbsUp,
   TrendingUp,
-  Volume2,
 } from 'lucide-react';
 import { ApiError } from '@/api/client';
-import { getAnswer, getSession } from '@/api/interviews';
-import { fetchAuthedBlobUrl } from '@/api/storage';
+import { getSession } from '@/api/interviews';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
 import { findPracticeOption } from '@/data/practice';
 import type {
-  AnswerView,
-  PinnedQuestionView,
+  OverallReviewView,
   SessionView,
   TopicProgress,
 } from '@/types/interview';
@@ -26,39 +23,8 @@ import type {
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLL_ATTEMPTS = 60; // ~3 phút
 
-type OverallReview = {
-  overallScore?: number;
-  grade?: string;
-  hireSignal?: string;
-  summary?: string;
-  strengths?: string[];
-  weaknesses?: string[];
-  perTopicSummary?: TopicSummaryEntry[];
-  recommendations?: string[];
-};
-
-type TopicSummaryEntry = {
-  topicKind?: string;
-  topicValue?: string;
-  status?: string;
-  comment?: string;
-};
-
-const HIRE_LABEL: Record<string, string> = {
-  strong_yes: 'Đề xuất rất nên tuyển',
-  yes: 'Đề xuất tuyển',
-  weak_yes: 'Có thể tuyển',
-  no: 'Không nên tuyển',
-  strong_no: 'Rất không nên tuyển',
-};
-
-const HIRE_TONE: Record<string, string> = {
-  strong_yes: 'bg-emerald-100 text-emerald-700',
-  yes: 'bg-emerald-50 text-emerald-700',
-  weak_yes: 'bg-amber-50 text-amber-700',
-  no: 'bg-red-50 text-red-700',
-  strong_no: 'bg-red-100 text-red-700',
-};
+type OverallReview = OverallReviewView;
+type TopicSummaryEntry = NonNullable<OverallReviewView['perTopicSummary']>[number];
 
 const TOPIC_STATUS_LABEL: Record<string, string> = {
   STRONG: 'Tốt',
@@ -81,8 +47,10 @@ const TOPIC_STATUS_TONE: Record<string, string> = {
 };
 
 /**
- * Final report. Polls GET /interviews/{sid} until status === SCORED, then
- * renders overallReview + per-topic progress + question list.
+ * Overall report for a finished session. Renders score / topics /
+ * strengths / weaknesses / recommendations. The per-question detail lives
+ * on its own sibling route ({@code /questions}) — link out via the CTA at
+ * the bottom.
  */
 export default function PracticeReportPage() {
   const { type, sid } = useParams<{ type: string; sid: string }>();
@@ -130,8 +98,10 @@ export default function PracticeReportPage() {
     return null;
   }
 
-  const review = (session?.overallReview ?? null) as OverallReview | null;
+  const review: OverallReview | null = session?.overallReview ?? null;
   const isScored = session?.status === 'SCORED';
+  const questionsHref = `/practice/${type}/session/${sid}/questions`;
+  const hasQuestions = !!session && session.questions.length > 0;
 
   return (
     <div className="min-h-screen flex flex-col bg-surface">
@@ -149,7 +119,7 @@ export default function PracticeReportPage() {
 
           <div className="mb-6">
             <p className="text-[10px] font-bold uppercase tracking-widest text-secondary mb-2">
-              Báo cáo phỏng vấn
+              Tổng quan phỏng vấn
             </p>
             <h1 className="text-2xl md:text-3xl font-bold text-on-surface mb-1">
               {option.title}
@@ -204,8 +174,14 @@ export default function PracticeReportPage() {
             />
           )}
 
-          {isScored && session && session.questions.length > 0 && (
-            <QuestionList sessionId={session.sessionId} questions={session.questions} />
+          {isScored && hasQuestions && (
+            <Link
+              to={questionsHref}
+              className="mt-2 flex items-center justify-between gap-3 bg-secondary text-on-secondary rounded-2xl px-6 py-4 font-semibold hover:opacity-90 transition-opacity"
+            >
+              <span>Xem chi tiết từng câu trả lời</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           )}
         </div>
       </main>
@@ -249,7 +225,6 @@ function ScoringPlaceholder({
 function OverallSummary({ review }: { review: OverallReview }) {
   const score = review.overallScore;
   const grade = review.grade;
-  const hire = review.hireSignal;
   return (
     <div className="bg-gradient-to-br from-secondary/10 via-surface-container-lowest to-surface-container-low border border-outline-variant rounded-3xl p-8 mb-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
@@ -270,15 +245,6 @@ function OverallSummary({ review }: { review: OverallReview }) {
               </span>
             )}
           </div>
-          {hire && (
-            <span
-              className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
-                HIRE_TONE[hire] ?? 'bg-surface-container text-on-surface-variant'
-              }`}
-            >
-              {HIRE_LABEL[hire] ?? hire}
-            </span>
-          )}
         </div>
       </div>
       {review.summary && (
@@ -370,313 +336,5 @@ function BulletSection({
         ))}
       </ul>
     </div>
-  );
-}
-
-function QuestionList({
-  sessionId,
-  questions,
-}: {
-  sessionId: string;
-  questions: PinnedQuestionView[];
-}) {
-  const [openSqId, setOpenSqId] = useState<string | null>(null);
-  return (
-    <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6">
-      <h3 className="text-sm font-bold text-on-surface mb-4">Danh sách câu hỏi</h3>
-      <ol className="space-y-3">
-        {questions.map((q) => (
-          <QuestionItem
-            key={q.sessionQuestionId}
-            sessionId={sessionId}
-            question={q}
-            isOpen={openSqId === q.sessionQuestionId}
-            onToggle={() =>
-              setOpenSqId((curr) =>
-                curr === q.sessionQuestionId ? null : q.sessionQuestionId,
-              )
-            }
-          />
-        ))}
-      </ol>
-    </div>
-  );
-}
-
-type AnswerCacheEntry =
-  | { state: 'loading' }
-  | { state: 'ready'; answer: AnswerView }
-  | { state: 'error'; message: string };
-
-function QuestionItem({
-  sessionId,
-  question,
-  isOpen,
-  onToggle,
-}: {
-  sessionId: string;
-  question: PinnedQuestionView;
-  isOpen: boolean;
-  onToggle: () => void;
-}) {
-  const [cache, setCache] = useState<AnswerCacheEntry | null>(null);
-  const hasAnswer = !!question.latestAnswerId;
-
-  useEffect(() => {
-    if (!isOpen || !question.latestAnswerId || cache) return;
-    let cancelled = false;
-    setCache({ state: 'loading' });
-    getAnswer(sessionId, question.latestAnswerId)
-      .then((answer) => {
-        if (!cancelled) setCache({ state: 'ready', answer });
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        if (err instanceof ApiError && err.status === 401) {
-          setCache(null);
-          return;
-        }
-        const msg = err instanceof Error ? err.message : 'Không tải được câu trả lời.';
-        setCache({ state: 'error', message: msg });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, question.latestAnswerId, sessionId, cache]);
-
-  return (
-    <li className="border border-outline-variant/60 rounded-xl overflow-hidden">
-      <button
-        type="button"
-        onClick={onToggle}
-        disabled={!hasAnswer}
-        aria-expanded={isOpen}
-        className="w-full text-left p-4 flex items-start gap-3 hover:bg-surface-container-low/60 disabled:cursor-default disabled:hover:bg-transparent transition-colors"
-      >
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-secondary bg-secondary/10 px-2 py-1 rounded-md">
-              #{question.sequence}
-            </span>
-            {question.topicValue && (
-              <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-                {question.topicValue.replace(/_/g, ' ')}
-              </span>
-            )}
-            {question.isFollowUp && (
-              <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant bg-surface-container px-2 py-1 rounded-md">
-                Nối tiếp
-              </span>
-            )}
-            {!hasAnswer && (
-              <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant bg-surface-container px-2 py-1 rounded-md">
-                Không trả lời
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-on-surface leading-relaxed">{question.text}</p>
-        </div>
-        {hasAnswer && (
-          <ChevronDown
-            className={`w-4 h-4 text-on-surface-variant flex-shrink-0 mt-1 transition-transform ${
-              isOpen ? 'rotate-180' : ''
-            }`}
-          />
-        )}
-      </button>
-      {isOpen && hasAnswer && (
-        <div className="border-t border-outline-variant/60 p-4 bg-surface-container-low/40 space-y-4">
-          {question.audioUrl && (
-            <div>
-              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">
-                <Volume2 className="w-3.5 h-3.5" />
-                Nghe lại câu hỏi
-              </p>
-              <audio src={question.audioUrl} controls className="w-full" />
-            </div>
-          )}
-          {cache?.state === 'loading' && (
-            <div className="flex items-center gap-2 text-xs text-on-surface-variant">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              Đang tải câu trả lời…
-            </div>
-          )}
-          {cache?.state === 'error' && (
-            <p className="text-xs text-red-600">{cache.message}</p>
-          )}
-          {cache?.state === 'ready' && <AnswerDetail answer={cache.answer} />}
-        </div>
-      )}
-    </li>
-  );
-}
-
-const VERDICT_LABELS: Record<string, Record<string, string>> = {
-  signalStrength: {
-    NONE: 'Không thấy tín hiệu',
-    PARTIAL: 'Một phần',
-    ADEQUATE: 'Đạt yêu cầu',
-    STRONG: 'Mạnh',
-  },
-  completeness: {
-    NO_ANSWER: 'Không trả lời',
-    INCOMPLETE: 'Chưa đầy đủ',
-    COMPLETE: 'Đầy đủ',
-  },
-  correctness: {
-    WRONG: 'Sai',
-    MIXED: 'Pha trộn',
-    CORRECT: 'Chính xác',
-  },
-  depth: {
-    SURFACE: 'Bề mặt',
-    MODERATE: 'Vừa phải',
-    DEEP: 'Sâu',
-  },
-};
-
-const VERDICT_LABEL_TITLES: Record<string, string> = {
-  signalStrength: 'Tín hiệu',
-  completeness: 'Đầy đủ',
-  correctness: 'Đúng/sai',
-  depth: 'Độ sâu',
-};
-
-function AnswerDetail({ answer }: { answer: AnswerView }) {
-  const verdict = (answer.verdict ?? {}) as Record<string, unknown>;
-  const score = answer.score;
-  const maxScore = answer.maxScore ?? 10;
-
-  return (
-    <div className="space-y-4">
-      {answer.status === 'FAILED' && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
-          Câu này không chấm được{answer.errorMessage ? `: ${answer.errorMessage}` : '.'}
-        </div>
-      )}
-
-      {typeof score === 'number' && (
-        <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-extrabold text-on-surface leading-none">
-            {score.toFixed(1)}
-          </span>
-          <span className="text-xs text-on-surface-variant font-medium">
-            / {maxScore.toFixed(0)}
-          </span>
-        </div>
-      )}
-
-      <VerdictChips verdict={verdict} />
-
-      {answer.feedback && (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5">
-            Phản hồi
-          </p>
-          <p className="text-sm text-on-surface leading-relaxed whitespace-pre-line">
-            {answer.feedback}
-          </p>
-        </div>
-      )}
-
-      {answer.type === 'VIDEO' && answer.mediaUrl && (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5">
-            Xem lại video bạn đã quay
-          </p>
-          <AnswerVideo mediaUrl={answer.mediaUrl} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function VerdictChips({ verdict }: { verdict: Record<string, unknown> }) {
-  const entries = Object.entries(VERDICT_LABEL_TITLES)
-    .map(([key, title]) => {
-      const raw = verdict[key];
-      if (typeof raw !== 'string') return null;
-      const label = VERDICT_LABELS[key]?.[raw] ?? raw;
-      return { key, title, label };
-    })
-    .filter((e): e is { key: string; title: string; label: string } => e !== null);
-  if (entries.length === 0) return null;
-  return (
-    <div className="flex flex-wrap gap-2">
-      {entries.map((e) => (
-        <span
-          key={e.key}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container border border-outline-variant text-[11px] text-on-surface"
-        >
-          <span className="text-on-surface-variant uppercase tracking-wider text-[9px] font-bold">
-            {e.title}
-          </span>
-          <span className="font-semibold">{e.label}</span>
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function AnswerVideo({ mediaUrl }: { mediaUrl: string }) {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const createdRef = useRef<string | null>(null);
-
-  const load = useCallback(() => {
-    setError(null);
-    fetchAuthedBlobUrl(mediaUrl)
-      .then((url) => {
-        createdRef.current = url;
-        setBlobUrl(url);
-      })
-      .catch((err) => {
-        if (err instanceof ApiError && err.status === 401) return;
-        setError(err instanceof Error ? err.message : 'Không tải được video.');
-      });
-  }, [mediaUrl]);
-
-  useEffect(() => {
-    load();
-    // Browser keeps the blob bytes alive until revokeObjectURL — release on
-    // unmount or when mediaUrl changes so a long history scroll doesn't
-    // accumulate hundreds of MB of cached video.
-    return () => {
-      if (createdRef.current) {
-        URL.revokeObjectURL(createdRef.current);
-        createdRef.current = null;
-      }
-    };
-  }, [load]);
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
-        <p className="mb-1.5">{error}</p>
-        <button
-          type="button"
-          onClick={load}
-          className="text-red-700 underline font-semibold"
-        >
-          Thử lại
-        </button>
-      </div>
-    );
-  }
-  if (!blobUrl) {
-    return (
-      <div className="flex items-center gap-2 text-xs text-on-surface-variant">
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-        Đang tải video…
-      </div>
-    );
-  }
-  return (
-    <video
-      src={blobUrl}
-      controls
-      playsInline
-      className="w-full max-h-[60vh] rounded-xl bg-black"
-    />
   );
 }

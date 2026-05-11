@@ -1,6 +1,7 @@
 package com.mockwise.interview.controller;
 
 import com.core.apiresponse.response.ApiResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mockwise.interview.client.storage.StorageAdapter;
 import com.mockwise.interview.common.security.CustomUserDetails;
 import com.mockwise.interview.dto.request.SubmitAnswerInput;
@@ -42,6 +43,7 @@ public class AnswerController {
 
     AnswerService answerService;
     StorageAdapter storageAdapter;
+    ObjectMapper objectMapper;
 
     @PostMapping("/{sid}/questions/{sqid}/answers")
     public ResponseEntity<ApiResponse<SubmitAnswerOutput>> submit(
@@ -63,7 +65,7 @@ public class AnswerController {
         // reaches SCORED — the candidate only sees the consolidated overall
         // review at the end of the interview.
         boolean reveal = pair.sessionStatus() == SessionStatus.SCORED;
-        AnswerView view = AnswerView.fromEntity(pair.answer(), reveal);
+        AnswerView view = AnswerView.fromEntity(pair.answer(), reveal, objectMapper);
         if (reveal) {
             // Same-origin video URL for the report's per-question replay.
             // Skipping signing while not revealing keeps mid-flight polls

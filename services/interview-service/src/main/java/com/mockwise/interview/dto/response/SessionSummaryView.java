@@ -1,5 +1,6 @@
 package com.mockwise.interview.dto.response;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mockwise.interview.entity.InterviewSession;
 import com.mockwise.interview.enums.InterviewType;
 import com.mockwise.interview.enums.SessionStatus;
@@ -13,10 +14,10 @@ import java.util.UUID;
  * for a card preview — full topic/question/overallReview detail is fetched
  * via {@code GET /interviews/{sid}} on click.
  *
- * <p>{@code hireSignal} and {@code grade} are pulled out of the
- * {@code metadata.overallReview} JSON when the session has reached SCORED;
- * both stay null otherwise. We don't expose the raw {@code overallReview}
- * map here to keep the list response small.
+ * <p>{@code hireSignal} and {@code grade} are pulled out of the typed
+ * {@link OverallReviewView} (deserialised from {@code metadata.overallReview})
+ * when the session has reached SCORED; both stay null otherwise. We don't
+ * expose the full review here to keep the list response small.
  */
 public record SessionSummaryView(
         UUID sessionId,
@@ -35,8 +36,8 @@ public record SessionSummaryView(
         String grade
 ) {
 
-    public static SessionSummaryView fromEntity(InterviewSession s) {
-        Map<String, Object> review = extractOverallReview(s);
+    public static SessionSummaryView fromEntity(InterviewSession s, ObjectMapper objectMapper) {
+        OverallReviewView review = extractOverallReview(s, objectMapper);
         return new SessionSummaryView(
                 s.getId(),
                 s.getTargetRole(),
@@ -50,20 +51,21 @@ public record SessionSummaryView(
                 s.getFinishedAt(),
                 s.getScoredAt(),
                 s.getCreatedAt(),
-                review != null ? asString(review.get("hireSignal")) : null,
-                review != null ? asString(review.get("grade")) : null);
+                review != null ? review.hireSignal() : null,
+                review != null ? review.grade() : null);
     }
 
     @SuppressWarnings("unchecked")
-    private static Map<String, Object> extractOverallReview(InterviewSession s) {
-        if (s.getStatus() != SessionStatus.SCORED || s.getMetadata() == null) {
+    static OverallReviewView extractOverallReview(InterviewSession s, ObjectMapper objectMapper) {
+        if (s.getStatus() != SessionStatus.SCORED || s.getMetadata() == null || objectMapper == null) {
             return null;
         }
         Object review = s.getMetadata().get("overallReview");
-        return review instanceof Map ? (Map<String, Object>) review : null;
-    }
-
-    private static String asString(Object o) {
-        return o == null ? null : o.toString();
+        if (!(review instanceof Map<?, ?> map)) return null;
+        try {
+            return objectMapper.convertValue((Map<String, Object>) map, OverallReviewView.class);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 }

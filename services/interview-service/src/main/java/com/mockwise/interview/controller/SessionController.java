@@ -1,6 +1,6 @@
 package com.mockwise.interview.controller;
 
-import com.core.apiresponse.pagination.PageResponse;
+import com.core.apiresponse.response.ApiListResponse;
 import com.core.apiresponse.response.ApiResponse;
 import com.mockwise.interview.common.security.CustomUserDetails;
 import com.mockwise.interview.dto.request.StartSessionInput;
@@ -56,16 +56,18 @@ public class SessionController {
     }
 
     @GetMapping("/result")
-    public ResponseEntity<ApiResponse<PageResponse<SessionSummaryView>>> list(
+    public ResponseEntity<ApiResponse<ApiListResponse<SessionSummaryView>>> list(
             @AuthenticationPrincipal CustomUserDetails user,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
+        // Pagination stays server-side (newest-first, fixed page size). We
+        // surface the result through ApiListResponse — items + totalCount —
+        // and let the FE derive hasNext from the running offset.
         Page<SessionSummaryView> p = sessionService.listForUser(
                 user.getUserId(),
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
         return ResponseEntity.ok(ApiResponse.success(
-                PageResponse.of(p.getContent(), p.getNumber(), p.getSize(),
-                        p.getTotalElements(), p.getTotalPages())));
+                ApiListResponse.of(p.getContent(), (int) p.getTotalElements())));
     }
 
     @GetMapping("/{sid}")

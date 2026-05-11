@@ -19,9 +19,13 @@ import com.mockwise.interview.repository.AnswerRepository;
 import com.mockwise.interview.repository.InterviewSessionRepository;
 import com.mockwise.interview.repository.SessionQuestionRepository;
 import com.mockwise.interview.repository.SessionTopicStateRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mockwise.interview.dto.response.AnswerView;
+import com.mockwise.interview.dto.response.OverallReviewView;
 import com.mockwise.interview.dto.response.PinnedQuestionView;
 import com.mockwise.interview.dto.response.SessionSummaryView;
 import com.mockwise.interview.dto.response.SessionView;
+import com.mockwise.interview.entity.Answer;
 import com.mockwise.interview.dto.request.StartSessionInput;
 import com.mockwise.interview.dto.response.StartSessionOutput;
 import com.mockwise.interview.common.util.BlueprintNormalizer;
@@ -80,6 +84,7 @@ public class SessionService {
     AnswerRepository answerRepo;
     SessionFinalizerService sessionFinalizer;
     OutboxWriter outboxWriter;
+    ObjectMapper objectMapper;
 
     // ── /start ───────────────────────────────────────────────────────────────
 
@@ -162,7 +167,7 @@ public class SessionService {
     @Transactional(readOnly = true)
     public Page<SessionSummaryView> listForUser(String userId, Pageable pageable) {
         return sessionRepo.findByUserId(userId, pageable)
-                .map(SessionSummaryView::fromEntity);
+                .map(s -> SessionSummaryView.fromEntity(s, objectMapper));
     }
 
     // ── /get ─────────────────────────────────────────────────────────────────
@@ -186,9 +191,11 @@ public class SessionService {
 
         // Look up latest-answer per question only when revealing — the
         // candidate doesn't see their own past answers mid-flight, so
-        // we'd just throw the data away for redacted views.
-        Map<UUID, UUID> latestAnswerBySq = revealFull
-                ? loadLatestAnswerIds(questions)
+        // we'd just throw the data away for redacted views. Embed the
+        // signed video URL + verdict directly so the FE can render the
+        // per-question card without a follow-up call to /answers/{aid}.
+        Map<UUID, AnswerView> answerBySq = revealFull
+                ? loadAnswersBySessionQuestion(sessionId)
                 : Map.of();
 
         return new SessionView(
@@ -216,7 +223,12 @@ public class SessionService {
                 questions.stream()
                         .map(PinnedQuestionView::fromEntity)
                         .map(this::signAudio)
-                        .map(v -> v.withLatestAnswerId(latestAnswerBySq.get(v.sessionQuestionId())))
+                        .map(v -> {
+                            AnswerView a = answerBySq.get(v.sessionQuestionId());
+                            return a == null
+                                    ? v
+                                    : v.withLatestAnswerId(a.answerId()).withAnswer(a);
+                        })
                         .map(v -> revealFull ? v : v.redacted())
                         .toList(),
                 extractOverallReview(session)
@@ -224,33 +236,47 @@ public class SessionService {
     }
 
     /**
-     * Maps each {@code session_question.id} → its (single) {@code answer.id}.
-     * The schema enforces one answer per session_question (see
-     * {@code AnswerRepository.findBySessionQuestionId} returning Optional),
-     * so a row-per-question scan is fine for the report view's typical
-     * 5–15 questions.
+     * Loads every answer pinned to the session in one query and maps each by
+     * its parent {@code session_question.id}. Builds the {@link AnswerView}
+     * with results revealed (caller already gated on SCORED) and a signed,
+     * same-origin video URL so the FE can drop straight into a {@code <video src>}.
+     *
+     * <p>The schema enforces one answer per session_question (see
+     * {@link AnswerRepository#findBySessionQuestionId} returning Optional) —
+     * if a duplicate sneaks in we keep the last one written, which matches
+     * how the planner overwrites prior verdicts on replay.
      */
-    private Map<UUID, UUID> loadLatestAnswerIds(List<SessionQuestion> questions) {
-        Map<UUID, UUID> out = new HashMap<>(questions.size());
-        for (SessionQuestion sq : questions) {
-            answerRepo.findBySessionQuestionId(sq.getId())
-                    .ifPresent(a -> out.put(sq.getId(), a.getId()));
+    private Map<UUID, AnswerView> loadAnswersBySessionQuestion(UUID sessionId) {
+        List<Answer> answers = answerRepo.findBySessionId(sessionId);
+        Map<UUID, AnswerView> out = new HashMap<>(answers.size());
+        for (Answer a : answers) {
+            AnswerView view = AnswerView.fromEntity(a, /* revealResults */ true, objectMapper)
+                    .withSignedMedia(id -> storageAdapter.signInterviewVideoUrl(id).orElse(null));
+            out.put(a.getSessionQuestionId(), view);
         }
         return out;
     }
 
     /**
      * Returns the AI overall_reviewer output stashed in
-     * {@code metadata.overallReview} once the session reaches SCORED. Null
-     * for any other status — keeps mid-session polls from leaking the result.
+     * {@code metadata.overallReview} once the session reaches SCORED, mapped
+     * to the typed {@link OverallReviewView}. Null for any other status, or
+     * when the metadata blob is missing / malformed — keeps mid-session polls
+     * from leaking the result and stops a corrupt row from failing the call.
      */
     @SuppressWarnings("unchecked")
-    private static Map<String, Object> extractOverallReview(InterviewSession session) {
+    private OverallReviewView extractOverallReview(InterviewSession session) {
         if (session.getStatus() != SessionStatus.SCORED || session.getMetadata() == null) {
             return null;
         }
         Object review = session.getMetadata().get("overallReview");
-        return review instanceof Map ? (Map<String, Object>) review : null;
+        if (!(review instanceof Map<?, ?> map)) return null;
+        try {
+            return objectMapper.convertValue((Map<String, Object>) map, OverallReviewView.class);
+        } catch (IllegalArgumentException ex) {
+            log.warn("Session {} has malformed overallReview metadata — returning null", session.getId(), ex);
+            return null;
+        }
     }
 
     /**
