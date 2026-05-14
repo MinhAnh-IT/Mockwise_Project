@@ -1,11 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
+  AlertTriangle,
   ArrowLeft,
+  Award,
+  BookOpen,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Code2,
+  Layers,
+  Lightbulb,
   Loader2,
+  MessageSquare,
+  Quote,
+  Sparkles,
+  Target,
+  Video as VideoIcon,
   Volume2,
+  Zap,
 } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import { getSession } from '@/api/interviews';
@@ -20,15 +33,18 @@ import type {
   EvaluationDetail,
   LiveCodingEvaluationDetail,
   PinnedQuestionView,
+  ScoreEntry,
   SessionView,
+  StarComponentItem,
 } from '@/types/interview';
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLL_ATTEMPTS = 60;
 
 /**
- * Per-question detail. Paginated 1-question-per-page with Prev/Next.
- * Sibling of {@code PracticeReportPage} which shows the overall summary.
+ * Per-question detail. Paginated 1-question-per-page with Prev/Next plus a
+ * sticky question navigator on the left. Sibling of {@code
+ * PracticeReportPage} which shows the overall summary.
  */
 export default function PracticeQuestionsPage() {
   const { type, sid } = useParams<{ type: string; sid: string }>();
@@ -93,8 +109,8 @@ export default function PracticeQuestionsPage() {
     <div className="min-h-screen flex flex-col bg-surface">
       <Header />
 
-      <main className="flex-1 px-6 pt-24 pb-16">
-        <div className="max-w-3xl mx-auto">
+      <main className="flex-1 px-4 md:px-8 pt-24 pb-16">
+        <div className="max-w-6xl mx-auto">
           <Link
             to={reportHref}
             className="inline-flex items-center gap-1 text-sm font-medium text-on-surface-variant hover:text-on-surface mb-4 transition-colors"
@@ -103,37 +119,54 @@ export default function PracticeQuestionsPage() {
             Về trang tổng quan
           </Link>
 
-          <div className="mb-6">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-secondary mb-2">
-              Chi tiết câu hỏi
-            </p>
-            <h1 className="text-2xl md:text-3xl font-bold text-on-surface mb-1">
-              {option.title}
-            </h1>
-            {session && (
-              <p className="text-sm text-on-surface-variant">
-                {session.targetRole} · {session.level} · {session.questionCount} câu
-              </p>
-            )}
-          </div>
+          <PageTitle option={option} session={session} />
 
           {!isScored && (
             <StatusPlaceholder status={session?.status} error={error} />
           )}
 
           {isScored && session && session.questions.length > 0 && (
-            <QuestionPager questions={session.questions} onReload={loadSession} />
+            <QuestionPager
+              questions={session.questions}
+              onReload={loadSession}
+            />
           )}
 
           {isScored && session && session.questions.length === 0 && (
-            <p className="text-sm text-on-surface-variant text-center py-12">
-              Phiên này chưa có câu hỏi nào.
-            </p>
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-10 text-center">
+              <p className="text-sm text-on-surface-variant">
+                Phiên này chưa có câu hỏi nào.
+              </p>
+            </div>
           )}
         </div>
       </main>
 
       <Footer />
+    </div>
+  );
+}
+
+function PageTitle({
+  option,
+  session,
+}: {
+  option: { title: string };
+  session: SessionView | null;
+}) {
+  return (
+    <div className="mb-5">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-secondary mb-2">
+        Chi tiết câu hỏi
+      </p>
+      <h1 className="text-2xl md:text-3xl font-extrabold text-on-surface tracking-tight">
+        {option.title}
+      </h1>
+      {session && (
+        <p className="mt-1 text-sm text-on-surface-variant">
+          {session.targetRole} · {session.level} · {session.questionCount} câu
+        </p>
+      )}
     </div>
   );
 }
@@ -148,20 +181,24 @@ function StatusPlaceholder({
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-        <p className="text-sm text-red-700 font-semibold mb-2">Có lỗi tải chi tiết</p>
+        <p className="text-sm text-red-700 font-semibold mb-2">
+          Có lỗi tải chi tiết
+        </p>
         <p className="text-xs text-red-600 leading-relaxed">{error}</p>
       </div>
     );
   }
   return (
-    <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-10 text-center">
-      <Loader2 className="w-8 h-8 mx-auto mb-4 text-secondary animate-spin" />
-      <h3 className="text-base font-bold text-on-surface mb-2">
+    <div className="bg-surface-container-lowest border border-outline-variant rounded-3xl p-10 md:p-14 text-center">
+      <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-secondary/10 text-secondary flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+      <h3 className="text-lg font-bold text-on-surface mb-2">
         {status === 'COMPLETED' || status === 'CANCELLED'
           ? 'Đang tổng hợp chi tiết…'
           : 'Đang chấm các câu trả lời…'}
       </h3>
-      <p className="text-xs text-on-surface-variant max-w-md mx-auto leading-relaxed">
+      <p className="text-sm text-on-surface-variant max-w-md mx-auto leading-relaxed">
         Vui lòng quay lại sau khi hệ thống chấm xong.
       </p>
     </div>
@@ -181,38 +218,185 @@ function QuestionPager({
   const total = questions.length;
   const goPrev = () => setIndex((i) => Math.max(0, i - 1));
   const goNext = () => setIndex((i) => Math.min(total - 1, i + 1));
+  const progressPct = ((safeIndex + 1) / total) * 100;
 
   return (
-    <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6">
-      <div className="flex items-center justify-between mb-4 gap-3">
-        <h3 className="text-sm font-bold text-on-surface">Chi tiết từng câu</h3>
-        <span className="text-xs font-semibold text-on-surface-variant">
-          Câu {safeIndex + 1} / {total}
-        </span>
-      </div>
+    <div className="grid lg:grid-cols-[280px_1fr] gap-6">
+      <aside className="lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
+        <QuestionNav
+          questions={questions}
+          activeIndex={safeIndex}
+          onSelect={setIndex}
+        />
+      </aside>
 
-      <QuestionPanel question={current} onReload={onReload} />
+      <section className="min-w-0">
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 md:p-5 mb-4 sticky top-20 z-30 backdrop-blur-md bg-surface-container-lowest/90">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-secondary text-on-secondary text-xs font-extrabold shrink-0">
+                {safeIndex + 1}
+              </span>
+              <p className="text-sm font-bold text-on-surface">
+                Câu <span className="tabular-nums">{safeIndex + 1}</span>{' '}
+                <span className="text-on-surface-variant font-medium">
+                  / {total}
+                </span>
+              </p>
+            </div>
+            <div className="hidden md:flex items-center gap-2">
+              <button
+                type="button"
+                onClick={goPrev}
+                disabled={safeIndex === 0}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-outline-variant text-xs font-semibold text-on-surface hover:bg-surface-container-low transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                Trước
+              </button>
+              <button
+                type="button"
+                onClick={goNext}
+                disabled={safeIndex >= total - 1}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary text-on-secondary text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Tiếp
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+          <div className="h-1 rounded-full bg-surface-container overflow-hidden">
+            <div
+              className="h-full bg-secondary transition-all"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+        </div>
 
-      <div className="mt-5 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={goPrev}
-          disabled={safeIndex === 0}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-outline-variant text-sm font-semibold text-on-surface hover:bg-surface-container-low transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Câu trước
-        </button>
-        <button
-          type="button"
-          onClick={goNext}
-          disabled={safeIndex >= total - 1}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-secondary text-on-secondary text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Câu tiếp
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
+        <QuestionPanel question={current} onReload={onReload} />
+
+        <div className="mt-5 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={goPrev}
+            disabled={safeIndex === 0}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container-lowest text-sm font-semibold text-on-surface hover:bg-surface-container-low transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Câu trước
+          </button>
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={safeIndex >= total - 1}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-secondary text-on-secondary text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Câu tiếp
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function QuestionNav({
+  questions,
+  activeIndex,
+  onSelect,
+}: {
+  questions: PinnedQuestionView[];
+  activeIndex: number;
+  onSelect: (i: number) => void;
+}) {
+  return (
+    <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-3">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant px-2 pt-1 pb-2">
+        Danh sách câu hỏi
+      </p>
+      <ul className="space-y-1">
+        {questions.map((q, i) => {
+          const active = i === activeIndex;
+          const score = q.answer?.score;
+          const hasAnswer = !!(q.answer ?? q.latestAnswerId);
+          const tone = scoreTone(typeof score === 'number' ? score : null);
+          return (
+            <li key={q.sessionQuestionId}>
+              <button
+                type="button"
+                onClick={() => onSelect(i)}
+                className={`w-full flex items-start gap-2.5 text-left px-2.5 py-2 rounded-xl transition-colors ${
+                  active
+                    ? 'bg-secondary text-on-secondary'
+                    : 'hover:bg-surface-container-low text-on-surface'
+                }`}
+              >
+                <span
+                  className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-extrabold ${
+                    active
+                      ? 'bg-on-secondary/15 text-on-secondary'
+                      : 'bg-surface-container text-on-surface'
+                  }`}
+                >
+                  {q.sequence}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p
+                    className={`text-xs font-semibold leading-snug line-clamp-2 ${
+                      active ? 'text-on-secondary' : 'text-on-surface'
+                    }`}
+                  >
+                    {q.text}
+                  </p>
+                  <div
+                    className={`mt-1 flex items-center gap-1.5 text-[10px] font-semibold ${
+                      active ? 'text-on-secondary/80' : 'text-on-surface-variant'
+                    }`}
+                  >
+                    {q.topicValue && (
+                      <span className="truncate">
+                        {q.topicValue.replace(/_/g, ' ')}
+                      </span>
+                    )}
+                    {q.isFollowUp && (
+                      <span
+                        className={`px-1.5 py-0.5 rounded ${
+                          active
+                            ? 'bg-on-secondary/15'
+                            : 'bg-surface-container text-on-surface-variant'
+                        }`}
+                      >
+                        nối tiếp
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {typeof score === 'number' ? (
+                  <span
+                    className={`shrink-0 text-[10px] font-extrabold px-1.5 py-1 rounded-md ${
+                      active
+                        ? 'bg-on-secondary/15 text-on-secondary'
+                        : `${tone.text} bg-surface-container`
+                    } tabular-nums`}
+                  >
+                    {score.toFixed(1)}
+                  </span>
+                ) : !hasAnswer ? (
+                  <span
+                    className={`shrink-0 text-[10px] font-semibold px-1.5 py-1 rounded-md ${
+                      active
+                        ? 'bg-on-secondary/15 text-on-secondary'
+                        : 'bg-surface-container text-on-surface-variant'
+                    }`}
+                  >
+                    bỏ
+                  </span>
+                ) : null}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -228,14 +412,44 @@ function QuestionPanel({
   const hasAnswer = !!(answer ?? question.latestAnswerId);
 
   return (
-    <div className="border border-outline-variant/60 rounded-xl overflow-hidden">
-      <div className="p-4 bg-surface-container-low/30">
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
+    <div className="space-y-4">
+      <QuestionCard question={question} />
+      {hasAnswer ? (
+        answer ? (
+          <AnswerDetail answer={answer} onReload={onReload} />
+        ) : (
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 text-center text-xs text-on-surface-variant italic">
+            Đang chuẩn bị chi tiết câu trả lời…
+          </div>
+        )
+      ) : (
+        <div className="bg-surface-container-lowest border border-dashed border-outline-variant rounded-2xl p-8 text-center">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-surface-container text-on-surface-variant flex items-center justify-center">
+            <MessageSquare className="w-6 h-6" />
+          </div>
+          <p className="text-sm font-semibold text-on-surface mb-1">
+            Không có câu trả lời
+          </p>
+          <p className="text-xs text-on-surface-variant">
+            Ứng viên không trả lời câu này.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuestionCard({ question }: { question: PinnedQuestionView }) {
+  return (
+    <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden">
+      <div className="px-5 py-4 bg-secondary/5 border-b border-outline-variant/60">
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
           <span className="text-[10px] font-bold uppercase tracking-widest text-secondary bg-secondary/10 px-2 py-1 rounded-md">
-            #{question.sequence}
+            Câu hỏi #{question.sequence}
           </span>
           {question.topicValue && (
-            <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant bg-surface-container-lowest border border-outline-variant px-2 py-1 rounded-md">
+              <Target className="w-3 h-3" />
               {question.topicValue.replace(/_/g, ' ')}
             </span>
           )}
@@ -244,39 +458,25 @@ function QuestionPanel({
               Nối tiếp
             </span>
           )}
-          {!hasAnswer && (
-            <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant bg-surface-container px-2 py-1 rounded-md">
-              Không trả lời
+          {question.difficulty && (
+            <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant px-2 py-1 rounded-md border border-outline-variant">
+              {question.difficulty}
             </span>
           )}
         </div>
-        <p className="text-sm text-on-surface leading-relaxed">{question.text}</p>
+        <p className="text-base md:text-lg font-semibold text-on-surface leading-relaxed">
+          {question.text}
+        </p>
       </div>
-
-      <div className="border-t border-outline-variant/60 p-4 bg-surface-container-low/40 space-y-4">
-        {question.audioUrl && (
-          <div>
-            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">
-              <Volume2 className="w-3.5 h-3.5" />
-              Nghe lại câu hỏi
-            </p>
-            <audio src={question.audioUrl} controls className="w-full" />
-          </div>
-        )}
-        {hasAnswer ? (
-          answer ? (
-            <AnswerDetail answer={answer} onReload={onReload} />
-          ) : (
-            <p className="text-xs text-on-surface-variant italic">
-              Đang chuẩn bị chi tiết câu trả lời…
-            </p>
-          )
-        ) : (
-          <p className="text-xs text-on-surface-variant italic">
-            Ứng viên không trả lời câu này.
+      {question.audioUrl && (
+        <div className="px-5 py-3 bg-surface-container-low/40">
+          <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">
+            <Volume2 className="w-3.5 h-3.5" />
+            Nghe lại câu hỏi
           </p>
-        )}
-      </div>
+          <audio src={question.audioUrl} controls className="w-full" />
+        </div>
+      )}
     </div>
   );
 }
@@ -288,54 +488,127 @@ function AnswerDetail({
   answer: AnswerView;
   onReload: () => Promise<SessionView | null>;
 }) {
-  const verdict = answer.verdict;
-  const score = answer.score;
-  const maxScore = answer.maxScore ?? 10;
+  const detail = answer.evaluationDetail;
+  const oneLineVerdict = detail?.oneLineVerdict ?? null;
 
   return (
     <div className="space-y-4">
       {answer.status === 'FAILED' && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
-          Câu này không chấm được{answer.errorMessage ? `: ${answer.errorMessage}` : '.'}
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-2.5">
+          <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-red-700 leading-relaxed">
+            Câu này không chấm được
+            {answer.errorMessage ? `: ${answer.errorMessage}` : '.'}
+          </p>
         </div>
       )}
 
-      {typeof score === 'number' && (
-        <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-extrabold text-on-surface leading-none">
-            {score.toFixed(1)}
-          </span>
-          <span className="text-xs text-on-surface-variant font-medium">
-            / {maxScore.toFixed(0)}
-          </span>
-        </div>
+      <ScoreHero
+        score={answer.score}
+        maxScore={answer.maxScore ?? 10}
+        verdict={answer.verdict}
+        oneLineVerdict={oneLineVerdict}
+      />
+
+      {answer.type === 'VIDEO' && answer.mediaUrl && (
+        <Card icon={<VideoIcon className="w-4 h-4" />} title="Video bạn đã quay">
+          <AnswerVideo mediaUrl={answer.mediaUrl} onReload={onReload} />
+        </Card>
       )}
-
-      <VerdictChips verdict={verdict} />
-
-      <EvaluationBreakdown detail={answer.evaluationDetail} />
 
       {answer.feedback && (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5">
-            Phản hồi
-          </p>
+        <Card
+          icon={<MessageSquare className="w-4 h-4" />}
+          title="Phản hồi tổng quan"
+        >
           <p className="text-sm text-on-surface leading-relaxed whitespace-pre-line">
             {answer.feedback}
           </p>
-        </div>
+        </Card>
       )}
 
-      {answer.type === 'VIDEO' && answer.mediaUrl && (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5">
-            Xem lại video bạn đã quay
-          </p>
-          <AnswerVideo mediaUrl={answer.mediaUrl} onReload={onReload} />
-        </div>
-      )}
+      <EvaluationBreakdown detail={detail} />
     </div>
   );
+}
+
+function ScoreHero({
+  score,
+  maxScore,
+  verdict,
+  oneLineVerdict,
+}: {
+  score: number | null;
+  maxScore: number;
+  verdict: AssessmentVerdict | null;
+  oneLineVerdict: string | null;
+}) {
+  const tone = scoreTone(typeof score === 'number' ? score : null);
+  const pct =
+    typeof score === 'number'
+      ? Math.max(0, Math.min(100, (score / maxScore) * 100))
+      : null;
+
+  return (
+    <div className="relative overflow-hidden bg-gradient-to-br from-secondary-fixed/40 via-surface-container-lowest to-surface-container-low border border-outline-variant rounded-2xl p-5 md:p-6">
+      <div className="absolute -right-16 -top-16 w-48 h-48 rounded-full bg-secondary/10 blur-3xl pointer-events-none" />
+
+      <div className="relative">
+        <div className="flex items-center gap-4 mb-3">
+          {typeof score === 'number' ? (
+            <div className="flex items-baseline gap-1">
+              <span className={`text-4xl md:text-5xl font-extrabold leading-none ${tone.text}`}>
+                {score.toFixed(1)}
+              </span>
+              <span className="text-sm text-on-surface-variant font-semibold">
+                / {maxScore.toFixed(0)}
+              </span>
+            </div>
+          ) : (
+            <span className="text-sm text-on-surface-variant italic">
+              Chưa có điểm
+            </span>
+          )}
+          {pct !== null && (
+            <div className="flex-1 max-w-xs h-2 rounded-full bg-surface-container overflow-hidden">
+              <div
+                className={`h-full rounded-full ${tone.bar}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          )}
+        </div>
+
+        {oneLineVerdict && (
+          <div className="relative mb-3">
+            <Quote className="absolute -left-1 -top-2 w-4 h-4 text-secondary/30" />
+            <p className="pl-4 text-sm text-on-surface leading-relaxed italic">
+              {oneLineVerdict}
+            </p>
+          </div>
+        )}
+
+        <VerdictChips verdict={verdict} />
+      </div>
+    </div>
+  );
+}
+
+function scoreTone(score: number | null) {
+  if (typeof score !== 'number') {
+    return {
+      ring: 'text-on-surface-variant/30',
+      text: 'text-on-surface-variant',
+      bar: 'bg-on-surface-variant/30',
+    };
+  }
+  if (score >= 8)
+    return { ring: 'text-emerald-500', text: 'text-emerald-700', bar: 'bg-emerald-500' };
+  if (score >= 6.5)
+    return { ring: 'text-secondary', text: 'text-secondary', bar: 'bg-secondary' };
+  if (score >= 5)
+    return { ring: 'text-amber-500', text: 'text-amber-700', bar: 'bg-amber-500' };
+  return { ring: 'text-red-500', text: 'text-red-700', bar: 'bg-red-500' };
 }
 
 const VERDICT_LABELS: Record<string, Record<string, string>> = {
@@ -387,7 +660,7 @@ function VerdictChips({ verdict }: { verdict: AssessmentVerdict | null }) {
       {entries.map((e) => (
         <span
           key={e.key}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container border border-outline-variant text-[11px] text-on-surface"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container-lowest/80 border border-outline-variant text-[11px] text-on-surface"
         >
           <span className="text-on-surface-variant uppercase tracking-wider text-[9px] font-bold">
             {e.title}
@@ -395,6 +668,35 @@ function VerdictChips({ verdict }: { verdict: AssessmentVerdict | null }) {
           <span className="font-semibold">{e.label}</span>
         </span>
       ))}
+    </div>
+  );
+}
+
+function Card({
+  icon,
+  title,
+  count,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  count?: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-2 px-5 py-3 border-b border-outline-variant/60 bg-surface-container-low/30">
+        <div className="w-7 h-7 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center">
+          {icon}
+        </div>
+        <h4 className="text-sm font-bold text-on-surface">{title}</h4>
+        {typeof count === 'number' && (
+          <span className="ml-auto text-[11px] font-semibold text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded">
+            {count}
+          </span>
+        )}
+      </div>
+      <div className="p-5">{children}</div>
     </div>
   );
 }
@@ -437,182 +739,510 @@ function EvaluationBreakdown({ detail }: { detail: EvaluationDetail | null }) {
   }
 }
 
-function ScoreBars({ scores }: { scores: Record<string, number | null> | null }) {
+function ScoreBars({ scores }: { scores: Record<string, ScoreEntry | null> | null }) {
   if (!scores) return null;
   const entries = Object.entries(scores).filter(
-    ([, v]) => typeof v === 'number',
-  ) as [string, number][];
+    ([, v]) => v && typeof v.score === 'number',
+  ) as [string, ScoreEntry & { score: number }][];
   if (entries.length === 0) return null;
   return (
-    <div className="space-y-2">
-      {entries.map(([key, value]) => (
-        <div key={key} className="flex items-center gap-3">
-          <span className="text-[11px] font-semibold text-on-surface-variant w-40 shrink-0">
-            {DIMENSION_LABELS[key] ?? key}
-          </span>
-          <div className="flex-1 h-2 rounded-full bg-surface-container overflow-hidden">
-            <div
-              className="h-full bg-secondary rounded-full"
-              style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
-            />
-          </div>
-          <span className="text-[11px] font-bold text-on-surface w-10 text-right tabular-nums">
-            {value}
-          </span>
-        </div>
-      ))}
-    </div>
+    <ul className="space-y-3">
+      {entries.map(([key, entry]) => {
+        const tone = scoreTone(entry.score / 10);
+        return (
+          <li key={key} className="space-y-1.5">
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-bold text-on-surface w-40 shrink-0">
+                {DIMENSION_LABELS[key] ?? key}
+              </span>
+              <div className="flex-1 h-2 rounded-full bg-surface-container overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${tone.bar}`}
+                  style={{ width: `${Math.max(0, Math.min(100, entry.score))}%` }}
+                />
+              </div>
+              <span
+                className={`text-xs font-extrabold w-10 text-right tabular-nums ${tone.text}`}
+              >
+                {entry.score}
+              </span>
+            </div>
+            {entry.note && (
+              <p className="text-[11px] text-on-surface-variant leading-relaxed pl-[10.5rem]">
+                {entry.note}
+              </p>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function FeedbackList({
+  items,
+  tone,
+}: {
+  items: string[] | null | undefined;
+  tone: 'positive' | 'negative' | 'neutral';
+}) {
+  if (!items || items.length === 0) return null;
+  const dotClass =
+    tone === 'positive'
+      ? 'text-emerald-500'
+      : tone === 'negative'
+        ? 'text-amber-500'
+        : 'text-secondary';
   return (
-    <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5">
-      {children}
-    </p>
+    <ul className="space-y-2.5">
+      {items.map((item, i) => (
+        <li
+          key={i}
+          className="flex items-start gap-2.5 text-sm text-on-surface leading-relaxed"
+        >
+          <CheckCircle2 className={`w-4 h-4 ${dotClass} flex-shrink-0 mt-0.5`} />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Excerpt({ text }: { text: string | null | undefined }) {
+  if (!text) return null;
+  return (
+    <blockquote className="mt-1.5 border-l-2 border-secondary/30 pl-3 text-[12px] italic text-on-surface-variant leading-relaxed">
+      {text}
+    </blockquote>
+  );
+}
+
+const STAR_LABELS: Record<string, string> = {
+  situation: 'Situation — Bối cảnh',
+  task: 'Task — Nhiệm vụ',
+  action: 'Action — Hành động',
+  result: 'Result — Kết quả',
+};
+
+const QUALITY_LABEL: Record<string, string> = {
+  excellent: 'Xuất sắc',
+  good: 'Tốt',
+  acceptable: 'Đạt',
+  weak: 'Yếu',
+  missing: 'Thiếu',
+};
+
+const QUALITY_TONE: Record<string, string> = {
+  excellent: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  good: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+  acceptable: 'bg-amber-50 text-amber-700 border-amber-100',
+  weak: 'bg-amber-100 text-amber-700 border-amber-200',
+  missing: 'bg-red-100 text-red-700 border-red-200',
+};
+
+function FeedbackPair({
+  strengths,
+  improvements,
+}: {
+  strengths: string[] | null | undefined;
+  improvements: string[] | null | undefined;
+}) {
+  if (!strengths?.length && !improvements?.length) return null;
+  return (
+    <div className="grid md:grid-cols-2 gap-4">
+      {strengths && strengths.length > 0 && (
+        <Card
+          icon={<Sparkles className="w-4 h-4" />}
+          title="Điểm mạnh"
+          count={strengths.length}
+        >
+          <FeedbackList items={strengths} tone="positive" />
+        </Card>
+      )}
+      {improvements && improvements.length > 0 && (
+        <Card
+          icon={<Lightbulb className="w-4 h-4" />}
+          title="Nên cải thiện"
+          count={improvements.length}
+        >
+          <FeedbackList items={improvements} tone="negative" />
+        </Card>
+      )}
+    </div>
   );
 }
 
 function BehavioralBreakdown({ detail }: { detail: BehavioralEvaluationDetail }) {
+  const star = detail.starBreakdown;
+  const starEntries: Array<[
+    'situation' | 'task' | 'action' | 'result',
+    StarComponentItem | null,
+  ]> = star
+    ? [
+        ['situation', star.situation],
+        ['task', star.task],
+        ['action', star.action],
+        ['result', star.result],
+      ]
+    : [];
+
   return (
-    <div className="space-y-4">
+    <>
       {detail.scores && (
-        <div>
-          <SectionTitle>Điểm theo tiêu chí</SectionTitle>
+        <Card icon={<Layers className="w-4 h-4" />} title="Điểm theo tiêu chí">
           <ScoreBars scores={detail.scores} />
-        </div>
+        </Card>
+      )}
+      {starEntries.length > 0 && (
+        <Card icon={<Award className="w-4 h-4" />} title="Phân tích STAR">
+          <div className="grid md:grid-cols-2 gap-3">
+            {starEntries.map(([key, comp]) => {
+              if (!comp) return null;
+              const qualityKey = comp.quality?.toLowerCase() ?? '';
+              const toneClass =
+                QUALITY_TONE[qualityKey] ??
+                'bg-surface-container text-on-surface-variant border-outline-variant/60';
+              return (
+                <div
+                  key={key}
+                  className="border border-outline-variant/60 rounded-xl p-3.5 bg-surface-container-low/30"
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className="text-[12px] font-bold text-on-surface">
+                      {STAR_LABELS[key]}
+                    </span>
+                    {comp.quality && (
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${toneClass}`}
+                      >
+                        {QUALITY_LABEL[qualityKey] ?? comp.quality}
+                      </span>
+                    )}
+                  </div>
+                  {!comp.detected && (
+                    <p className="text-[11px] text-on-surface-variant italic">
+                      Không có trong câu trả lời.
+                    </p>
+                  )}
+                  <Excerpt text={comp.excerpt} />
+                </div>
+              );
+            })}
+          </div>
+        </Card>
       )}
       {detail.signalCoverage.length > 0 && (
-        <div>
-          <SectionTitle>Tín hiệu mong đợi</SectionTitle>
-          <ul className="space-y-1">
+        <Card
+          icon={<Zap className="w-4 h-4" />}
+          title="Tín hiệu mong đợi"
+          count={detail.signalCoverage.length}
+        >
+          <ul className="space-y-3">
             {detail.signalCoverage.map((s) => (
-              <li
-                key={s.signalName}
-                className="flex items-center gap-2 text-xs text-on-surface"
-              >
-                <span
-                  className={
-                    s.detected
-                      ? 'inline-block w-1.5 h-1.5 rounded-full bg-green-500'
-                      : 'inline-block w-1.5 h-1.5 rounded-full bg-on-surface-variant/40'
-                  }
-                />
-                <span>{s.signalName.replace(/_/g, ' ')}</span>
-                <span className="text-on-surface-variant">
-                  {s.detected ? '— có' : '— chưa rõ'}
-                </span>
+              <li key={s.signalName} className="text-xs text-on-surface">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className={
+                      s.detected
+                        ? 'inline-block w-2 h-2 rounded-full bg-emerald-500'
+                        : 'inline-block w-2 h-2 rounded-full bg-on-surface-variant/40'
+                    }
+                  />
+                  <span className="font-semibold text-sm">
+                    {s.signalName.replace(/_/g, ' ')}
+                  </span>
+                  <span
+                    className={
+                      s.detected
+                        ? 'text-[11px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700'
+                        : 'text-[11px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant'
+                    }
+                  >
+                    {s.detected ? 'có thể hiện' : 'chưa thể hiện'}
+                  </span>
+                </div>
+                <Excerpt text={s.evidence} />
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
       )}
       {detail.redFlags.length > 0 && (
-        <div>
-          <SectionTitle>Điểm cần lưu ý</SectionTitle>
-          <ul className="space-y-1">
+        <Card
+          icon={<AlertTriangle className="w-4 h-4" />}
+          title="Điểm cần lưu ý"
+          count={detail.redFlags.length}
+        >
+          <ul className="space-y-3">
             {detail.redFlags.map((f, i) => (
-              <li key={`${f.type}-${i}`} className="text-xs text-on-surface">
-                <span className="font-semibold">{f.type.replace(/_/g, ' ')}</span>
-                <span className="text-on-surface-variant">
-                  {' '}
-                  · mức độ {SEVERITY_LABEL[f.severity?.toLowerCase()] ?? f.severity}
-                </span>
+              <li
+                key={`${f.type}-${i}`}
+                className="border border-red-200 bg-red-50/40 rounded-lg p-3"
+              >
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <span className="font-semibold text-sm text-on-surface">
+                    {f.type.replace(/_/g, ' ')}
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-100 text-red-700">
+                    {SEVERITY_LABEL[f.severity?.toLowerCase()] ?? f.severity}
+                  </span>
+                </div>
+                {f.detail && (
+                  <p className="text-[12px] text-on-surface leading-relaxed">
+                    {f.detail}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
       )}
-    </div>
+      <FeedbackPair
+        strengths={detail.feedback?.strengths}
+        improvements={detail.feedback?.improvements}
+      />
+      {detail.feedback?.sampleStrongerAnswerStructure && (
+        <Card
+          icon={<Lightbulb className="w-4 h-4" />}
+          title="Gợi ý cấu trúc câu trả lời mạnh hơn"
+        >
+          <p className="text-sm text-on-surface leading-relaxed whitespace-pre-line">
+            {detail.feedback.sampleStrongerAnswerStructure}
+          </p>
+        </Card>
+      )}
+    </>
   );
 }
 
 function ConceptualBreakdown({ detail }: { detail: ConceptualEvaluationDetail }) {
+  const lc = detail.levelCalibration;
   return (
-    <div className="space-y-4">
+    <>
       {detail.scores && (
-        <div>
-          <SectionTitle>Điểm theo tiêu chí</SectionTitle>
+        <Card icon={<Layers className="w-4 h-4" />} title="Điểm theo tiêu chí">
           <ScoreBars scores={detail.scores} />
-        </div>
+        </Card>
+      )}
+      {lc && (lc.expectedLevel || lc.actualDemonstratedLevel || lc.gap) && (
+        <Card icon={<Target className="w-4 h-4" />} title="Mức độ thể hiện">
+          <div className="grid md:grid-cols-2 gap-3 mb-2">
+            <div className="border border-outline-variant/60 rounded-lg p-3 bg-surface-container-low/30">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">
+                Mong đợi
+              </p>
+              <p className="text-sm font-bold text-on-surface">
+                {lc.expectedLevel ?? '—'}
+              </p>
+            </div>
+            <div className="border border-outline-variant/60 rounded-lg p-3 bg-surface-container-low/30">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">
+                Thực tế
+              </p>
+              <p className="text-sm font-bold text-on-surface">
+                {lc.actualDemonstratedLevel ?? '—'}
+              </p>
+            </div>
+          </div>
+          {lc.gap && (
+            <p className="text-xs text-on-surface-variant leading-relaxed">
+              {lc.gap}
+            </p>
+          )}
+        </Card>
       )}
       {detail.conceptCoverage.length > 0 && (
-        <div>
-          <SectionTitle>Khái niệm cốt lõi</SectionTitle>
-          <ul className="space-y-1">
+        <Card
+          icon={<BookOpen className="w-4 h-4" />}
+          title="Khái niệm cốt lõi"
+          count={detail.conceptCoverage.length}
+        >
+          <ul className="space-y-3">
             {detail.conceptCoverage.map((c) => {
               const status = !c.mentioned
                 ? { color: 'bg-on-surface-variant/40', text: 'không nhắc tới' }
                 : c.correct === false
                   ? { color: 'bg-red-500', text: 'nói sai' }
                   : c.correct === true
-                    ? { color: 'bg-green-500', text: 'đúng' }
+                    ? { color: 'bg-emerald-500', text: 'đúng' }
                     : { color: 'bg-amber-500', text: 'có nhắc, chưa rõ đúng/sai' };
               return (
-                <li
-                  key={c.conceptName}
-                  className="flex items-center gap-2 text-xs text-on-surface"
-                >
-                  <span className={`inline-block w-1.5 h-1.5 rounded-full ${status.color}`} />
-                  <span>{c.conceptName.replace(/_/g, ' ')}</span>
-                  <span className="text-on-surface-variant">— {status.text}</span>
+                <li key={c.conceptName} className="text-xs text-on-surface">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span
+                      className={`inline-block w-2 h-2 rounded-full ${status.color}`}
+                    />
+                    <span className="font-semibold text-sm">
+                      {c.conceptName.replace(/_/g, ' ')}
+                    </span>
+                    <span className="text-on-surface-variant text-[11px]">
+                      — {status.text}
+                    </span>
+                  </div>
+                  <Excerpt text={c.candidateStatement} />
+                  {c.correction && (
+                    <p className="mt-1.5 text-[12px] text-emerald-700 leading-relaxed bg-emerald-50 border border-emerald-200 rounded-md px-2.5 py-2">
+                      <span className="font-bold">Đúng là:</span> {c.correction}
+                    </p>
+                  )}
                 </li>
               );
             })}
           </ul>
-        </div>
+        </Card>
       )}
       {detail.misconceptions.length > 0 && (
-        <div>
-          <SectionTitle>Hiểu nhầm cần sửa</SectionTitle>
-          <ul className="space-y-1 list-disc list-inside">
+        <Card
+          icon={<AlertTriangle className="w-4 h-4" />}
+          title="Hiểu nhầm cần sửa"
+          count={detail.misconceptions.length}
+        >
+          <ul className="space-y-3">
             {detail.misconceptions.map((m, i) => (
               <li key={i} className="text-xs text-on-surface">
-                {m.claim}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function LiveCodingBreakdown({ detail }: { detail: LiveCodingEvaluationDetail }) {
-  return (
-    <div className="space-y-4">
-      {detail.scores && (
-        <div>
-          <SectionTitle>Điểm theo tiêu chí</SectionTitle>
-          <ScoreBars scores={detail.scores} />
-        </div>
-      )}
-      {typeof detail.isOptimal === 'boolean' && (
-        <p className="text-xs text-on-surface">
-          <span className="font-semibold">Giải pháp tối ưu:</span>{' '}
-          <span className="text-on-surface-variant">
-            {detail.isOptimal ? 'Có' : 'Chưa'}
-          </span>
-        </p>
-      )}
-      {detail.codeIssues.length > 0 && (
-        <div>
-          <SectionTitle>Vấn đề trong code</SectionTitle>
-          <ul className="space-y-1">
-            {detail.codeIssues.map((i, idx) => (
-              <li key={`${i.type}-${idx}`} className="text-xs text-on-surface">
-                <span className="font-semibold">{i.type.replace(/_/g, ' ')}</span>
-                {i.detail && (
-                  <>
-                    <span className="text-on-surface-variant"> · {i.detail}</span>
-                  </>
+                <p className="text-on-surface leading-relaxed text-sm">
+                  <span className="font-semibold text-red-700">Sai:</span>{' '}
+                  {m.claim}
+                </p>
+                {m.correction && (
+                  <p className="mt-1 text-[12px] text-emerald-700 leading-relaxed bg-emerald-50 border border-emerald-200 rounded-md px-2.5 py-2">
+                    <span className="font-bold">Đúng là:</span> {m.correction}
+                  </p>
                 )}
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
       )}
-    </div>
+      <FeedbackPair
+        strengths={detail.feedback?.strengths}
+        improvements={detail.feedback?.improvements}
+      />
+      {detail.feedback?.keyPointsToStudy &&
+        detail.feedback.keyPointsToStudy.length > 0 && (
+          <Card
+            icon={<BookOpen className="w-4 h-4" />}
+            title="Nên học thêm"
+            count={detail.feedback.keyPointsToStudy.length}
+          >
+            <FeedbackList
+              items={detail.feedback.keyPointsToStudy}
+              tone="neutral"
+            />
+          </Card>
+        )}
+    </>
+  );
+}
+
+function LiveCodingBreakdown({ detail }: { detail: LiveCodingEvaluationDetail }) {
+  const detected = detail.detectedComplexity;
+  const optimal = detail.optimalComplexity;
+  const showComplexity = !!(detected || optimal);
+  return (
+    <>
+      {detail.scores && (
+        <Card icon={<Layers className="w-4 h-4" />} title="Điểm theo tiêu chí">
+          <ScoreBars scores={detail.scores} />
+        </Card>
+      )}
+      {showComplexity && (
+        <Card icon={<Zap className="w-4 h-4" />} title="Độ phức tạp">
+          <div className="grid grid-cols-3 gap-2 text-xs items-center">
+            <div />
+            <div className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant text-center">
+              Code của bạn
+            </div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 text-center">
+              Tối ưu
+            </div>
+            <div className="font-semibold text-on-surface-variant">Thời gian</div>
+            <div className="text-center font-mono text-sm py-2 rounded-md bg-surface-container-low/60 text-on-surface">
+              {detected?.time ?? '—'}
+            </div>
+            <div className="text-center font-mono text-sm py-2 rounded-md bg-emerald-50 text-emerald-700">
+              {optimal?.time ?? '—'}
+            </div>
+            <div className="font-semibold text-on-surface-variant">Bộ nhớ</div>
+            <div className="text-center font-mono text-sm py-2 rounded-md bg-surface-container-low/60 text-on-surface">
+              {detected?.space ?? '—'}
+            </div>
+            <div className="text-center font-mono text-sm py-2 rounded-md bg-emerald-50 text-emerald-700">
+              {optimal?.space ?? '—'}
+            </div>
+          </div>
+          {typeof detail.isOptimal === 'boolean' && (
+            <p
+              className={`mt-3 text-xs font-semibold flex items-center gap-1.5 ${
+                detail.isOptimal ? 'text-emerald-700' : 'text-amber-700'
+              }`}
+            >
+              {detail.isOptimal ? (
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              ) : (
+                <AlertTriangle className="w-3.5 h-3.5" />
+              )}
+              {detail.isOptimal
+                ? 'Đã đạt độ phức tạp tối ưu.'
+                : 'Chưa đạt độ phức tạp tối ưu — xem gợi ý bên dưới.'}
+            </p>
+          )}
+        </Card>
+      )}
+      {detail.codeIssues.length > 0 && (
+        <Card
+          icon={<AlertTriangle className="w-4 h-4" />}
+          title="Vấn đề trong code"
+          count={detail.codeIssues.length}
+        >
+          <ul className="space-y-3">
+            {detail.codeIssues.map((i, idx) => (
+              <li
+                key={`${i.type}-${idx}`}
+                className="border border-outline-variant/60 rounded-lg p-3 bg-surface-container-low/30"
+              >
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <span className="font-semibold text-sm text-on-surface">
+                    {i.type.replace(/_/g, ' ')}
+                  </span>
+                  {typeof i.line === 'number' && (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant">
+                      dòng {i.line}
+                    </span>
+                  )}
+                </div>
+                {i.detail && (
+                  <p className="text-[12px] text-on-surface-variant leading-relaxed">
+                    {i.detail}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+      <FeedbackPair
+        strengths={detail.feedback?.strengths}
+        improvements={detail.feedback?.improvements}
+      />
+      {detail.feedback?.optimizationHint && (
+        <Card icon={<Lightbulb className="w-4 h-4" />} title="Gợi ý tối ưu">
+          <p className="text-sm text-on-surface leading-relaxed">
+            {detail.feedback.optimizationHint}
+          </p>
+        </Card>
+      )}
+      {detail.feedback?.sampleOptimalSolution && (
+        <Card
+          icon={<Code2 className="w-4 h-4" />}
+          title="Lời giải mẫu tối ưu"
+        >
+          <pre className="text-[12px] leading-relaxed bg-on-surface text-inverse-on-surface rounded-lg p-4 overflow-x-auto font-mono">
+            {detail.feedback.sampleOptimalSolution}
+          </pre>
+        </Card>
+      )}
+    </>
   );
 }
 
@@ -626,9 +1256,51 @@ function AnswerVideo({
   // Drop the blob-URL fetch: mediaUrl is now a presigned MinIO URL behind the
   // nginx /minio/ proxy, so the browser can play it directly. SigV4 lives in
   // the query string — no Authorization header to attach.
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const [errored, setErrored] = useState(false);
   const [reloading, setReloading] = useState(false);
   const [reloadFailed, setReloadFailed] = useState(false);
+
+  // MediaRecorder WebM blobs ship without a valid `duration` header, so the
+  // native scrubber reads `Infinity` and jumps around when you try to seek.
+  // Trick the demuxer into computing the real duration: seek past the end,
+  // wait for `durationchange` to fire with a finite value, then snap back
+  // to 0. After that the scrub bar tracks playback correctly.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    let phase: 'idle' | 'seeking' | 'done' = 'idle';
+
+    const onLoadedMetadata = () => {
+      if (phase !== 'idle') return;
+      if (!Number.isFinite(v.duration)) {
+        phase = 'seeking';
+        try {
+          v.currentTime = 1e9;
+        } catch {
+          // Some browsers throw on out-of-range seeks; fall through and the
+          // duration will simply stay Infinity (better than a crash).
+          phase = 'done';
+        }
+      } else {
+        phase = 'done';
+      }
+    };
+    const onDurationChange = () => {
+      if (phase !== 'seeking') return;
+      if (Number.isFinite(v.duration) && v.duration > 0) {
+        phase = 'done';
+        v.currentTime = 0;
+      }
+    };
+
+    v.addEventListener('loadedmetadata', onLoadedMetadata);
+    v.addEventListener('durationchange', onDurationChange);
+    return () => {
+      v.removeEventListener('loadedmetadata', onLoadedMetadata);
+      v.removeEventListener('durationchange', onDurationChange);
+    };
+  }, [mediaUrl]);
 
   const retry = useCallback(async () => {
     setReloadFailed(false);
@@ -648,33 +1320,39 @@ function AnswerVideo({
 
   if (errored) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
-        <p className="mb-1.5">
-          {reloadFailed
-            ? 'Không tải lại được video. Vui lòng thử lại sau.'
-            : 'Không tải được video. URL có thể đã hết hạn.'}
-        </p>
-        <button
-          type="button"
-          onClick={retry}
-          disabled={reloading}
-          className="text-red-700 underline font-semibold disabled:opacity-50"
-        >
-          {reloading ? 'Đang thử lại…' : 'Thử lại'}
-        </button>
+      <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-2.5">
+        <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+        <div className="flex-1">
+          <p className="text-xs text-red-700 mb-2">
+            {reloadFailed
+              ? 'Không tải lại được video. Vui lòng thử lại sau.'
+              : 'Không tải được video. URL có thể đã hết hạn.'}
+          </p>
+          <button
+            type="button"
+            onClick={retry}
+            disabled={reloading}
+            className="text-xs text-red-700 underline font-semibold disabled:opacity-50"
+          >
+            {reloading ? 'Đang thử lại…' : 'Thử lại'}
+          </button>
+        </div>
       </div>
     );
   }
   return (
     <video
+      ref={videoRef}
       // key forces a fresh element when the URL changes after onReload,
       // otherwise <video> would stick with the previous (expired) src.
       key={mediaUrl}
       src={mediaUrl}
       controls
       playsInline
+      preload="metadata"
       onError={() => setErrored(true)}
       className="w-full max-h-[60vh] rounded-xl bg-black"
     />
   );
 }
+

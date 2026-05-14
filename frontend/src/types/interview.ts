@@ -124,47 +124,103 @@ export type EvaluationDetail =
   | ConceptualEvaluationDetail
   | LiveCodingEvaluationDetail;
 
+/**
+ * Per-dimension score paired with the 1-2 sentence rationale the AI
+ * attaches to it. Rendered as a progress bar with the note inline so the
+ * candidate can read "specificity = 55" together with *why*.
+ */
+export type ScoreEntry = {
+  score: number | null;
+  note: string | null;
+};
+
+export type StarComponentItem = {
+  detected: boolean;
+  /** One of: excellent / good / acceptable / weak / missing — string from AI Quality enum. */
+  quality: string | null;
+  /** Direct quote from the candidate's transcript (their original language). */
+  excerpt: string | null;
+};
+
 export type BehavioralEvaluationDetail = {
   kind: 'BEHAVIORAL';
   overallScore: number | null;
   completeness: string | null;
+  oneLineVerdict: string | null;
   scores: {
-    starStructure: number | null;
-    relevance: number | null;
-    specificity: number | null;
-    impactResult: number | null;
-    selfAwareness: number | null;
+    starStructure: ScoreEntry | null;
+    relevance: ScoreEntry | null;
+    specificity: ScoreEntry | null;
+    impactResult: ScoreEntry | null;
+    selfAwareness: ScoreEntry | null;
   } | null;
-  signalCoverage: { signalName: string; detected: boolean }[];
-  redFlags: { type: string; severity: string }[];
+  starBreakdown: {
+    situation: StarComponentItem | null;
+    task: StarComponentItem | null;
+    action: StarComponentItem | null;
+    result: StarComponentItem | null;
+  } | null;
+  signalCoverage: { signalName: string; detected: boolean; evidence: string | null }[];
+  redFlags: { type: string; severity: string; detail: string | null }[];
+  feedback: {
+    strengths: string[];
+    improvements: string[];
+    sampleStrongerAnswerStructure: string | null;
+  } | null;
 };
 
 export type ConceptualEvaluationDetail = {
   kind: 'CORE_CONCEPTUAL';
   overallScore: number | null;
   completeness: string | null;
+  oneLineVerdict: string | null;
   scores: {
-    accuracy: number | null;
-    depth: number | null;
-    practicalApplication: number | null;
-    clarity: number | null;
+    accuracy: ScoreEntry | null;
+    depth: ScoreEntry | null;
+    practicalApplication: ScoreEntry | null;
+    clarity: ScoreEntry | null;
   } | null;
-  conceptCoverage: { conceptName: string; mentioned: boolean; correct: boolean | null }[];
-  misconceptions: { claim: string }[];
+  conceptCoverage: {
+    conceptName: string;
+    mentioned: boolean;
+    correct: boolean | null;
+    candidateStatement: string | null;
+    correction: string | null;
+  }[];
+  levelCalibration: {
+    expectedLevel: string | null;
+    actualDemonstratedLevel: string | null;
+    gap: string | null;
+  } | null;
+  misconceptions: { claim: string; correction: string | null }[];
+  feedback: {
+    strengths: string[];
+    improvements: string[];
+    keyPointsToStudy: string[];
+  } | null;
 };
 
 export type LiveCodingEvaluationDetail = {
   kind: 'LIVE_CODING';
   overallScore: number | null;
   completeness: string | null;
+  oneLineVerdict: string | null;
   scores: {
-    timeComplexity: number | null;
-    spaceComplexity: number | null;
-    codeQuality: number | null;
-    problemSolving: number | null;
+    timeComplexity: ScoreEntry | null;
+    spaceComplexity: ScoreEntry | null;
+    codeQuality: ScoreEntry | null;
+    problemSolving: ScoreEntry | null;
   } | null;
+  detectedComplexity: { time: string | null; space: string | null } | null;
+  optimalComplexity: { time: string | null; space: string | null } | null;
   isOptimal: boolean | null;
-  codeIssues: { type: string; detail: string }[];
+  codeIssues: { type: string; line: number | null; detail: string }[];
+  feedback: {
+    strengths: string[];
+    improvements: string[];
+    optimizationHint: string | null;
+    sampleOptimalSolution: string | null;
+  } | null;
 };
 
 export type AnswerView = {

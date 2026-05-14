@@ -6,9 +6,10 @@ import com.mockwise.interview.enums.Completeness;
 import java.util.List;
 
 /**
- * Lean projection of the LiveCodingOutput payload. The AI exposes far more
- * (complexity strings, optimization hints, sample solutions); the mapper
- * only needs isOptimal + the per-dimension scores + the issue list.
+ * Projection of the LiveCodingOutput payload. Carries the detected vs
+ * optimal complexity strings, code-issue line numbers, the optimization
+ * hint, and the optional sample optimal solution so the report can show
+ * the candidate exactly what to fix and how.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record LiveCodingEvalOutput(
@@ -16,6 +17,7 @@ public record LiveCodingEvalOutput(
         Completeness completeness,
         Scores scores,
         Analysis analysis,
+        Feedback feedback,
         Summary summary
 ) {
 
@@ -29,10 +31,23 @@ public record LiveCodingEvalOutput(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Analysis(
+            ComplexityInfo detectedComplexity,
+            ComplexityInfo optimalComplexity,
             boolean isOptimal,
             List<CodeIssue> codeIssues
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record CodeIssue(String type, String detail) {}
+    public record ComplexityInfo(String time, String space) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record CodeIssue(String type, Integer line, String detail) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Feedback(
+            List<String> strengths,
+            List<String> improvements,
+            String optimizationHint,
+            String sampleOptimalSolution
+    ) {}
 }
