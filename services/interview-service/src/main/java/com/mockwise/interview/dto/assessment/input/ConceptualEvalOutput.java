@@ -6,10 +6,13 @@ import com.mockwise.interview.enums.Completeness;
 import java.util.List;
 
 /**
- * Lean projection of the ConceptualOutput payload. conceptCoverage's
+ * Projection of the ConceptualOutput payload. {@code conceptCoverage}'s
  * {@code correct} is nullable in the AI schema (null = "not mentioned, so
- * correctness undecidable"), so we use {@link Boolean} instead of
- * {@code boolean} to preserve that.
+ * correctness undecidable"), so we use {@link Boolean}.
+ *
+ * <p>Carries everything the report UI shows: per-concept quotes &
+ * corrections, the level-calibration block, misconception explanations,
+ * and the feedback bundle with prioritized study points.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ConceptualEvalOutput(
@@ -17,7 +20,9 @@ public record ConceptualEvalOutput(
         Completeness completeness,
         Scores scores,
         List<ConceptItem> conceptCoverage,
+        LevelCalibration levelCalibration,
         List<Misconception> misconceptions,
+        Feedback feedback,
         Summary summary
 ) {
 
@@ -33,9 +38,25 @@ public record ConceptualEvalOutput(
     public record ConceptItem(
             String conceptName,
             boolean mentioned,
-            Boolean correct
+            Boolean correct,
+            String candidateStatement,
+            String correction
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Misconception(String claim) {}
+    public record LevelCalibration(
+            String expectedLevel,
+            String actualDemonstratedLevel,
+            String gap
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Misconception(String claim, String correction) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Feedback(
+            List<String> strengths,
+            List<String> improvements,
+            List<String> keyPointsToStudy
+    ) {}
 }
