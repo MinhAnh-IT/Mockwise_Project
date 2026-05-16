@@ -49,6 +49,15 @@
             <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
 
+        <!-- feign-okhttp — swaps the default HttpURLConnection (no real pool,
+             new TCP per call) for a pooled, keep-alive OkHttp client. ~7-10
+             internal REST calls per answer, so reusing connections shaves
+             5-20ms each. Version managed by the spring-cloud feign BOM. -->
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-okhttp</artifactId>
+        </dependency>
+
         <!-- MapStruct — DTO ↔ entity mapping (annotation processor wired in parent) -->
         <dependency>
             <groupId>org.mapstruct</groupId>

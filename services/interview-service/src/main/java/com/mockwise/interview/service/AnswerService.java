@@ -290,7 +290,8 @@ public class AnswerService {
      */
     @Transactional
     public void applyTranscriptReady(
-            UUID answerId, UUID transcriptId, String languageCode) {
+            UUID answerId, UUID transcriptId, String languageCode,
+            String transcriptText, Integer durationMs) {
 
         Answer answer = answerRepo.findById(answerId)
                 .orElseThrow(() -> new BusinessException(StatusCode.ANSWER_NOT_FOUND));
@@ -303,9 +304,20 @@ public class AnswerService {
         SessionQuestion sq = sessionQuestionRepo.findById(answer.getSessionQuestionId())
                 .orElseThrow(() -> new BusinessException(StatusCode.QUESTION_NOT_IN_SESSION));
 
-        // Step 1 — fetch the transcript text from tts-stt. Without it the
-        // AI service has nothing to score against.
-        var transcript = ttsSttAdapter.getTranscript(transcriptId.toString());
+        // Step 1 — resolve transcript text + duration. The event now
+        // carries the text inline, so the common path needs no REST hop.
+        // Only legacy events replayed from before that field existed fall
+        // back to GET /internal/transcripts/{id}.
+        String text;
+        Integer durMs;
+        if (transcriptText != null && !transcriptText.isBlank()) {
+            text = transcriptText;
+            durMs = durationMs;
+        } else {
+            var transcript = ttsSttAdapter.getTranscript(transcriptId.toString());
+            text = transcript.text();
+            durMs = transcript.durationMs();
+        }
 
         // Step 2 — answer rows transition: PROCESSING → READY → EVALUATING
         // in one Tx. We collapse READY into EVALUATING because the
@@ -334,7 +346,7 @@ public class AnswerService {
                 .orElseThrow(() -> new BusinessException(StatusCode.SESSION_NOT_FOUND));
         String preferred = null;
         try {
-            UserProfileResponse profile = userProfileAdapter.getProfile(session.getUserId());
+            UserProfileResponse profile = loadProfile(session);
             if (profile != null && profile.preferredLanguage() != null) {
                 preferred = profile.preferredLanguage().toLowerCase();
             }
@@ -368,9 +380,8 @@ public class AnswerService {
         }
 
         Map<String, Object> answerBlock = new HashMap<>();
-        answerBlock.put("transcript", transcript.text() != null ? transcript.text() : "");
-        answerBlock.put("durationSeconds",
-                transcript.durationMs() != null ? transcript.durationMs() / 1000 : 0);
+        answerBlock.put("transcript", text != null ? text : "");
+        answerBlock.put("durationSeconds", durMs != null ? durMs / 1000 : 0);
         answerBlock.put("language", responseLanguage);
 
         Map<String, Object> payload = new HashMap<>();
@@ -557,7 +568,7 @@ public class AnswerService {
         }
 
         // Tier 2: AI-generated. Need parent context — pull from snapshot.
-        UserProfileResponse profile = userProfileAdapter.getProfile(session.getUserId());
+        UserProfileResponse profile = loadProfile(session);
         String language = profile.preferredLanguage() != null
                 ? profile.preferredLanguage().toLowerCase()
                 : "vi";
@@ -581,7 +592,7 @@ public class AnswerService {
     }
 
     private void handleMoveNext(InterviewSession session, PlannerDecision.MoveToNextTopic m, int sequence) {
-        UserProfileResponse profile = userProfileAdapter.getProfile(session.getUserId());
+        UserProfileResponse profile = loadProfile(session);
         List<String> excludeIds = sessionQuestionRepo.findBySessionIdOrderBySequenceAsc(session.getId()).stream()
                 .map(SessionQuestion::getQuestionId)
                 .filter(java.util.Objects::nonNull)
@@ -613,6 +624,31 @@ public class AnswerService {
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * Returns the candidate's profile without a REST hop when possible:
+     * {@code SessionService.start} snapshots it into
+     * {@code session.metadata.profileSnapshot}, and the profile barely
+     * changes over a ~20-min session. Falls back to a live
+     * user-profile-service fetch for sessions created before the
+     * snapshot existed, or if the blob is malformed.
+     *
+     * <p>Stale risk is limited to {@code preferredLanguage} drifting if
+     * the user edits their profile mid-session — accepted: the AI still
+     * picks a sensible language from the STT-detected hint.
+     */
+    private UserProfileResponse loadProfile(InterviewSession session) {
+        Map<String, Object> meta = session.getMetadata();
+        if (meta != null && meta.get("profileSnapshot") instanceof Map<?, ?> snap) {
+            try {
+                return objectMapper.convertValue(snap, UserProfileResponse.class);
+            } catch (IllegalArgumentException ex) {
+                log.warn("Session {} has malformed profileSnapshot — refetching from user-profile",
+                        session.getId(), ex);
+            }
+        }
+        return userProfileAdapter.getProfile(session.getUserId());
+    }
 
     private AssessmentVerdict deriveVerdict(QuestionType type, Map<String, Object> raw) {
         return switch (type) {

@@ -111,6 +111,16 @@ public class SessionService {
                 ? input.timeBudgetMinutesOverride()
                 : blueprint.getTimeBudgetMinutes();
 
+        // Snapshot the profile onto the session so the answer pipeline
+        // (transcript-ready language hint, follow-up + next-topic picks)
+        // reads it from here instead of re-fetching user-profile-service
+        // ~3× per answer. Profile is effectively static over a session.
+        Map<String, Object> meta = new HashMap<>();
+        meta.put("profileSnapshot",
+                objectMapper.convertValue(profile,
+                        new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {}));
+        meta.put("profileSnapshotAt", OffsetDateTime.now().toString());
+
         InterviewSession session = sessionRepo.save(InterviewSession.builder()
                 .userId(userId)
                 .blueprintId(blueprint.getId())
@@ -125,6 +135,7 @@ public class SessionService {
                 .timeBudgetMinutes(timeBudget)
                 .globalDifficultyOffset(globalOffset)
                 .startedAt(OffsetDateTime.now())
+                .metadata(meta)
                 .build());
 
         blueprintLoader.seedTopicStates(session.getId(), blueprint);

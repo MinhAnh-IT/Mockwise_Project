@@ -41,6 +41,14 @@ spring:
       # Same group id across replicas — partitions get split, no double-handling.
       group-id: ${KAFKA_CONSUMER_GROUP_ID:interview-service}
 
+  # Route all Feign clients through OkHttp (pooled + keep-alive). The
+  # pool itself is tuned in OkHttpClientConfig; this just flips Feign
+  # off the default HttpURLConnection.
+  cloud:
+    openfeign:
+      okhttp:
+        enabled: true
+
 server:
   port: 8088
   servlet:
@@ -58,7 +66,11 @@ internal:
 # we expect from tts-stt-service and the AI service.
 interview:
   outbox:
-    poll-interval-ms: ${INTERVIEW_OUTBOX_POLL_INTERVAL_MS:1000}
+    # 100ms (was 1000). The flow has 3 outbox hops; at 1000ms each added
+    # up to ~3s p99 of pure waiting. The drain query is backed by the
+    # `WHERE published = false` partial index so 10 polls/s is cheap.
+    # Env-overridable so prod can retune without a rebuild.
+    poll-interval-ms: ${INTERVIEW_OUTBOX_POLL_INTERVAL_MS:100}
     batch-size: ${INTERVIEW_OUTBOX_BATCH_SIZE:50}
     send-timeout-ms: ${INTERVIEW_OUTBOX_SEND_TIMEOUT_MS:5000}
   kafka:

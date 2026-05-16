@@ -30,4 +30,9 @@ public class TranscriptReadyEvent {
     String languageCode;
     Integer durationMs;
     Integer wordCount;
+    // Full transcript text carried inline so the interview-service
+    // consumer doesn't have to round-trip back here via
+    // GET /internal/transcripts/{id}. Typical size 200-2000 chars
+    // (~1-4KB), well under Kafka's 1MB default max.message.bytes.
+    String transcriptText;
 }
