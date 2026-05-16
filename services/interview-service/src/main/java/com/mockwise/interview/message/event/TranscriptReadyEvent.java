@@ -27,5 +27,10 @@ public record TranscriptReadyEvent(
         String ownerUserId,
         String languageCode,
         Integer durationMs,
-        Integer wordCount
+        Integer wordCount,
+        // Inline transcript text (added on the producer side) so we can
+        // skip the GET /internal/transcripts/{id} round-trip. Nullable:
+        // events replayed from before this field existed won't carry it,
+        // in which case AnswerService falls back to the REST fetch.
+        String transcriptText
 ) {}

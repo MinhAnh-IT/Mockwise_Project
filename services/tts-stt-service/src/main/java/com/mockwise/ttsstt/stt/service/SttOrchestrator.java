@@ -181,6 +181,7 @@ public class SttOrchestrator {
                 .languageCode(transcript.getLanguageCode())
                 .durationMs(transcript.getDurationMs())
                 .wordCount(transcript.getWords() == null ? 0 : transcript.getWords().size())
+                .transcriptText(transcript.getText())
                 .build();
         eventProducer.publishReady(event);
         job.setPublishedEventAt(OffsetDateTime.now());

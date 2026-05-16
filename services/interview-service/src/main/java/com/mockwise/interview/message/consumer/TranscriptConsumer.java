@@ -70,7 +70,9 @@ public class TranscriptConsumer {
             answerService.applyTranscriptReady(
                     UUID.fromString(event.answerId()),
                     UUID.fromString(event.transcriptId()),
-                    event.languageCode());
+                    event.languageCode(),
+                    event.transcriptText(),
+                    event.durationMs());
             ack.acknowledge();
         } catch (Exception ex) {
             // Don't ack — let the next poll redeliver. processed_event
