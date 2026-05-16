@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Camera, Mic, MicOff, Pause, Square, VideoOff, Volume2 } from 'lucide-react';
 import type { PinnedQuestionView } from '@/types/interview';
+import { createStreamingVideoUpload, type StreamingVideoUpload } from '@/api/storage';
 
 type Phase =
   | 'requesting'
@@ -19,12 +20,24 @@ type Props = {
   /** Wall-clock cap in seconds. Hitting it auto-stops + auto-submits. */
   maxSeconds: number;
   /**
+   * Owning interview session id — used to open the streaming
+   * (upload-while-recording) upload so the clip transfers during the
+   * recording instead of after "Nộp".
+   */
+  sessionId: string;
+  /**
    * True while the parent is uploading + calling /answers. Disables UI and
    * suppresses any further state transitions until the parent moves on.
    */
   busy: boolean;
-  /** Fired exactly once per recording (manual stop or auto-stop). */
-  onSubmit: (blob: Blob, mimeType: string) => void;
+  /**
+   * Fired exactly once per recording (manual stop or auto-stop).
+   * {@code uploadedObjectId} is the storage object id when the parts
+   * streamed during recording composed successfully — the parent then
+   * skips the post-submit upload. {@code null} means streaming was
+   * unavailable/failed; the parent must upload {@code blob} itself.
+   */
+  onSubmit: (blob: Blob, mimeType: string, uploadedObjectId: string | null) => void;
 };
 
 /**
@@ -72,7 +85,7 @@ function pickMimeType(): RecorderMime {
   return { recorder: 'video/webm', base: 'video/webm' };
 }
 
-export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: Props) {
+export default function VideoRecorder({ question, maxSeconds, sessionId, busy, onSubmit }: Props) {
   const [phase, setPhase] = useState<Phase>('requesting');
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [audioBlocked, setAudioBlocked] = useState(false);
@@ -85,6 +98,9 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  // Streaming upload for the current recording (null when unavailable —
+  // finalise() then falls back to a single post-stop upload).
+  const uploaderRef = useRef<StreamingVideoUpload | null>(null);
   const mimeTypeRef = useRef<RecorderMime>({ recorder: 'video/webm', base: 'video/webm' });
   const timerRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -178,9 +194,22 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
   const finalise = useCallback(() => {
     if (finalisedRef.current) return;
     finalisedRef.current = true;
-    const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current.base });
+    const base = mimeTypeRef.current.base;
+    const blob = new Blob(chunksRef.current, { type: base });
     chunksRef.current = [];
-    onSubmit(blob, mimeTypeRef.current.base);
+    const uploader = uploaderRef.current;
+    uploaderRef.current = null;
+    if (!uploader) {
+      onSubmit(blob, base, null);
+      return;
+    }
+    // Parts were streamed during recording. If they compose OK, hand the
+    // parent the ready objectId so it skips the post-submit upload; any
+    // failure → null → parent falls back to uploadVideoPresigned(blob).
+    uploader
+      .finish()
+      .then((objectId) => onSubmit(blob, base, objectId))
+      .catch(() => onSubmit(blob, base, null));
   }, [onSubmit]);
 
   const stopRecording = useCallback(() => {
@@ -222,9 +251,22 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
     chunksRef.current = [];
     const mime = pickMimeType();
     mimeTypeRef.current = mime;
+    // Open a streaming upload so parts transfer while recording instead of
+    // after "Nộp". Purely additive — chunksRef still accumulates the full
+    // blob as a guaranteed fallback if any part fails (see finalise()).
+    try {
+      uploaderRef.current = sessionId
+        ? createStreamingVideoUpload(sessionId, mime.base)
+        : null;
+    } catch {
+      uploaderRef.current = null;
+    }
     const rec = new MediaRecorder(stream, { mimeType: mime.recorder });
     rec.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+      if (e.data && e.data.size > 0) {
+        chunksRef.current.push(e.data);
+        uploaderRef.current?.push(e.data);
+      }
     };
     rec.onstop = () => {
       finalise();
@@ -251,7 +293,7 @@ export default function VideoRecorder({ question, maxSeconds, busy, onSubmit }: 
         return next;
       });
     }, 1000);
-  }, [finalise, maxSeconds, stopRecording]);
+  }, [finalise, maxSeconds, stopRecording, sessionId]);
 
   // ── Bind stream to <video> once both are available ───────────────────────
   // The <video> tag is gated by `phase !== 'requesting'`, so it doesn't

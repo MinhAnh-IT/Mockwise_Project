@@ -74,6 +74,105 @@ export async function uploadVideoPresigned(
 }
 
 /**
+ * Streaming (upload-while-recording) video upload.
+ *
+ * <p>The legacy {@link uploadVideoPresigned} only starts after the user
+ * clicks "Nộp" — the whole clip transfers while they wait. This instead
+ * PUTs ~5MiB+ parts to MinIO *during* the recording (reusing the exact
+ * same presigned-PUT + nginx-/minio/-proxy path), then asks storage to
+ * compose them server-side at stop-time. The post-submit wait collapses
+ * from "transfer N MB" to "compose, bytes already in MinIO".
+ *
+ * <p>Best-effort contract: {@link StreamingVideoUpload.finish} rejects on
+ * any part/compose failure (or an empty recording) so the caller can
+ * transparently fall back to {@link uploadVideoPresigned} with the
+ * in-memory blob — never a correctness regression, only a slower path.
+ *
+ * <p>S3/MinIO compose requires every source part except the last to be
+ * ≥ 5MiB — enforced here by buffering chunks before flushing a part.
+ */
+export type StreamingVideoUpload = {
+  /** Feed one recorder chunk. Buffered; flushes a part once ≥5MiB. Never throws. */
+  push: (chunk: Blob) => void;
+  /** Flush the tail, compose server-side, resolve the final objectId (rejects → caller falls back). */
+  finish: () => Promise<string>;
+};
+
+const STREAM_PART_MIN_BYTES = 5 * 1024 * 1024;
+
+export function createStreamingVideoUpload(
+  sessionId: string,
+  contentType: string,
+): StreamingVideoUpload {
+  const initP = unwrap<{ objectId: string }>(
+    `${PREFIX}/uploads/videos/stream/init`,
+    { method: 'POST', body: { sessionId, contentType } },
+  );
+
+  let buffer: Blob[] = [];
+  let bufferedBytes = 0;
+  let nextPart = 1;
+  let failed = false;
+  // Serialises part PUTs so they land in order (1, 2, 3 …).
+  let chain: Promise<void> = initP.then(() => undefined);
+
+  async function putPart(objectId: string, partNumber: number, body: Blob) {
+    const presigned = await unwrap<{ url: string }>(
+      `${PREFIX}/uploads/videos/stream/${objectId}/part-url`,
+      { method: 'GET', query: { partNumber } },
+    );
+    // Bare fetch — the presigned signature covers method/path/host; our
+    // auth headers must NOT be attached (same rule as uploadVideoPresigned).
+    const resp = await fetch(presigned.url, { method: 'PUT', body });
+    if (!resp.ok) {
+      throw new Error(`part ${partNumber} PUT failed (HTTP ${resp.status})`);
+    }
+  }
+
+  function enqueueFlush(final: boolean) {
+    if (!final && bufferedBytes < STREAM_PART_MIN_BYTES) return;
+    if (buffer.length === 0) return;
+    const parts = buffer;
+    const partNumber = nextPart;
+    buffer = [];
+    bufferedBytes = 0;
+    nextPart += 1;
+    chain = chain
+      .then(async () => {
+        if (failed) return;
+        const { objectId } = await initP;
+        await putPart(objectId, partNumber, new Blob(parts, { type: contentType }));
+      })
+      .catch((e) => {
+        failed = true;
+        console.warn('[streaming-upload] part failed — will fall back:', e);
+      });
+  }
+
+  return {
+    push(chunk: Blob) {
+      if (failed || !chunk || chunk.size === 0) return;
+      buffer.push(chunk);
+      bufferedBytes += chunk.size;
+      if (bufferedBytes >= STREAM_PART_MIN_BYTES) enqueueFlush(false);
+    },
+    async finish(): Promise<string> {
+      enqueueFlush(true); // tail part — any size, it's the last source
+      await chain;
+      if (failed) throw new Error('streaming upload failed');
+      const partCount = nextPart - 1;
+      if (partCount < 1) throw new Error('streaming upload produced no parts');
+      const { objectId } = await initP;
+      await unwrap(`${PREFIX}/uploads/videos/stream/${objectId}/complete`, {
+        method: 'POST',
+        body: { partCount },
+      });
+      return objectId;
+    },
+  };
+}
+
+/**
  * Multipart avatar upload — file is streamed through storage-service to MinIO.
  * Going through the server (rather than browser → presigned PUT to MinIO
  * directly) avoids two cross-origin problems:
