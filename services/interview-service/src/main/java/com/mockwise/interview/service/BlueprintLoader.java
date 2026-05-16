@@ -4,6 +4,7 @@ import com.mockwise.interview.entity.BlueprintTopic;
 import com.mockwise.interview.entity.InterviewBlueprint;
 import com.mockwise.interview.entity.SessionTopicState;
 import com.mockwise.interview.entity.SessionTopicStateId;
+import com.mockwise.interview.enums.Difficulty;
 import com.mockwise.interview.enums.InterviewType;
 import com.mockwise.interview.enums.TopicStatus;
 import com.mockwise.interview.repository.InterviewBlueprintRepository;
@@ -73,7 +74,7 @@ public class BlueprintLoader {
      * is responsible for putting a low-stakes opener (e.g. self-intro)
      * at order_hint=1 — the loader does not second-guess that.
      *
-     * <p>For MIXED / BEHAVIORAL types we additionally prefer COMPETENCY
+     * <p>For BEHAVIORAL blueprints we additionally prefer COMPETENCY
      * topics so the very first question is open-ended; pure CORE
      * blueprints fall through to whatever topic the order_hint elects.
      */
@@ -91,5 +92,23 @@ public class BlueprintLoader {
         }
         return blueprint.getTopics().stream().min(base)
                 .orElseThrow(); // unreachable after the empty check
+    }
+
+    /**
+     * Ordered difficulty plan for a CODING blueprint — one entry per
+     * problem to pin, sorted by {@code orderHint}. CODING blueprints reuse
+     * the {@code topics} array purely as a difficulty schedule (no
+     * kind/topicValue/planner); the list length is the question count.
+     * A slot missing {@code targetDifficulty} defaults to MEDIUM.
+     */
+    public List<Difficulty> codingDifficultyPlan(InterviewBlueprint blueprint) {
+        if (blueprint.getTopics() == null || blueprint.getTopics().isEmpty()) {
+            throw new IllegalStateException(
+                    "CODING blueprint " + blueprint.getId() + " has no difficulty slots");
+        }
+        return blueprint.getTopics().stream()
+                .sorted(Comparator.comparingInt(BlueprintTopic::getOrderHint))
+                .map(t -> t.getTargetDifficulty() != null ? t.getTargetDifficulty() : Difficulty.MEDIUM)
+                .toList();
     }
 }

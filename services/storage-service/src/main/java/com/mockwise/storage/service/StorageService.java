@@ -3,7 +3,9 @@ package com.mockwise.storage.service;
 import com.mockwise.storage.common.config.MinioProperties;
 import com.mockwise.storage.common.exception.BusinessException;
 import com.mockwise.storage.common.exception.StatusCode;
+import com.mockwise.storage.dto.request.CompleteStreamingUploadRequest;
 import com.mockwise.storage.dto.request.CreateVideoUploadRequest;
+import com.mockwise.storage.dto.request.InitStreamingUploadRequest;
 import com.mockwise.storage.dto.request.InternalDownloadUrlRequest;
 import com.mockwise.storage.dto.request.InternalVideoDownloadUrlRequest;
 import com.mockwise.storage.dto.response.AvatarStream;
@@ -28,9 +30,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 @Slf4j
 @Service
@@ -184,6 +188,137 @@ public class StorageService {
         log.info("Uploaded video id={} session={} owner={} size={}",
                 saved.getId(), sessionId, ownerUserId, file.getSize());
         return StorageObjectResponse.from(saved);
+    }
+
+    // ── Streaming video upload (upload-while-recording) ──────────────────────
+
+    /**
+     * Opens a streaming video upload. The browser will PUT ordered ~5MiB+
+     * parts straight to MinIO (presigned, via {@link #presignStreamingPart})
+     * <em>while the candidate is still recording</em>, then call
+     * {@link #completeStreamingVideoUpload} which stitches them server-side.
+     *
+     * <p>Net effect: the big browser→MinIO transfer overlaps the recording
+     * instead of blocking after "Nộp", so the post-submit wait drops to a
+     * cheap server-side compose. The final object lands at the same key the
+     * presigned-PUT path would have used — {@code objectId} is forwarded to
+     * interview-service exactly as before.
+     *
+     * <p>Stateless: progress is the set of {@code objectKey.part.N} objects
+     * in the bucket plus this PENDING_UPLOAD row, so part PUTs and complete
+     * can hit any storage-service instance. Abandoned parts (recording
+     * cancelled, tab closed) are orphaned like a never-completed presigned
+     * upload — a future bucket-lifecycle / sweep job reclaims them.
+     */
+    @Transactional
+    public VideoUploadResponse initStreamingVideoUpload(
+            InitStreamingUploadRequest req, String ownerUserId) {
+        if (!ALLOWED_VIDEO_TYPES.contains(req.getContentType())) {
+            throw new BusinessException(StatusCode.INVALID_CONTENT_TYPE,
+                    req.getContentType(), StorageKind.INTERVIEW_VIDEO);
+        }
+
+        String bucket = properties.buckets().interviewVideo();
+        String objectKey = "%s/%s/%s".formatted(ownerUserId, req.getSessionId(), UUID.randomUUID());
+
+        StorageObject saved = storageObjectRepository.save(StorageObject.builder()
+                .kind(StorageKind.INTERVIEW_VIDEO)
+                .bucket(bucket)
+                .objectKey(objectKey)
+                .contentType(req.getContentType())
+                .status(StorageStatus.PENDING_UPLOAD)
+                .ownerUserId(ownerUserId)
+                .sessionId(req.getSessionId())
+                .build());
+
+        log.info("Init streaming video upload id={} session={} owner={}",
+                saved.getId(), req.getSessionId(), ownerUserId);
+
+        return VideoUploadResponse.builder()
+                .objectId(saved.getId())
+                .bucket(bucket)
+                .objectKey(objectKey)
+                .build();
+    }
+
+    /**
+     * Presigns a PUT URL for one part (1-based) of an in-progress streaming
+     * upload. Reuses the same presigned-PUT + nginx-proxy mechanism the
+     * single-shot path uses, so no new browser→MinIO transport is introduced.
+     */
+    @Transactional(readOnly = true)
+    public PresignedUrlResponse presignStreamingPart(
+            String objectId, int partNumber, String ownerUserId) {
+        if (partNumber < 1) {
+            throw new BusinessException(StatusCode.STORAGE_UPLOAD_NOT_FOUND_IN_BUCKET);
+        }
+        StorageObject obj = requireOwnedPendingVideo(objectId, ownerUserId);
+        int ttl = properties.presign().uploadTtlSeconds();
+        String url = minioGateway.presignPutUrl(
+                obj.getBucket(), partKey(obj.getObjectKey(), partNumber), ttl);
+        return PresignedUrlResponse.builder()
+                .url(url)
+                .expiresAt(OffsetDateTime.now().plusSeconds(ttl))
+                .build();
+    }
+
+    /**
+     * Stitches the {@code partCount} uploaded parts into the final video,
+     * flips the row to READY, and best-effort deletes the now-redundant
+     * part objects. Idempotency guard: an already-READY object is rejected
+     * the same way {@link #completeVideoUpload} rejects a double-complete.
+     */
+    @Transactional
+    public StorageObjectResponse completeStreamingVideoUpload(
+            String objectId, int partCount, String ownerUserId) {
+        if (partCount < 1) {
+            throw new BusinessException(StatusCode.STORAGE_UPLOAD_NOT_FOUND_IN_BUCKET);
+        }
+        StorageObject obj = requireOwnedPendingVideo(objectId, ownerUserId);
+
+        List<String> partKeys = IntStream.rangeClosed(1, partCount)
+                .mapToObj(n -> partKey(obj.getObjectKey(), n))
+                .toList();
+
+        minioGateway.composeObject(obj.getBucket(), obj.getObjectKey(), partKeys);
+
+        StatObjectResponse stat = minioGateway.stat(obj.getBucket(), obj.getObjectKey())
+                .orElseThrow(() -> new BusinessException(StatusCode.STORAGE_UPLOAD_NOT_FOUND_IN_BUCKET));
+
+        obj.setSizeBytes(stat.size());
+        obj.setStatus(StorageStatus.READY);
+        obj.setCompletedAt(OffsetDateTime.now());
+        storageObjectRepository.save(obj);
+
+        // The composed object is independent of its sources — drop the parts
+        // so the bucket doesn't carry ~2× the bytes. Best-effort: a failed
+        // delete just leaves a reclaimable orphan, never breaks the answer.
+        for (String k : partKeys) {
+            minioGateway.removeObject(obj.getBucket(), k);
+        }
+
+        log.info("Completed streaming video upload id={} parts={} size={}",
+                objectId, partCount, stat.size());
+        return StorageObjectResponse.from(obj);
+    }
+
+    private StorageObject requireOwnedPendingVideo(String objectId, String ownerUserId) {
+        StorageObject obj = storageObjectRepository.findById(objectId)
+                .orElseThrow(() -> new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND));
+        if (obj.getKind() != StorageKind.INTERVIEW_VIDEO) {
+            throw new BusinessException(StatusCode.STORAGE_OBJECT_NOT_FOUND);
+        }
+        if (!Objects.equals(obj.getOwnerUserId(), ownerUserId)) {
+            throw new BusinessException(StatusCode.OWNERSHIP_VIOLATION);
+        }
+        if (obj.getStatus() == StorageStatus.READY) {
+            throw new BusinessException(StatusCode.STORAGE_OBJECT_ALREADY_COMPLETED);
+        }
+        return obj;
+    }
+
+    private static String partKey(String objectKey, int partNumber) {
+        return objectKey + ".part." + partNumber;
     }
 
     /**

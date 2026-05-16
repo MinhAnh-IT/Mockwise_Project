@@ -9,6 +9,7 @@ import RegisterPage from '@/pages/auth/RegisterPage';
 import VerifyAccountPage from '@/pages/auth/VerifyAccountPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
+import PracticeCodingPreviewPage from '@/pages/practice/PracticeCodingPreviewPage';
 import PracticeIntroPage from '@/pages/practice/PracticeIntroPage';
 import PracticePage from '@/pages/practice/PracticePage';
 import PracticeQuestionsPage from '@/pages/practice/PracticeQuestionsPage';
@@ -54,6 +55,11 @@ export default function App() {
                 <PracticePage />
               </ProtectedRoute>
             }
+          />
+          {/* Public design-review route — pure mock, no backend/auth. */}
+          <Route
+            path="/practice/coding/preview"
+            element={<PracticeCodingPreviewPage />}
           />
           <Route
             path="/practice/:type"

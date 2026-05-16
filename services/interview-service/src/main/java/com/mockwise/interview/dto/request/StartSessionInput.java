@@ -11,7 +11,7 @@ import jakarta.validation.constraints.Size;
  * are optional ways for the user to deviate from the profile defaults
  * for this one session (per question-selection-design.md §2 mục 3).
  *
- * @param interviewType   BEHAVIORAL / CORE / MIXED — required
+ * @param interviewType   BEHAVIORAL / CORE / CODING — required
  //* @param topicFocus      optional bumped-importance topic (e.g. "DATABASE")
  * @param timeBudgetMinutesOverride  optional shortcut session
  */

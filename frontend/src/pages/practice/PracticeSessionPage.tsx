@@ -12,7 +12,9 @@ import QuestionCard from '@/components/practice/QuestionCard';
 import SessionHeader from '@/components/practice/SessionHeader';
 import VideoRecorder from '@/components/practice/VideoRecorder';
 import WaitingNext from '@/components/practice/WaitingNext';
+import CodingWorkspace from '@/components/practice/coding/CodingWorkspace';
 import { findPracticeOption } from '@/data/practice';
+import type { CodingLanguage } from '@/types/coding';
 import type { PinnedQuestionView, StartSessionOutput } from '@/types/interview';
 
 type Phase = 'recording' | 'submitting' | 'waiting' | 'finishing' | 'finished';
@@ -140,19 +142,23 @@ export default function PracticeSessionPage() {
   }, [phase, sid, navigate, type]);
 
   const handleSubmit = useCallback(
-    async (blob: Blob, mimeType: string) => {
+    async (blob: Blob, mimeType: string, uploadedObjectId: string | null) => {
       if (!sid || !current) return;
       setPhase('submitting');
       setError(null);
       try {
-        // 3-step presigned-PUT: ask storage-service for an upload ticket,
-        // stream the bytes browser→MinIO directly through the nginx /minio/
-        // proxy, then mark the row READY. Avoids the per-byte hop through
-        // storage-service the legacy multipart endpoint cost.
-        const stored = await uploadVideoPresigned(blob, sid, mimeType || undefined);
+        // Fast path: the recorder streamed the clip to MinIO *during*
+        // recording and storage already composed it — just submit the id,
+        // no post-"Nộp" transfer. Fallback path (streaming unavailable or
+        // failed): the legacy presigned-PUT of the in-memory blob.
+        let storageObjectId = uploadedObjectId;
+        if (!storageObjectId) {
+          const stored = await uploadVideoPresigned(blob, sid, mimeType || undefined);
+          storageObjectId = stored.objectId;
+        }
         await submitAnswer(sid, current.sessionQuestionId, {
           type: 'VIDEO',
-          storageObjectId: stored.objectId,
+          storageObjectId,
         });
         setPhase('waiting');
       } catch (err) {
@@ -166,6 +172,32 @@ export default function PracticeSessionPage() {
         // Roll back to recording so user can try again. The recorder mounts
         // fresh which re-requests the camera; that's acceptable for a rare
         // failure path.
+        setPhase('recording');
+      }
+    },
+    [sid, current],
+  );
+
+  const handleSubmitCode = useCallback(
+    async (code: string, language: CodingLanguage) => {
+      if (!sid || !current) return;
+      setPhase('submitting');
+      setError(null);
+      try {
+        await submitAnswer(sid, current.sessionQuestionId, {
+          type: 'CODE',
+          code,
+          language,
+        });
+        setPhase('waiting');
+      } catch (err) {
+        const msg =
+          err instanceof ApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : 'Không nộp được bài code.';
+        setError(msg);
         setPhase('recording');
       }
     },
@@ -211,6 +243,32 @@ export default function PracticeSessionPage() {
     );
   }
 
+  // LIVE_CODING gets the full-screen LeetCode-style workspace instead of
+  // the SessionHeader + QuestionCard + VideoRecorder stack.
+  if (current.questionType === 'LIVE_CODING') {
+    if (phase === 'waiting' || phase === 'finishing') {
+      return (
+        <div className="grid h-screen place-items-center bg-zinc-950 px-6 text-center">
+          <p className="text-sm text-zinc-400">
+            {phase === 'finishing'
+              ? 'Đang kết thúc phiên và tổng hợp báo cáo…'
+              : `Đã nộp câu ${current.sequence}. Đang chờ câu tiếp theo…`}
+          </p>
+        </div>
+      );
+    }
+    return (
+      <CodingWorkspace
+        sessionId={sid}
+        question={current}
+        budget={questionBudget}
+        busy={phase === 'submitting'}
+        onSubmit={handleSubmitCode}
+        onExit={handleExit}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       <SessionHeader
@@ -251,6 +309,7 @@ export default function PracticeSessionPage() {
             <VideoRecorder
               question={current}
               maxSeconds={option.recordingMaxSeconds}
+              sessionId={sid ?? ''}
               busy={phase === 'submitting'}
               onSubmit={handleSubmit}
             />

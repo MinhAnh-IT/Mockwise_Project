@@ -21,24 +21,23 @@ const PAGE_SIZE = 10;
 
 // BE InterviewType → FE practice URL slug. The report route lives at
 // /practice/:type/session/:sid/report and the type slug must match what
-// findPracticeOption knows about; MIXED isn't a separate practice option
-// yet so we route it to behavioral as the closest fallback.
+// findPracticeOption knows about.
 const TYPE_SLUG: Record<InterviewType, string> = {
   BEHAVIORAL: 'behavioral',
   CORE: 'core',
-  MIXED: 'behavioral',
+  CODING: 'coding',
 };
 
 const TYPE_LABEL: Record<InterviewType, string> = {
   BEHAVIORAL: 'Hành vi',
   CORE: 'Chuyên môn',
-  MIXED: 'Tổng hợp',
+  CODING: 'Lập trình',
 };
 
 const TYPE_TONE: Record<InterviewType, string> = {
   BEHAVIORAL: 'bg-secondary-fixed text-on-secondary-fixed',
   CORE: 'bg-secondary/10 text-secondary',
-  MIXED: 'bg-emerald-100 text-emerald-700',
+  CODING: 'bg-emerald-100 text-emerald-700',
 };
 
 const STATUS_LABEL: Record<SessionStatus, string> = {
@@ -71,7 +70,7 @@ const TYPE_FILTER_OPTIONS: { value: TypeFilter; label: string }[] = [
   { value: 'ALL', label: 'Tất cả' },
   { value: 'BEHAVIORAL', label: 'Hành vi' },
   { value: 'CORE', label: 'Chuyên môn' },
-  { value: 'MIXED', label: 'Tổng hợp' },
+  { value: 'CODING', label: 'Lập trình' },
 ];
 
 export default function HistoryPage() {

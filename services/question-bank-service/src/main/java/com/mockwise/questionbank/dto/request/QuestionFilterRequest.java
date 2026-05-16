@@ -13,8 +13,9 @@ import java.util.List;
  * pool for the next question. Matches the contract documented in
  * services/interview-service/docs/question-selection-design.md §10.
  *
- * <p>Only BEHAVIORAL and CORE_CONCEPTUAL types are supported here —
- * coding questions follow a separate flow via the existing endpoints.
+ * <p>BEHAVIORAL / CORE_CONCEPTUAL select by competency / domain;
+ * LIVE_CODING selects by difficulty + tags only (no competency/domain/
+ * opener) so interview-service can pull a coding problem pool at /start.
  */
 public record QuestionFilterRequest(
 

@@ -6,6 +6,7 @@ import com.mockwise.interview.client.storage.StorageAdapter;
 import com.mockwise.interview.common.security.CustomUserDetails;
 import com.mockwise.interview.dto.request.SubmitAnswerInput;
 import com.mockwise.interview.dto.response.AnswerView;
+import com.mockwise.interview.dto.response.CodingProblemView;
 import com.mockwise.interview.dto.response.SubmitAnswerOutput;
 import com.mockwise.interview.enums.SessionStatus;
 import com.mockwise.interview.service.AnswerService;
@@ -53,6 +54,15 @@ public class AnswerController {
             @Valid @RequestBody SubmitAnswerInput input) {
         SubmitAnswerOutput output = answerService.submit(sid, sqid, input, user.getUserId());
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.success(output));
+    }
+
+    @GetMapping("/{sid}/questions/{sqid}/coding")
+    public ResponseEntity<ApiResponse<CodingProblemView>> coding(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @PathVariable UUID sid,
+            @PathVariable UUID sqid) {
+        return ResponseEntity.ok(ApiResponse.success(
+                answerService.getCodingProblem(sid, sqid, user.getUserId())));
     }
 
     @GetMapping("/{sid}/answers/{aid}")

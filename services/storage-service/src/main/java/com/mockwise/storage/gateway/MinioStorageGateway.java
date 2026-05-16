@@ -177,6 +177,47 @@ public class MinioStorageGateway {
         }
     }
 
+    /**
+     * Server-side concatenation of previously-uploaded part objects into a
+     * single target object. Backs the streaming (upload-while-recording)
+     * video flow: the browser PUTs ~5MiB+ parts during the recording, then
+     * this stitches them into the final video at complete-time so the user
+     * never waits for a post-submit upload.
+     *
+     * <p>S3/MinIO compose constraint: every source part except the last
+     * must be ≥ 5MiB. The browser-side buffer is responsible for honouring
+     * that — a short answer that fits in one part is fine (single source,
+     * no minimum).
+     *
+     * <p>The composed object's MinIO Content-Type metadata is left at the
+     * default — every read path here (interview-video streaming, tts-stt
+     * download → ffmpeg) uses the {@code storage_object.content_type}
+     * column, never the object's stored header, so it's a non-issue.
+     */
+    public void composeObject(String bucket, String targetKey,
+                              java.util.List<String> partKeys) {
+        try {
+            java.util.List<io.minio.ComposeSource> sources = partKeys.stream()
+                    .map(k -> io.minio.ComposeSource.builder()
+                            .bucket(bucket)
+                            .object(k)
+                            .build())
+                    .toList();
+            minioClient.composeObject(
+                    io.minio.ComposeObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(targetKey)
+                            .sources(sources)
+                            .build());
+        } catch (MinioException | java.io.IOException
+                 | java.security.NoSuchAlgorithmException
+                 | java.security.InvalidKeyException e) {
+            log.error("Compose failed for {}/{} ({} parts): {}",
+                    bucket, targetKey, partKeys.size(), e.getMessage());
+            throw new BusinessException(StatusCode.STORAGE_BACKEND_ERROR);
+        }
+    }
+
     /** Best-effort delete; logs but does not throw if the object is already gone. */
     public void removeObject(String bucket, String objectKey) {
         try {

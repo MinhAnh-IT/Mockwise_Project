@@ -7,11 +7,13 @@ package com.mockwise.interview.enums;
  * <ul>
  *   <li>{@link #BEHAVIORAL} — competency-only.</li>
  *   <li>{@link #CORE} — domain-only (technical conceptual).</li>
- *   <li>{@link #MIXED} — both, interleaved per blueprint.</li>
+ *   <li>{@link #CODING} — LeetCode-style live coding. Non-adaptive: a
+ *       fixed list of LIVE_CODING questions is pinned from the blueprint
+ *       at /start (no topic matrix, no planner, no follow-ups).</li>
  * </ul>
  */
 public enum InterviewType {
     BEHAVIORAL,
     CORE,
-    MIXED
+    CODING
 }

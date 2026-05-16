@@ -1,4 +1,7 @@
-export type InterviewType = 'BEHAVIORAL' | 'CORE' | 'MIXED';
+// 'CODING' is FE-only until the backend adds InterviewType.CODING + a
+// picker path that pins LIVE_CODING questions. See
+// frontend/docs/coding-interview-contract.md.
+export type InterviewType = 'BEHAVIORAL' | 'CORE' | 'CODING';
 
 export type SessionStatus =
   | 'CREATED'

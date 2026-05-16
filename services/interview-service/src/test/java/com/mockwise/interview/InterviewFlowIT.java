@@ -98,7 +98,7 @@ class InterviewFlowIT {
 
     @Test
     void start_pullsProfile_loadsBlueprint_pinsFirstQuestion() {
-        // Profile points at the BACKEND-mid-MIXED blueprint seeded in V2.
+        // Profile points at the BACKEND-mid-BEHAVIORAL blueprint seeded in V3.
         when(userProfileAdapter.getProfile(USER_ID)).thenReturn(profile("Backend", "Mid", 3));
 
         // Question-bank returns one BEHAVIORAL candidate matching the first
@@ -112,14 +112,14 @@ class InterviewFlowIT {
                 .thenReturn(Optional.of(new MarkAskedResponse("q-bank-001", 1L, OffsetDateTime.now())));
 
         StartSessionOutput out = sessionService.start(USER_ID,
-                new StartSessionInput(InterviewType.MIXED, null));
+                new StartSessionInput(InterviewType.BEHAVIORAL, null));
 
         // Session metadata
         assertThat(out.sessionId()).isNotNull();
         assertThat(out.targetRole()).isEqualTo("BACKEND");
         assertThat(out.level()).isEqualTo("mid");
-        assertThat(out.questionBudget()).isEqualTo(8);
-        assertThat(out.timeBudgetMinutes()).isEqualTo(45);
+        assertThat(out.questionBudget()).isEqualTo(6);
+        assertThat(out.timeBudgetMinutes()).isEqualTo(30);
 
         // First question pinned
         assertThat(out.firstQuestion().questionId()).isEqualTo("q-bank-001");
@@ -132,19 +132,19 @@ class InterviewFlowIT {
         // Session row persisted
         var session = sessionRepo.findById(out.sessionId()).orElseThrow();
         assertThat(session.getUserId()).isEqualTo(USER_ID);
-        assertThat(session.getInterviewType()).isEqualTo(InterviewType.MIXED);
+        assertThat(session.getInterviewType()).isEqualTo(InterviewType.BEHAVIORAL);
 
-        // Topic-state matrix seeded — all 6 topics from BACKEND-mid-MIXED.
+        // Topic-state matrix seeded — all 5 topics from BACKEND-mid-BEHAVIORAL.
         // The first topic (OWNERSHIP) is now PROBING, the rest NOT_TESTED.
         List<SessionTopicState> states = topicStateRepo.findByIdSessionId(out.sessionId());
-        assertThat(states).hasSize(6);
+        assertThat(states).hasSize(5);
         var ownershipState = states.stream()
                 .filter(s -> "OWNERSHIP".equals(s.getId().getTopicValue()))
                 .findFirst().orElseThrow();
         assertThat(ownershipState.getStatus()).isEqualTo(TopicStatus.PROBING);
         assertThat(ownershipState.getQuestionsAsked()).isEqualTo(1);
         long stillFresh = states.stream().filter(s -> s.getStatus() == TopicStatus.NOT_TESTED).count();
-        assertThat(stillFresh).isEqualTo(5);
+        assertThat(stillFresh).isEqualTo(4);
 
         // session_question row written for sequence=1
         List<SessionQuestion> qs = sessionQuestionRepo.findBySessionIdOrderBySequenceAsc(out.sessionId());
@@ -169,7 +169,7 @@ class InterviewFlowIT {
                 .thenReturn(Optional.of(new MarkAskedResponse("q-bank-001", 1L, OffsetDateTime.now())));
 
         StartSessionOutput started = sessionService.start(USER_ID,
-                new StartSessionInput(InterviewType.MIXED, null));
+                new StartSessionInput(InterviewType.BEHAVIORAL, null));
         UUID sessionId = started.sessionId();
         UUID firstSqId = started.firstQuestion().sessionQuestionId();
 

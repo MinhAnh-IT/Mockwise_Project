@@ -2,7 +2,10 @@ package com.mockwise.storage.controller;
 
 import com.core.apiresponse.response.ApiResponse;
 import com.mockwise.storage.common.security.CustomUserDetails;
+import com.mockwise.storage.dto.request.CompleteStreamingUploadRequest;
 import com.mockwise.storage.dto.request.CreateVideoUploadRequest;
+import com.mockwise.storage.dto.request.InitStreamingUploadRequest;
+import com.mockwise.storage.dto.response.PresignedUrlResponse;
 import com.mockwise.storage.dto.response.StorageObjectResponse;
 import com.mockwise.storage.dto.response.VideoUploadResponse;
 import com.mockwise.storage.service.StorageService;
@@ -42,6 +45,38 @@ public class UploadController {
             @AuthenticationPrincipal CustomUserDetails user) {
         return ResponseEntity.ok(ApiResponse.success(
                 storageService.completeVideoUpload(objectId, user.getUserId())));
+    }
+
+    // ── Streaming video upload (upload-while-recording) ──────────────────────
+
+    /** Step 1: open a streaming upload before recording begins. */
+    @PostMapping("/videos/stream/init")
+    public ResponseEntity<ApiResponse<VideoUploadResponse>> initStreamingUpload(
+            @Valid @RequestBody InitStreamingUploadRequest req,
+            @AuthenticationPrincipal CustomUserDetails user) {
+        return ResponseEntity.ok(ApiResponse.success(
+                storageService.initStreamingVideoUpload(req, user.getUserId())));
+    }
+
+    /** Step 2 (repeated during recording): presign a PUT URL for part N (1-based). */
+    @GetMapping("/videos/stream/{objectId}/part-url")
+    public ResponseEntity<ApiResponse<PresignedUrlResponse>> streamingPartUrl(
+            @PathVariable String objectId,
+            @RequestParam int partNumber,
+            @AuthenticationPrincipal CustomUserDetails user) {
+        return ResponseEntity.ok(ApiResponse.success(
+                storageService.presignStreamingPart(objectId, partNumber, user.getUserId())));
+    }
+
+    /** Step 3: recording stopped — compose the parts into the final video. */
+    @PostMapping("/videos/stream/{objectId}/complete")
+    public ResponseEntity<ApiResponse<StorageObjectResponse>> completeStreamingUpload(
+            @PathVariable String objectId,
+            @Valid @RequestBody CompleteStreamingUploadRequest req,
+            @AuthenticationPrincipal CustomUserDetails user) {
+        return ResponseEntity.ok(ApiResponse.success(
+                storageService.completeStreamingVideoUpload(
+                        objectId, req.getPartCount(), user.getUserId())));
     }
 
     /**
