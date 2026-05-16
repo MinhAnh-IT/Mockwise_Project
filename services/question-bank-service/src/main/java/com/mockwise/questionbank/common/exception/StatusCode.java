@@ -24,7 +24,15 @@ public enum StatusCode {
     FILTER_MISSING_DOMAIN(4008, "domain is required when type=CORE_CONCEPTUAL", 400),
 
     // --- Follow-up ---
-    FOLLOW_UP_PARENT_NOT_FOUND(4042, "Parent question not found for follow-up lookup", 404);
+    FOLLOW_UP_PARENT_NOT_FOUND(4042, "Parent question not found for follow-up lookup", 404),
+
+    // --- AI coding-question generation (server-side proxy) ---
+    AI_LEETCODE_PREMIUM(4031, "LeetCode problem is premium and cannot be fetched", 403),
+    AI_LEETCODE_NOT_FOUND(4044, "LeetCode problem not found for the given URL or slug", 404),
+    AI_INVALID_INPUT(4009, "AI generation request is invalid: %s", 400),
+    AI_GENERATION_FAILED(5021, "AI generation failed: %s", 502),
+    AI_SERVICE_UNAVAILABLE(5022, "AI service is unavailable", 503),
+    AI_KEY_MISCONFIGURED(5023, "AI service API key is missing or invalid", 502);
 
     int code;
     String message;

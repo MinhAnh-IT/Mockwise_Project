@@ -1,6 +1,8 @@
 export type NavItem = {
   label: string;
   href: string;
+  /** Only render for ADMIN accounts (the dropdown filters on this). */
+  adminOnly?: boolean;
 };
 
 export type NavGroup = {
@@ -28,6 +30,7 @@ export const USER_MENU_ITEMS: NavItem[] = [
   { label: 'Hồ sơ cá nhân', href: '/profile' },
   { label: 'Lịch sử phỏng vấn', href: '/history' },
   { label: 'Thanh toán', href: '/payment' },
+  { label: 'Trang quản trị', href: '/admin', adminOnly: true },
 ];
 
 export const FOOTER_GROUPS: NavGroup[] = [

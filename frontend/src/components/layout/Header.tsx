@@ -4,10 +4,12 @@ import {
   ChevronDown,
   ClipboardList,
   CreditCard,
+  Library,
   LogOut,
   UserCircle,
 } from 'lucide-react';
 import { useAuth } from '@/auth/useAuth';
+import type { UserRole } from '@/types/auth';
 import Avatar from '@/components/ui/Avatar';
 import Logo from '@/components/ui/Logo';
 import {
@@ -21,12 +23,25 @@ const USER_MENU_ICONS: Record<string, ReactNode> = {
   '/profile': <UserCircle className="w-4 h-4" />,
   '/history': <ClipboardList className="w-4 h-4" />,
   '/payment': <CreditCard className="w-4 h-4" />,
+  '/admin': <Library className="w-4 h-4" />,
 };
 
+// Authenticated admins are fully separated from the user app — their only
+// header affordance is a jump back into the /admin console.
+const ADMIN_HEADER_NAV: NavItem[] = [
+  { label: 'Trang quản trị', href: '/admin' },
+];
+
 export default function Header() {
-  const { status, profile, signOut } = useAuth();
+  const { status, profile, role, signOut } = useAuth();
   const isLoading = status === 'loading';
   const isAuthenticated = status === 'authenticated' && !!profile;
+  const isAdmin = isAuthenticated && role === 'ADMIN';
+  const centerNav = !isAuthenticated
+    ? HEADER_NAV_GUEST
+    : isAdmin
+      ? ADMIN_HEADER_NAV
+      : HEADER_NAV_USER;
 
   return (
     <header className="fixed top-0 w-full flex justify-between items-center px-6 md:px-12 h-16 bg-surface-container-lowest/80 backdrop-blur-md border-b border-outline-variant/30 z-50">
@@ -39,9 +54,7 @@ export default function Header() {
           flash on every refresh. */}
       <nav className="hidden md:flex gap-8 items-center">
         {!isLoading &&
-          (isAuthenticated ? HEADER_NAV_USER : HEADER_NAV_GUEST).map((item) => (
-            <NavLink key={item.label} item={item} />
-          ))}
+          centerNav.map((item) => <NavLink key={item.label} item={item} />)}
       </nav>
 
       <div className="flex items-center gap-2 md:gap-4">
@@ -51,6 +64,7 @@ export default function Header() {
           <UserMenu
             fullName={profile.fullName}
             avatarUrl={profile.avatarUrl}
+            role={role}
             onSignOut={signOut}
           />
         ) : (
@@ -103,10 +117,17 @@ function NavLink({ item }: { item: NavItem }) {
 type UserMenuProps = {
   fullName: string;
   avatarUrl?: string | null;
+  role: UserRole | null;
   onSignOut: () => Promise<void>;
 };
 
-function UserMenu({ fullName, avatarUrl, onSignOut }: UserMenuProps) {
+function UserMenu({ fullName, avatarUrl, role, onSignOut }: UserMenuProps) {
+  // Admin and user menus are disjoint: an admin only sees admin entries,
+  // a user never sees them.
+  const isAdmin = role === 'ADMIN';
+  const menuItems = USER_MENU_ITEMS.filter((item) =>
+    isAdmin ? item.adminOnly : !item.adminOnly,
+  );
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -149,7 +170,7 @@ function UserMenu({ fullName, avatarUrl, onSignOut }: UserMenuProps) {
           role="menu"
           className="absolute right-0 mt-2 w-56 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg overflow-hidden"
         >
-          {USER_MENU_ITEMS.map((item) => (
+          {menuItems.map((item) => (
             <Link
               key={item.href}
               to={item.href}

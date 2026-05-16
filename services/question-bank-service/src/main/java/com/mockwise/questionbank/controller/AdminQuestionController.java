@@ -2,6 +2,8 @@ package com.mockwise.questionbank.controller;
 
 import com.core.apiresponse.response.ApiListResponse;
 import com.core.apiresponse.response.ApiResponse;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.mockwise.questionbank.ai.CodingGenerationClient;
 import com.mockwise.questionbank.dto.request.*;
 import com.mockwise.questionbank.dto.response.*;
 import com.mockwise.questionbank.enums.Difficulty;
@@ -28,6 +30,7 @@ import java.util.List;
 public class AdminQuestionController {
 
     QuestionService questionService;
+    CodingGenerationClient codingGenerationClient;
 
     static final String HEADER_USER_ID = "X-User-Id";
 
@@ -58,6 +61,19 @@ public class AdminQuestionController {
         String userId = request.getHeader(HEADER_USER_ID);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(questionService.createCoding(body, userId)));
+    }
+
+    // ── AI draft generation (server-side proxy — key stays server-side) ───────
+
+    /**
+     * Generate a coding-question draft via the AI service. Admin-only: the
+     * gateway enforces ROLE_ADMIN for any path containing {@code /admin/}.
+     * Returns the raw AI payload for the admin to review/edit before saving
+     * through {@code POST /admin/questions/coding}.
+     */
+    @PostMapping("/coding/generate")
+    public ResponseEntity<ApiResponse<JsonNode>> generateCoding(@RequestBody JsonNode body) {
+        return ResponseEntity.ok(ApiResponse.success(codingGenerationClient.generate(body)));
     }
 
     // ── Update ────────────────────────────────────────────────────────────────
