@@ -15,6 +15,8 @@ import {
   readCachedProfile,
   writeCachedProfile,
 } from '@/auth/storage';
+import { decodeJwtRole } from '@/lib/jwt';
+import type { UserRole } from '@/types/auth';
 import type { UserProfile } from '@/types/profile';
 
 type Status = 'loading' | 'authenticated' | 'unauthenticated';
@@ -22,6 +24,8 @@ type Status = 'loading' | 'authenticated' | 'unauthenticated';
 export type AuthContextValue = {
   status: Status;
   profile: UserProfile | null;
+  /** Decoded from the JWT `role` claim. Null until the first token resolves. */
+  role: UserRole | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -41,13 +45,22 @@ export function AuthProvider({ children }: Props) {
     cachedProfile ? 'authenticated' : 'loading',
   );
   const [profile, setProfile] = useState<UserProfile | null>(cachedProfile);
+  const [role, setRole] = useState<UserRole | null>(null);
 
   const accessTokenRef = useRef<string | null>(null);
   const refreshPromiseRef = useRef<Promise<string | null> | null>(null);
 
-  const setAccessToken = useCallback((token: string | null) => {
+  // Single choke-point for "the access token changed": keep the ref (read by
+  // the API client) and the decoded role state in lock-step.
+  const applyToken = useCallback((token: string | null) => {
     accessTokenRef.current = token;
+    setRole(decodeJwtRole(token));
   }, []);
+
+  const setAccessToken = useCallback(
+    (token: string | null) => applyToken(token),
+    [applyToken],
+  );
 
   const refresh = useCallback(async (): Promise<string | null> => {
     if (refreshPromiseRef.current) return refreshPromiseRef.current;
@@ -55,10 +68,10 @@ export function AuthProvider({ children }: Props) {
     refreshPromiseRef.current = (async () => {
       try {
         const data = await authApi.renewToken();
-        accessTokenRef.current = data.accessToken;
+        applyToken(data.accessToken);
         return data.accessToken;
       } catch {
-        accessTokenRef.current = null;
+        applyToken(null);
         return null;
       } finally {
         refreshPromiseRef.current = null;
@@ -66,14 +79,14 @@ export function AuthProvider({ children }: Props) {
     })();
 
     return refreshPromiseRef.current;
-  }, []);
+  }, [applyToken]);
 
   const onAuthFailure = useCallback(() => {
-    accessTokenRef.current = null;
+    applyToken(null);
     clearCachedProfile();
     setProfile(null);
     setStatus('unauthenticated');
-  }, []);
+  }, [applyToken]);
 
   // Wire the API client during render rather than in a useEffect. React runs
   // child useEffects BEFORE the parent's, so a child like HistoryPage that
@@ -105,7 +118,7 @@ export function AuthProvider({ children }: Props) {
         // unauthenticated — this is the "reverse flash" case where the user
         // logged out from another device or the refresh cookie expired.
         clearCachedProfile();
-        accessTokenRef.current = null;
+        applyToken(null);
         setProfile(null);
         setStatus('unauthenticated');
         return;
@@ -116,7 +129,7 @@ export function AuthProvider({ children }: Props) {
         if (!cancelled) setStatus('authenticated');
       } catch {
         if (!cancelled) {
-          accessTokenRef.current = null;
+          applyToken(null);
           clearCachedProfile();
           setProfile(null);
           setStatus('unauthenticated');
@@ -126,16 +139,16 @@ export function AuthProvider({ children }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [refresh, loadProfile]);
+  }, [refresh, loadProfile, applyToken]);
 
   const signIn = useCallback(
     async (email: string, password: string) => {
       const { accessToken } = await authApi.signIn({ email, password });
-      accessTokenRef.current = accessToken;
+      applyToken(accessToken);
       await loadProfile();
       setStatus('authenticated');
     },
-    [loadProfile],
+    [loadProfile, applyToken],
   );
 
   const signOut = useCallback(async () => {
@@ -144,21 +157,22 @@ export function AuthProvider({ children }: Props) {
     } catch {
       // ignore — clear local state regardless
     }
-    accessTokenRef.current = null;
+    applyToken(null);
     clearCachedProfile();
     setProfile(null);
     setStatus('unauthenticated');
-  }, []);
+  }, [applyToken]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       status,
       profile,
+      role,
       signIn,
       signOut,
       refreshProfile: loadProfile,
     }),
-    [status, profile, signIn, signOut, loadProfile],
+    [status, profile, role, signIn, signOut, loadProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

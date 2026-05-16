@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/auth/AuthContext';
+import AdminRoute from '@/auth/AdminRoute';
 import ProtectedRoute from '@/auth/ProtectedRoute';
 import ScrollToHash from '@/components/layout/ScrollToHash';
 import ComingSoonPage from '@/pages/ComingSoonPage';
@@ -18,6 +19,11 @@ import PracticeSessionPage from '@/pages/practice/PracticeSessionPage';
 import EditProfilePage from '@/pages/profile/EditProfilePage';
 import ProfilePage from '@/pages/profile/ProfilePage';
 import HistoryPage from '@/pages/history/HistoryPage';
+import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
+import AdminQuestionsPage from '@/pages/admin/AdminQuestionsPage';
+import BehavioralFormPage from '@/pages/admin/BehavioralFormPage';
+import CoreFormPage from '@/pages/admin/CoreFormPage';
+import CodingFormPage from '@/pages/admin/CodingFormPage';
 
 export default function App() {
   return (
@@ -107,6 +113,70 @@ export default function App() {
               <ProtectedRoute>
                 <ComingSoonPage title="Thanh toán" />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminDashboardPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/questions"
+            element={
+              <AdminRoute>
+                <AdminQuestionsPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/questions/new/behavioral"
+            element={
+              <AdminRoute>
+                <BehavioralFormPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/questions/new/core"
+            element={
+              <AdminRoute>
+                <CoreFormPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/questions/new/coding"
+            element={
+              <AdminRoute>
+                <CodingFormPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/questions/behavioral/:id/edit"
+            element={
+              <AdminRoute>
+                <BehavioralFormPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/questions/core/:id/edit"
+            element={
+              <AdminRoute>
+                <CoreFormPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/questions/coding/:id/edit"
+            element={
+              <AdminRoute>
+                <CodingFormPage />
+              </AdminRoute>
             }
           />
           <Route path="*" element={<Navigate to="/" replace />} />
