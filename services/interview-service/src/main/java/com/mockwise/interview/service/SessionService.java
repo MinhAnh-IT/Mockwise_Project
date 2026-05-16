@@ -121,6 +121,43 @@ public class SessionService {
                         new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {}));
         meta.put("profileSnapshotAt", OffsetDateTime.now().toString());
 
+        // CODING is non-adaptive: pick the whole ordered problem list now
+        // (random by the blueprint difficulty plan, no dup), freeze it onto
+        // session.metadata, and pin only question 1 — the rest are
+        // materialised one-at-a-time on each submit. No topic-state matrix,
+        // no planner, no follow-ups.
+        if (input.interviewType() == InterviewType.CODING) {
+            List<Difficulty> difficultyPlan = blueprintLoader.codingDifficultyPlan(blueprint);
+            List<Map<String, Object>> codingPlan = questionPicker.selectCodingPlan(difficultyPlan);
+            meta.put("codingPlan", codingPlan);
+
+            InterviewSession session = sessionRepo.save(InterviewSession.builder()
+                    .userId(userId)
+                    .blueprintId(blueprint.getId())
+                    .targetRole(role)
+                    .level(level)
+                    .interviewType(input.interviewType())
+                    .status(SessionStatus.IN_PROGRESS)
+                    .questionCount(codingPlan.size())
+                    .timeBudgetMinutes(timeBudget)
+                    .globalDifficultyOffset(globalOffset)
+                    .startedAt(OffsetDateTime.now())
+                    .metadata(meta)
+                    .build());
+
+            SessionQuestion firstQuestion =
+                    questionPicker.pinCoding(session.getId(), codingPlan.get(0), 1);
+
+            return new StartSessionOutput(
+                    session.getId(),
+                    role,
+                    level,
+                    input.interviewType(),
+                    codingPlan.size(),
+                    timeBudget,
+                    signAudio(PinnedQuestionView.fromEntity(firstQuestion)).redacted());
+        }
+
         InterviewSession session = sessionRepo.save(InterviewSession.builder()
                 .userId(userId)
                 .blueprintId(blueprint.getId())

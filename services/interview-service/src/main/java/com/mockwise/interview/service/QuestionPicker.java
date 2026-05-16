@@ -27,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -202,6 +203,111 @@ public class QuestionPicker {
                     return score;
                 }))
                 .orElseThrow();
+    }
+
+    // ── Pick for a CODING session (non-adaptive, whole list up-front) ────────
+
+    /**
+     * Selects the full ordered list of LIVE_CODING problems for a CODING
+     * session in one shot (Task.md: "load danh sách câu hỏi … random dựa
+     * trên số lượng + độ khó, đảm bảo không trùng — không follow-up, không
+     * chọn phức tạp"). For each difficulty slot in {@code difficultyPlan}
+     * it pulls the question-bank pool, shuffles, and takes the first
+     * not-yet-chosen problem whose snapshot actually carries the judge
+     * payload (functionMeta + testCases); if the exact difficulty is dry it
+     * relaxes to any difficulty so a thin bank still yields a session.
+     *
+     * <p>Returns one plan entry per pinned problem — a self-contained
+     * {@code {questionId, difficulty, snapshot}} map. The caller stores the
+     * list on {@code session.metadata} and materialises {@code SessionQuestion}
+     * rows one at a time via {@link #pinCoding} (FE advances on the last
+     * pinned row, so all-at-once pinning would skip straight to the end).
+     *
+     * @throws BusinessException QUESTION_BANK_UNAVAILABLE if not even one
+     *         usable coding problem can be found.
+     */
+    public List<Map<String, Object>> selectCodingPlan(List<Difficulty> difficultyPlan) {
+        List<Map<String, Object>> plan = new ArrayList<>(difficultyPlan.size());
+        Set<String> chosen = new HashSet<>();
+
+        for (Difficulty d : difficultyPlan) {
+            Map<String, Object> entry = tryPickCoding(d, chosen)
+                    .or(() -> tryPickCoding(null, chosen)) // relax difficulty
+                    .orElse(null);
+            if (entry == null) {
+                // Bank too thin to fill this slot — stop here rather than
+                // pad with dups. A shorter-but-valid session beats a broken
+                // one; only a totally empty plan is a hard error.
+                log.warn("No more distinct LIVE_CODING questions — coding plan truncated at {}", plan.size());
+                break;
+            }
+            chosen.add((String) entry.get("questionId"));
+            plan.add(entry);
+        }
+
+        if (plan.isEmpty()) {
+            throw new BusinessException(StatusCode.QUESTION_BANK_UNAVAILABLE);
+        }
+        return plan;
+    }
+
+    private Optional<Map<String, Object>> tryPickCoding(Difficulty difficulty, Set<String> chosen) {
+        QuestionFilterRequest req = new QuestionFilterRequest(
+                QuestionType.LIVE_CODING,
+                null, null, null,
+                difficulty,
+                null,
+                new ArrayList<>(chosen),
+                false,
+                20);
+        QuestionFilterResponse res = questionBankAdapter.filter(req);
+        if (res == null || res.candidates() == null || res.candidates().isEmpty()) {
+            return Optional.empty();
+        }
+        List<QuestionCandidate> pool = new ArrayList<>(res.candidates());
+        Collections.shuffle(pool);
+        for (QuestionCandidate c : pool) {
+            if (chosen.contains(c.id())) continue;
+            // The judge needs functionMeta + testCases — a thin snapshot
+            // (question-bank outage) is unusable for coding, unlike the
+            // behavioral/core soft-fail path. Skip and try the next one.
+            QuestionSnapshotResponse rich = questionBankAdapter.getSnapshotSoft(c.id()).orElse(null);
+            if (rich == null || rich.functionMeta() == null
+                    || rich.testCases() == null || rich.testCases().isEmpty()) {
+                log.warn("LIVE_CODING question {} has no usable snapshot (functionMeta/testCases) — skipping", c.id());
+                continue;
+            }
+            questionBankAdapter.markAskedSoft(c.id());
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("questionId", c.id());
+            entry.put("difficulty",
+                    (c.difficulty() != null ? c.difficulty()
+                            : (difficulty != null ? difficulty : Difficulty.MEDIUM)).name());
+            entry.put("snapshot", buildSnapshot(c, rich));
+            return Optional.of(entry);
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Materialises one {@code SessionQuestion} row from a coding plan entry
+     * produced by {@link #selectCodingPlan}. Used at /start (sequence 1) and
+     * again on each CODE submit to pin the next problem immediately.
+     */
+    @SuppressWarnings("unchecked")
+    public SessionQuestion pinCoding(UUID sessionId, Map<String, Object> entry, int sequence) {
+        return sessionQuestionRepo.save(SessionQuestion.builder()
+                .sessionId(sessionId)
+                .sequence(sequence)
+                .questionId((String) entry.get("questionId"))
+                .questionType(QuestionType.LIVE_CODING)
+                .topicKind(null)
+                .topicValue(null)
+                .difficulty(Difficulty.valueOf((String) entry.get("difficulty")))
+                .isFollowUp(false)
+                .source(QuestionSource.BANK)
+                .snapshot((Map<String, Object>) entry.get("snapshot"))
+                .build());
     }
 
     // ── Pick for a follow-up ─────────────────────────────────────────────────

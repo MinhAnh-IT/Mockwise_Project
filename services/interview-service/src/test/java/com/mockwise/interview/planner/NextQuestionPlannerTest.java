@@ -384,7 +384,7 @@ class NextQuestionPlannerTest {
             return InterviewBlueprint.builder()
                     .id(UUID.randomUUID())
                     .targetRole("BACKEND").level("mid")
-                    .interviewType(com.mockwise.interview.enums.InterviewType.MIXED)
+                    .interviewType(com.mockwise.interview.enums.InterviewType.BEHAVIORAL)
                     .topics(new java.util.ArrayList<>(List.of(openerBeh, apiCore, dbCore)))
                     .questionBudget(8)
                     .maxFollowUpsPerTopic(2)

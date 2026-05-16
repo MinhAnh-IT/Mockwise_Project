@@ -52,6 +52,9 @@ public enum StatusCode {
     SESSION_NOT_COMPLETED(4098, "Session is not COMPLETED — cannot finalize", 409),
     SESSION_REVIEW_FAILED(5005, "Overall review failed in AI service", 502),
 
+    // ── Live coding ──────────────────────────────────────────────────────────
+    QUESTION_NOT_CODING(4099, "Question is not a LIVE_CODING question", 409),
+
     // ── Validation ───────────────────────────────────────────────────────────
     VALIDATION_ERROR(4001, "Validation failed: %s", 400);
 

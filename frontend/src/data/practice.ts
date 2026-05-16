@@ -84,7 +84,10 @@ export const PRACTICE_OPTIONS: PracticeOption[] = [
     shortDescription: 'Bài lập trình LeetCode-style, chấm tự động qua sandbox.',
     Icon: Code2,
     accentClassName: 'bg-emerald-100 text-emerald-700',
-    interviewType: null,
+    // Backend must add InterviewType.CODING + a picker path that pins
+    // LIVE_CODING questions before a real session starts. See
+    // frontend/docs/coding-interview-contract.md.
+    interviewType: 'CODING',
     recordingMaxSeconds: 0,
     readiness: {
       estimatedMinutes: '45–60 phút',

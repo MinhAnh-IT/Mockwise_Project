@@ -10,6 +10,7 @@ import com.mockwise.interview.entity.InterviewSession;
 import com.mockwise.interview.entity.SessionQuestion;
 import com.mockwise.interview.enums.AnswerStatus;
 import com.mockwise.interview.enums.AnswerType;
+import com.mockwise.interview.enums.InterviewType;
 import com.mockwise.interview.enums.SessionStatus;
 import com.mockwise.interview.message.constants.KafkaTopics;
 import com.mockwise.interview.repository.AnswerRepository;
@@ -63,6 +64,20 @@ public class SessionFinalizerService {
     public void maybeRequestOverallReview(UUID sessionId) {
         InterviewSession s = sessionRepo.findByIdForUpdate(sessionId)
                 .orElseThrow(() -> new BusinessException(StatusCode.SESSION_NOT_FOUND));
+
+        // CODING has no planner to flip the session COMPLETED (the video
+        // flow relies on PlannerDecision.EndSession). Auto-complete it here
+        // once every pinned coding answer is terminal — that's the
+        // equivalent "the interview is over" signal, and it lets the
+        // overall-review gate below fire.
+        if (s.getInterviewType() == InterviewType.CODING
+                && s.getStatus() == SessionStatus.IN_PROGRESS
+                && allAnswersTerminal(sessionId)) {
+            s.setStatus(SessionStatus.COMPLETED);
+            s.setFinishedAt(OffsetDateTime.now());
+            sessionRepo.save(s);
+            log.info("CODING session {} → COMPLETED (all coding answers terminal)", sessionId);
+        }
 
         if (s.getStatus() != SessionStatus.COMPLETED) {
             return;

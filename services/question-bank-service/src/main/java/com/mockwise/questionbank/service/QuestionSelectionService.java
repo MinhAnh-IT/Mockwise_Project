@@ -8,11 +8,13 @@ import com.mockwise.questionbank.dto.response.MarkAskedResponse;
 import com.mockwise.questionbank.dto.response.QuestionCandidateResponse;
 import com.mockwise.questionbank.dto.response.QuestionFilterResponse;
 import com.mockwise.questionbank.entity.BehavioralQuestion;
+import com.mockwise.questionbank.entity.CodingQuestion;
 import com.mockwise.questionbank.entity.CoreQuestion;
 import com.mockwise.questionbank.entity.Question;
 import com.mockwise.questionbank.entity.QuestionFollowUp;
 import com.mockwise.questionbank.enums.QuestionType;
 import com.mockwise.questionbank.repository.BehavioralQuestionRepository;
+import com.mockwise.questionbank.repository.CodingQuestionRepository;
 import com.mockwise.questionbank.repository.CoreQuestionRepository;
 import com.mockwise.questionbank.repository.QuestionFollowUpRepository;
 import com.mockwise.questionbank.repository.QuestionRepository;
@@ -41,6 +43,7 @@ public class QuestionSelectionService {
     QuestionRepository questionRepository;
     BehavioralQuestionRepository behavioralRepository;
     CoreQuestionRepository coreRepository;
+    CodingQuestionRepository codingRepository;
     QuestionFollowUpRepository followUpRepository;
 
     public QuestionFilterResponse filter(QuestionFilterRequest req) {
@@ -77,6 +80,14 @@ public class QuestionSelectionService {
                             limit)
                     .stream()
                     .map(QuestionSelectionService::toCoreCandidate)
+                    .toList();
+            case LIVE_CODING -> codingRepository.findCandidates(
+                            req.difficulty() != null ? req.difficulty().name() : null,
+                            tags,
+                            excludeIds,
+                            limit)
+                    .stream()
+                    .map(QuestionSelectionService::toCodingCandidate)
                     .toList();
             default -> throw new BusinessException(StatusCode.FILTER_TYPE_NOT_SUPPORTED);
         };
@@ -131,6 +142,10 @@ public class QuestionSelectionService {
                     throw new BusinessException(StatusCode.FILTER_MISSING_DOMAIN);
                 }
             }
+            // LIVE_CODING needs no competency/domain — the difficulty +
+            // tag filter is the whole selection key. interview-service
+            // picks N distinct ids from the returned pool.
+            case LIVE_CODING -> { /* no extra required fields */ }
             default -> throw new BusinessException(StatusCode.FILTER_TYPE_NOT_SUPPORTED);
         }
     }
@@ -189,6 +204,27 @@ public class QuestionSelectionService {
                 q.getTags() != null ? Arrays.asList(q.getTags()) : List.of(),
                 cq.getAudioKey(),
                 Boolean.TRUE.equals(cq.getIsOpener()),
+                q.getAskCount() != null ? q.getAskCount() : 0L);
+    }
+
+    /**
+     * Coding candidate row. Coding questions carry no competency / domain /
+     * opener / audio, and {@code text} is filled with the problem title so
+     * interview-service's local scoring (which only reads id / difficulty /
+     * tags / askCount for LIVE_CODING) has something human-readable to log.
+     */
+    private static QuestionCandidateResponse toCodingCandidate(CodingQuestion cq) {
+        Question q = cq.getQuestion();
+        return new QuestionCandidateResponse(
+                cq.getId(),
+                QuestionType.LIVE_CODING,
+                q.getDifficulty(),
+                cq.getTitle(),
+                null,
+                null,
+                q.getTags() != null ? Arrays.asList(q.getTags()) : List.of(),
+                null,
+                false,
                 q.getAskCount() != null ? q.getAskCount() : 0L);
     }
 

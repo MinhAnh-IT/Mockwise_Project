@@ -113,7 +113,7 @@ class InterviewFinalizeFlowIT {
         // ── Start session ─────────────────────────────────────────────────────
 
         StartSessionOutput started = sessionService.start(USER_ID,
-                new StartSessionInput(InterviewType.MIXED, null));
+                new StartSessionInput(InterviewType.BEHAVIORAL, null));
         UUID sessionId = started.sessionId();
         int questionBudget = started.questionBudget();
         assertThat(questionBudget).isGreaterThan(0);
@@ -182,7 +182,7 @@ class InterviewFinalizeFlowIT {
         assertThat(sessionEvalRequest.getEventType()).isEqualTo("SESSION_EVALUATION_REQUESTED");
         Map<String, Object> payload = sessionEvalRequest.getPayload();
         assertThat(payload.get("sessionId")).isEqualTo(sessionId.toString());
-        assertThat(payload.get("interviewType")).isEqualTo("MIXED");
+        assertThat(payload.get("interviewType")).isEqualTo("BEHAVIORAL");
         assertThat(payload.get("answers")).asList().isNotEmpty();
         assertThat(payload).containsKey("blueprint");
 
@@ -269,7 +269,7 @@ class InterviewFinalizeFlowIT {
                         "Q1", "OWNERSHIP", null, true, 0L))));
 
         StartSessionOutput started = sessionService.start(USER_ID,
-                new StartSessionInput(InterviewType.MIXED, null));
+                new StartSessionInput(InterviewType.BEHAVIORAL, null));
         UUID sessionId = started.sessionId();
 
         // Force COMPLETED via the existing /finish path (the gate won't fire

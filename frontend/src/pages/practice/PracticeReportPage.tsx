@@ -66,7 +66,7 @@ const TOPIC_STATUS_BAR: Record<string, string> = {
 const TYPE_LABEL: Record<string, string> = {
   BEHAVIORAL: 'Hành vi',
   CORE: 'Chuyên môn',
-  MIXED: 'Tổng hợp',
+  CODING: 'Lập trình',
 };
 
 const DATE_FMT = new Intl.DateTimeFormat('vi-VN', {

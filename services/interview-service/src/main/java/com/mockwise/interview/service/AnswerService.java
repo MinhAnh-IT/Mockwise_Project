@@ -22,11 +22,16 @@ import com.mockwise.interview.entity.SessionTopicState;
 import com.mockwise.interview.entity.SessionTopicStateId;
 import com.mockwise.interview.enums.AnswerStatus;
 import com.mockwise.interview.enums.AnswerType;
+import com.mockwise.interview.enums.Completeness;
+import com.mockwise.interview.enums.Correctness;
+import com.mockwise.interview.enums.Depth;
 import com.mockwise.interview.enums.QuestionType;
 import com.mockwise.interview.enums.SessionStatus;
+import com.mockwise.interview.enums.SignalStrength;
 import com.mockwise.interview.enums.TopicKind;
 import com.mockwise.interview.enums.TopicStatus;
 import com.mockwise.interview.message.constants.KafkaTopics;
+import com.mockwise.interview.message.event.SubmissionJudgedEvent;
 import com.mockwise.interview.planner.NextQuestionPlanner;
 import com.mockwise.interview.planner.PlannerDecision;
 import com.mockwise.interview.planner.PlannerInputs;
@@ -38,6 +43,7 @@ import com.mockwise.interview.repository.InterviewSessionRepository;
 import com.mockwise.interview.repository.SessionQuestionRepository;
 import com.mockwise.interview.repository.SessionTopicStateRepository;
 import com.mockwise.interview.dto.request.SubmitAnswerInput;
+import com.mockwise.interview.dto.response.CodingProblemView;
 import com.mockwise.interview.dto.response.SubmitAnswerOutput;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -150,6 +156,14 @@ public class AnswerService {
 
         stageOutbound(answer, sq, session.getUserId(), storageObject);
 
+        // CODING is non-adaptive — the next problem isn't gated on judge /
+        // AI like the video flow's planner. Pin it right now (Task.md:
+        // "khi user submit … load câu tiếp theo lên lập tức") so the FE's
+        // next poll already sees it; scoring runs async in the background.
+        if (input.type() == AnswerType.CODE) {
+            pinNextCodingIfAny(session, sq);
+        }
+
         return new SubmitAnswerOutput(answer.getId(), answer.getStatus(), answer.getSubmittedAt());
     }
 
@@ -213,19 +227,91 @@ public class AnswerService {
                     answer.getId(),
                     payload);
         } else {
-            // judge-service picks this up.
+            // judge-service picks this up. The payload MUST match
+            // judge-service SubmissionEvent {submissionId, language, code,
+            // functionMeta, testCases} — the previous shape omitted
+            // functionMeta/testCases so the judge could never actually run.
+            // Scoring uses the FULL set (hidden + shown); only the FE
+            // /coding view drops hidden cases.
+            Map<String, Object> snap = sq.getSnapshot() != null ? sq.getSnapshot() : Map.of();
+            Object functionMeta = snap.get("functionMeta");
+            List<Map<String, Object>> testCases = judgeTestCases(snap.get("testCases"));
+            if (functionMeta == null || testCases.isEmpty()) {
+                throw new BusinessException(StatusCode.VALIDATION_ERROR,
+                        "coding snapshot is missing functionMeta/testCases — cannot judge");
+            }
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("submissionId", answer.getId().toString());
+            payload.put("language", String.valueOf(answer.getLanguage()));
+            payload.put("code", answer.getCode());
+            payload.put("functionMeta", functionMeta);
+            payload.put("testCases", testCases);
             outboxWriter.stage(
                     KafkaTopics.CODE_SUBMISSION,
                     "CODE_SUBMISSION",
                     answer.getId(),
-                    Map.of(
-                            "submissionId", answer.getId().toString(),
-                            "sessionId", answer.getSessionId().toString(),
-                            "questionId", String.valueOf(sq.getQuestionId()),
-                            "code", answer.getCode(),
-                            "language", String.valueOf(answer.getLanguage())
-                    ));
+                    payload);
         }
+    }
+
+    /**
+     * Projects the frozen snapshot's test cases into the judge
+     * {@code TestCaseDto} shape ({@code id, inputData, expectedOutput}),
+     * dropping {@code is_hidden} (the judge runs every case it's given).
+     * The whole set — hidden and shown — is sent so the official verdict
+     * reflects the real pass rate, not just the sample cases.
+     */
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> judgeTestCases(Object rawTestCases) {
+        if (!(rawTestCases instanceof List<?> list)) {
+            return List.of();
+        }
+        return list.stream()
+                .filter(tc -> tc instanceof Map)
+                .map(tc -> {
+                    Map<String, Object> m = (Map<String, Object>) tc;
+                    Map<String, Object> out = new HashMap<>();
+                    out.put("id", m.get("id"));
+                    out.put("inputData", m.get("inputData"));
+                    out.put("expectedOutput", m.get("expectedOutput"));
+                    return out;
+                })
+                .toList();
+    }
+
+    /**
+     * Pins the next problem of a CODING session straight away. Reads the
+     * frozen {@code metadata.codingPlan} list and materialises the
+     * {@code SessionQuestion} for {@code currentSq.sequence + 1}, unless
+     * that's already pinned (double-submit) or the plan is exhausted (the
+     * just-submitted question was the last one — the session finalises
+     * after its judge/AI verdict lands).
+     */
+    @SuppressWarnings("unchecked")
+    private void pinNextCodingIfAny(InterviewSession session, SessionQuestion currentSq) {
+        Map<String, Object> meta = session.getMetadata();
+        if (meta == null || !(meta.get("codingPlan") instanceof List<?> plan) || plan.isEmpty()) {
+            log.warn("CODING session {} has no codingPlan in metadata — cannot pin next", session.getId());
+            return;
+        }
+        int nextSequence = currentSq.getSequence() + 1;
+        int planIdx = currentSq.getSequence(); // plan is 0-based; sequence is 1-based
+        if (planIdx >= plan.size()) {
+            log.info("CODING session {} — submitted the last question (seq {}), nothing to pin",
+                    session.getId(), currentSq.getSequence());
+            return;
+        }
+        boolean alreadyPinned = sessionQuestionRepo.findBySessionIdOrderBySequenceAsc(session.getId())
+                .stream().anyMatch(q -> q.getSequence() == nextSequence);
+        if (alreadyPinned) {
+            log.debug("CODING session {} seq {} already pinned — skipping (double submit?)",
+                    session.getId(), nextSequence);
+            return;
+        }
+        Map<String, Object> entry = (Map<String, Object>) plan.get(planIdx);
+        SessionQuestion next = questionPicker.pinCoding(session.getId(), entry, nextSequence);
+        log.info("CODING session {} — pinned next question {} (seq {})",
+                session.getId(), next.getId(), nextSequence);
     }
 
     // ── Get one answer (FE poll) ─────────────────────────────────────────────
@@ -270,6 +356,33 @@ public class AnswerService {
                 .map(SessionQuestion::getQuestionType)
                 .orElse(null);
         return new AnswerWithSession(answer, session.getStatus(), qType);
+    }
+
+    // ── Get the LIVE_CODING problem for the in-flight FE workspace ───────────
+
+    /**
+     * Serves the coding problem for one pinned LIVE_CODING question,
+     * straight from the frozen snapshot. Owner-gated; 409 if the question
+     * isn't a coding one. Hidden test cases are stripped inside
+     * {@link CodingProblemView#fromSessionQuestion} so they never leave the
+     * backend.
+     */
+    @Transactional(readOnly = true)
+    public CodingProblemView getCodingProblem(UUID sessionId, UUID sessionQuestionId, String userId) {
+        InterviewSession session = sessionRepo.findById(sessionId)
+                .orElseThrow(() -> new BusinessException(StatusCode.SESSION_NOT_FOUND));
+        if (!session.getUserId().equals(userId)) {
+            throw new BusinessException(StatusCode.SESSION_NOT_OWNER);
+        }
+        SessionQuestion sq = sessionQuestionRepo.findById(sessionQuestionId)
+                .orElseThrow(() -> new BusinessException(StatusCode.QUESTION_NOT_IN_SESSION));
+        if (!sq.getSessionId().equals(sessionId)) {
+            throw new BusinessException(StatusCode.QUESTION_NOT_IN_SESSION);
+        }
+        if (sq.getQuestionType() != QuestionType.LIVE_CODING) {
+            throw new BusinessException(StatusCode.QUESTION_NOT_CODING);
+        }
+        return CodingProblemView.fromSessionQuestion(sq);
     }
 
     // ── Apply transcript-ready / -failed (tts-stt → orchestrator) ────────────
@@ -451,6 +564,181 @@ public class AnswerService {
         // for the cross-question overall review. Idempotent — only fires
         // when COMPLETED + every answer terminal.
         sessionFinalizer.maybeRequestOverallReview(answer.getSessionId());
+    }
+
+    // ── Apply submission-judged (judge-service → orchestrator) ───────────────
+
+    /**
+     * Called by the {@code submission-judged} consumer for a CODE answer.
+     * Spam-guard (Task.md / user decision): if the code never actually ran
+     * — judge reports only CE/RE (compile error, build/syntax/runtime fail)
+     * or there were no test cases — it's an incomplete / garbage submission;
+     * skip the AI round-trip, record a cheap terminal verdict and let the
+     * session finalise. Otherwise (something compiled and ran — AC/WA/TLE/
+     * MLE present) forward to the AI {@code live_coding} evaluator; the
+     * existing {@code evaluation-completed} path + {@code deriveVerdict}
+     * finishes scoring exactly like the video flow.
+     *
+     * <p>Idempotent: an answer not in PROCESSING is a no-op (covers a
+     * duplicate judge delivery or a manual replay).
+     */
+    @Transactional
+    public void applyCodeJudged(UUID answerId, String verdict,
+                                List<SubmissionJudgedEvent.CaseResult> results) {
+        Answer answer = answerRepo.findById(answerId)
+                .orElseThrow(() -> new BusinessException(StatusCode.ANSWER_NOT_FOUND));
+        if (answer.getStatus() != AnswerStatus.PROCESSING) {
+            log.debug("Answer {} status is {} — ignoring late submission-judged",
+                    answerId, answer.getStatus());
+            return;
+        }
+        SessionQuestion sq = sessionQuestionRepo.findById(answer.getSessionQuestionId())
+                .orElseThrow(() -> new BusinessException(StatusCode.QUESTION_NOT_IN_SESSION));
+        InterviewSession session = sessionRepo.findById(answer.getSessionId())
+                .orElseThrow(() -> new BusinessException(StatusCode.SESSION_NOT_FOUND));
+
+        List<SubmissionJudgedEvent.CaseResult> cases =
+                results != null ? results : List.<SubmissionJudgedEvent.CaseResult>of();
+        int total = cases.size();
+        int passed = (int) cases.stream()
+                .filter(c -> "AC".equalsIgnoreCase(c.status()))
+                .count();
+        boolean ranAtAll = cases.stream().anyMatch(c -> {
+            String st = c.status() == null ? "" : c.status().toUpperCase();
+            return st.equals("AC") || st.equals("WA") || st.equals("TLE") || st.equals("MLE");
+        });
+        boolean blankCode = answer.getCode() == null || answer.getCode().isBlank();
+
+        if (blankCode || total == 0 || !ranAtAll) {
+            AssessmentVerdict cheap = new AssessmentVerdict(
+                    0.0f, null, null,
+                    SignalStrength.NONE,
+                    Completeness.NO_ANSWER,
+                    Correctness.WRONG,
+                    Depth.SURFACE,
+                    List.of(), List.of());
+            AnswerStatus prev = answer.getStatus();
+            answer.setStatus(AnswerStatus.SCORED);
+            answer.setScoredAt(OffsetDateTime.now());
+            answer.setScore(0.0f);
+            answer.setMaxScore(10.0f);
+            answer.setVerdict(verdictToMap(cheap));
+            Map<String, Object> raw = new HashMap<>();
+            raw.put("skipped", true);
+            raw.put("skippedReason",
+                    "non-runnable code (judge verdict " + verdict + ") — AI evaluation skipped");
+            raw.put("judgeVerdict", verdict);
+            raw.put("testsTotal", total);
+            raw.put("testsPassed", passed);
+            answer.setRawEvaluation(raw);
+            answerRepo.save(answer);
+            logTransition(answerId, prev, AnswerStatus.SCORED, "code-judged-skipped", Map.of(
+                    "judgeVerdict", String.valueOf(verdict),
+                    "testsPassed", passed + "/" + total));
+            log.info("Answer {} CODE judged non-runnable (verdict={}) — skipped AI, cheap verdict",
+                    answerId, verdict);
+            sessionFinalizer.maybeRequestOverallReview(session.getId());
+            return;
+        }
+
+        AnswerStatus prev = answer.getStatus();
+        answer.setStatus(AnswerStatus.EVALUATING);
+        Map<String, Object> judgeSummary = new HashMap<>();
+        judgeSummary.put("verdict", String.valueOf(verdict));
+        judgeSummary.put("testsTotal", total);
+        judgeSummary.put("testsPassed", passed);
+        answer.setRubricScores(new HashMap<>(Map.of("judge", judgeSummary)));
+        answerRepo.save(answer);
+        logTransition(answerId, prev, AnswerStatus.EVALUATING, "code-judged", Map.of(
+                "judgeVerdict", String.valueOf(verdict),
+                "testsPassed", passed + "/" + total));
+
+        stageCodingEvaluationRequested(answer, sq, session, total, passed);
+        log.info("Answer {} CODE judged runnable ({} / {} passed) — requested AI live_coding eval",
+                answerId, passed, total);
+    }
+
+    /**
+     * Stages an {@code evaluation-requested} outbox event whose payload is
+     * the AI {@code LiveCodingInput} shape ({@code AI/models/inputs.py}).
+     * Same envelope as the video path's {@code applyTranscriptReady} so the
+     * AI consumer routes on {@code interview_type == "live_coding"}.
+     */
+    private void stageCodingEvaluationRequested(
+            Answer answer, SessionQuestion sq, InterviewSession session, int total, int passed) {
+
+        Map<String, Object> snap = sq.getSnapshot() != null ? sq.getSnapshot() : Map.of();
+
+        String responseLanguage = "vi";
+        try {
+            UserProfileResponse profile = loadProfile(session);
+            if (profile != null && profile.preferredLanguage() != null) {
+                String pref = profile.preferredLanguage().toLowerCase();
+                if ("vi".equals(pref) || "en".equals(pref)) {
+                    responseLanguage = pref;
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to load profile for coding response-language hint: {}", ex.getMessage());
+        }
+
+        Map<String, Object> optimal = new HashMap<>();
+        optimal.put("time", snap.get("optimalTimeComplexity"));
+        optimal.put("space", snap.get("optimalSpaceComplexity"));
+
+        Map<String, Object> question = new HashMap<>();
+        question.put("id", String.valueOf(sq.getQuestionId()));
+        question.put("title", snap.get("title"));
+        question.put("description", snap.get("description"));
+        question.put("difficulty", sq.getDifficulty() != null ? sq.getDifficulty().name() : "MEDIUM");
+        question.put("tags", snap.getOrDefault("tags", List.of()));
+        question.put("timeLimitMinutes", snap.getOrDefault("timeLimitMinutes", 30));
+        question.put("optimalComplexity", optimal);
+
+        Map<String, Object> testSummary = new HashMap<>();
+        testSummary.put("total", total);
+        testSummary.put("passed", passed);
+
+        Map<String, Object> submission = new HashMap<>();
+        submission.put("code", answer.getCode() != null ? answer.getCode() : "");
+        submission.put("language", String.valueOf(answer.getLanguage()));
+        submission.put("timeSpentMinutes", computeTimeSpentMinutes(sq, answer));
+        submission.put("testSummary", testSummary);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("sessionId", answer.getSessionId().toString());
+        payload.put("interviewType", "live_coding");
+        payload.put("question", question);
+        payload.put("submission", submission);
+        payload.put("responseLanguage", responseLanguage);
+
+        Map<String, Object> envelope = new HashMap<>();
+        envelope.put("eventId", UUID.randomUUID().toString());
+        envelope.put("eventType", "EVALUATION_REQUESTED");
+        envelope.put("occurredAt", OffsetDateTime.now().toString());
+        envelope.put("answerId", answer.getId().toString());
+        envelope.put("sessionId", answer.getSessionId().toString());
+        envelope.put("questionId", String.valueOf(sq.getQuestionId()));
+        envelope.put("payload", payload);
+
+        outboxWriter.stage(
+                KafkaTopics.EVALUATION_REQUESTED,
+                "EVALUATION_REQUESTED",
+                answer.getId(),
+                envelope);
+    }
+
+    private static int computeTimeSpentMinutes(SessionQuestion sq, Answer answer) {
+        try {
+            if (sq.getCreatedAt() != null && answer.getSubmittedAt() != null) {
+                long secs = java.time.Duration
+                        .between(sq.getCreatedAt(), answer.getSubmittedAt()).getSeconds();
+                return (int) Math.max(0, Math.min(secs / 60, 24L * 60));
+            }
+        } catch (Exception ignored) {
+            // best-effort metadata only
+        }
+        return 0;
     }
 
     // ── Apply evaluation-completed (Kafka consumer entry point) ──────────────
