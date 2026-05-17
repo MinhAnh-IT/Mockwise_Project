@@ -449,6 +449,94 @@ function QuestionCard({ question }: { question: PinnedQuestionView }) {
   );
 }
 
+const CASE_STATUS_STYLE: Record<string, string> = {
+  AC: 'bg-emerald-100 text-emerald-700',
+  WA: 'bg-red-100 text-red-700',
+  TLE: 'bg-amber-100 text-amber-700',
+  MLE: 'bg-amber-100 text-amber-700',
+  RE: 'bg-red-100 text-red-700',
+  CE: 'bg-red-100 text-red-700',
+};
+
+/**
+ * Candidate's submitted code + the judge's per-case roster for a
+ * LIVE_CODING answer. Rendered in the post-session report so the reviewer
+ * can see exactly what was run and which test cases passed.
+ */
+function CodingSubmission({
+  coding,
+}: {
+  coding: NonNullable<AnswerView['coding']>;
+}) {
+  const passed = coding.testsPassed ?? 0;
+  const total = coding.testsTotal ?? coding.cases.length;
+  const allPass = total > 0 && passed === total;
+  return (
+    <Card icon={<Code2 className="w-4 h-4" />} title="Bài làm của bạn">
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {coding.language && (
+            <span className="font-semibold uppercase tracking-wide bg-surface-container px-2 py-1 rounded">
+              {coding.language}
+            </span>
+          )}
+          {coding.judgeVerdict && (
+            <span
+              className={`font-bold px-2 py-1 rounded ${
+                allPass
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-red-100 text-red-700'
+              }`}
+            >
+              {coding.judgeVerdict}
+            </span>
+          )}
+          {total > 0 && (
+            <span
+              className={`font-semibold flex items-center gap-1 ${
+                allPass ? 'text-emerald-700' : 'text-on-surface-variant'
+              }`}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Đã pass {passed}/{total} testcase
+            </span>
+          )}
+        </div>
+
+        {coding.cases.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {coding.cases.map((c, i) => {
+              const st = (c.status || '').toUpperCase();
+              const cls =
+                CASE_STATUS_STYLE[st] ??
+                'bg-surface-container text-on-surface-variant';
+              return (
+                <span
+                  key={c.testCaseId || i}
+                  className={`text-[11px] font-semibold px-2 py-1 rounded ${cls}`}
+                  title={`Test ${i + 1}: ${st}`}
+                >
+                  #{i + 1} {st}
+                </span>
+              );
+            })}
+          </div>
+        )}
+
+        {coding.code ? (
+          <pre className="text-[12px] leading-relaxed bg-on-surface text-inverse-on-surface rounded-lg p-4 overflow-x-auto font-mono whitespace-pre">
+            {coding.code}
+          </pre>
+        ) : (
+          <p className="text-xs text-on-surface-variant">
+            Ứng viên không nộp code cho câu này.
+          </p>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 function AnswerDetail({
   answer,
   onReload,
@@ -496,6 +584,8 @@ function AnswerDetail({
           </p>
         </Card>
       )}
+
+      {answer.coding && <CodingSubmission coding={answer.coding} />}
 
       <EvaluationBreakdown detail={detail} />
     </div>

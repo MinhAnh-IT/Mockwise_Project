@@ -614,6 +614,18 @@ public class AnswerService {
         });
         boolean blankCode = answer.getCode() == null || answer.getCode().isBlank();
 
+        // Compact per-case roster (id + status only — no stdin/stdout so hidden
+        // testcase data never lands in the answer row) so the report can list
+        // which cases passed. Read back by AnswerView once SCORED.
+        List<Map<String, Object>> caseList = cases.stream()
+                .<Map<String, Object>>map(c -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("testCaseId", c.testCaseId());
+                    m.put("status", c.status());
+                    return m;
+                })
+                .toList();
+
         if (blankCode || total == 0 || !ranAtAll) {
             AssessmentVerdict cheap = new AssessmentVerdict(
                     0.0f, null, null,
@@ -635,6 +647,7 @@ public class AnswerService {
             raw.put("judgeVerdict", verdict);
             raw.put("testsTotal", total);
             raw.put("testsPassed", passed);
+            raw.put("cases", caseList);
             answer.setRawEvaluation(raw);
             answerRepo.save(answer);
             logTransition(answerId, prev, AnswerStatus.SCORED, "code-judged-skipped", Map.of(
@@ -652,6 +665,7 @@ public class AnswerService {
         judgeSummary.put("verdict", String.valueOf(verdict));
         judgeSummary.put("testsTotal", total);
         judgeSummary.put("testsPassed", passed);
+        judgeSummary.put("cases", caseList);
         answer.setRubricScores(new HashMap<>(Map.of("judge", judgeSummary)));
         answerRepo.save(answer);
         logTransition(answerId, prev, AnswerStatus.EVALUATING, "code-judged", Map.of(

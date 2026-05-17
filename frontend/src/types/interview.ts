@@ -252,6 +252,17 @@ export type AnswerView = {
   // server's download-ttl-seconds; re-fetch the session to get a fresh one.
   storageObjectId: string | null;
   mediaUrl: string | null;
+  // CODE answers only, revealed once the session is SCORED: the candidate's
+  // submitted source + the judge's per-case roster. Null/absent for VIDEO
+  // answers and while the session is still in progress.
+  coding?: {
+    code: string | null;
+    language: string | null;
+    judgeVerdict: string | null;
+    testsPassed: number | null;
+    testsTotal: number | null;
+    cases: { testCaseId: string; status: string }[];
+  } | null;
 };
 
 export type TopicProgress = {
