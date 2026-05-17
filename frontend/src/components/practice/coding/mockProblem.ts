@@ -19,14 +19,7 @@ export function buildMockProblem(
     description: [
       'Cho một mảng số nguyên `nums` và một số nguyên `target`, trả về **chỉ số** của hai phần tử sao cho tổng của chúng bằng `target`.',
       '',
-      'Giả thiết mỗi đầu vào có **đúng một** lời giải, và không dùng cùng một phần tử hai lần.',
-      '',
-      '### Ví dụ 1',
-      '```',
-      'Input:  nums = [2,7,11,15], target = 9',
-      'Output: [0,1]',
-      'Giải thích: nums[0] + nums[1] = 2 + 7 = 9',
-      '```',
+      'Giả thiết mỗi đầu vào có **đúng một** lời giải, và không dùng cùng một phần tử hai lần. Bạn có thể trả về kết quả theo bất kỳ thứ tự nào.',
     ].join('\n'),
     constraints: [
       '- 2 ≤ nums.length ≤ 10^4',
@@ -85,11 +78,13 @@ export function buildMockProblem(
         id: 'sample-1',
         inputData: { nums: [2, 7, 11, 15], target: 9 },
         expectedOutput: { result: [0, 1] },
+        note: 'Vì nums[0] + nums[1] == 2 + 7 == 9 nên trả về [0, 1].',
       },
       {
         id: 'sample-2',
         inputData: { nums: [3, 2, 4], target: 6 },
         expectedOutput: { result: [1, 2] },
+        note: 'nums[1] + nums[2] == 2 + 4 == 6 nên trả về [1, 2].',
       },
     ],
   };
