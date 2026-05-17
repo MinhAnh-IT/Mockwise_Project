@@ -114,12 +114,18 @@ TITLE
   - Exact problem title (capitalize correctly)
 
 DESCRIPTION  (write in natural, fluent VIETNAMESE)
-  - Full problem statement (you may keep worked examples inside it).
+  - ONLY the problem statement prose. Do NOT embed any worked examples —
+    no "Example"/"Ví dụ" blocks, no sample Input/Output/Explanation, no
+    fenced example snippets — and do NOT embed the constraints list.
+    Worked examples are shown to the candidate from the VISIBLE TEST
+    CASES, and the limits from the CONSTRAINTS field; duplicating them in
+    the description would show them twice in the UI.
   - If LeetCode data was provided above: TRANSLATE the statement into
-    Vietnamese — do NOT just copy the English. Preserve meaning exactly and
-    keep every code identifier, variable name, number and example value
-    verbatim (only the prose is Vietnamese).
-  - If mode=custom: write the statement in Vietnamese based on the input.
+    Vietnamese (do NOT copy the English) and STRIP its Example /
+    Constraints / Follow-up sections — keep only the core statement.
+    Keep every code identifier, variable name and number verbatim.
+  - If mode=custom: write the statement in Vietnamese from the input,
+    likewise without an examples or constraints section.
   - Do NOT translate the TITLE — keep it in its original language.
 
 DIFFICULTY
