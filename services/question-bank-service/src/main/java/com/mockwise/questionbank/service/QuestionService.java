@@ -259,14 +259,17 @@ public class QuestionService {
     public void delete(String id) {
         Question base = questionRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(StatusCode.QUESTION_NOT_FOUND));
-        QuestionStatus previous = base.getStatus();
-        base.setStatus(QuestionStatus.INACTIVE);
-        Question saved = questionRepository.save(base);
-        log.info("Question id={} soft-deleted (INACTIVE)", id);
 
-        if (previous == QuestionStatus.ACTIVE) {
-            eventEmitter.emitDeactivated(saved);
+        // Tell consumers (search index) to drop it before the row is gone.
+        // Only ACTIVE questions are ever indexed, so others need no event.
+        if (base.getStatus() == QuestionStatus.ACTIVE) {
+            eventEmitter.emitDeactivated(base);
         }
+
+        // Hard delete: the subtype row (coding/behavioral/core) and any
+        // followups are removed via FK ON DELETE CASCADE on questions(id).
+        questionRepository.delete(base);
+        log.info("Question id={} hard-deleted", id);
     }
 
     // ── Downstream payloads ───────────────────────────────────────────────────
