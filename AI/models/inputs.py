@@ -5,24 +5,46 @@ matching the orchestrator's outgoing shape.
 """
 from typing import Literal, List
 
+from pydantic import Field, field_validator
+
 from models._base import CamelModel
 
 
 # ─── Live Coding Input ────────────────────────────────────────────────────────
 
 class OptimalComplexity(CamelModel):
-    time: str
-    space: str
+    # Defense-in-depth: a question with empty optimal-complexity columns must
+    # not hard-fail input validation (that turned every such answer into
+    # evaluation-failed → FAILED). Missing/None/blank → a harmless placeholder;
+    # the prompt just shows "unknown" instead of a Big-O hint.
+    time: str = "unknown"
+    space: str = "unknown"
+
+    @field_validator("time", "space", mode="before")
+    @classmethod
+    def _blank_to_unknown(cls, v):
+        return v if v not in (None, "") else "unknown"
 
 
 class LiveCodingQuestion(CamelModel):
     id: str
-    title: str
-    description: str
-    difficulty: str
-    tags: List[str]
-    time_limit_minutes: int
-    optimal_complexity: OptimalComplexity
+    title: str = "Coding Problem"
+    description: str = ""
+    difficulty: str = "MEDIUM"
+    tags: List[str] = Field(default_factory=list)
+    time_limit_minutes: int = 30
+    optimal_complexity: OptimalComplexity = Field(default_factory=OptimalComplexity)
+
+    @field_validator("title", "description", "difficulty", mode="before")
+    @classmethod
+    def _none_to_default(cls, v, info):
+        if v is not None and v != "":
+            return v
+        return {
+            "title": "Coding Problem",
+            "description": "",
+            "difficulty": "MEDIUM",
+        }[info.field_name]
 
 
 class TestSummary(CamelModel):

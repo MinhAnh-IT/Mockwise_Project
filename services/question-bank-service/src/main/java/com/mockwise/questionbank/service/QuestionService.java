@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -99,6 +100,7 @@ public class QuestionService {
 
         CodingQuestion cq = codingMapper.toEntity(req);
         cq.setQuestion(base);
+        normalizeTestCaseIds(cq.getTestCases());
         codingRepository.save(cq);
 
         log.info("Created coding question id={}", base.getId());
@@ -228,6 +230,7 @@ public class QuestionService {
         questionRepository.save(cq.getQuestion());
 
         codingMapper.updateEntity(cq, req);
+        normalizeTestCaseIds(cq.getTestCases());
 
         return codingMapper.toResponse(codingRepository.save(cq));
     }
@@ -394,6 +397,32 @@ public class QuestionService {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /**
+     * Test-case ids are persisted in a jsonb column and consumed downstream
+     * (interview → judge) as {@link java.util.UUID}. AI-generated drafts arrive
+     * with non-UUID ids ("tc-1", "tc-2", …), which break UUID deserialization in
+     * judge-service. Replace any id that is null/blank or not a canonical UUID
+     * with a freshly generated one; already-valid UUIDs are kept so ids stay
+     * stable across edits.
+     */
+    private void normalizeTestCaseIds(List<TestCase> testCases) {
+        if (testCases == null) return;
+        for (TestCase tc : testCases) {
+            if (!isCanonicalUuid(tc.getId())) {
+                tc.setId(UUID.randomUUID().toString());
+            }
+        }
+    }
+
+    private boolean isCanonicalUuid(String value) {
+        if (value == null || value.isBlank()) return false;
+        try {
+            return UUID.fromString(value).toString().equalsIgnoreCase(value);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
 
     /**
      * Converts a List<String> into a PostgreSQL array literal: {"a","b","c"}
