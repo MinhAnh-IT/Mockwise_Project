@@ -682,14 +682,19 @@ public class AnswerService {
             log.warn("Failed to load profile for coding response-language hint: {}", ex.getMessage());
         }
 
+        // The AI LiveCodingInput schema requires these as non-null strings.
+        // A question whose optimal-complexity / title / description columns
+        // are empty must not produce a null here, or the AI router rejects
+        // the whole payload (input_validation_failed → evaluation-failed →
+        // answer FAILED, never scored). Fall back to safe placeholders.
         Map<String, Object> optimal = new HashMap<>();
-        optimal.put("time", snap.get("optimalTimeComplexity"));
-        optimal.put("space", snap.get("optimalSpaceComplexity"));
+        optimal.put("time", strOr(snap.get("optimalTimeComplexity"), "unknown"));
+        optimal.put("space", strOr(snap.get("optimalSpaceComplexity"), "unknown"));
 
         Map<String, Object> question = new HashMap<>();
         question.put("id", String.valueOf(sq.getQuestionId()));
-        question.put("title", snap.get("title"));
-        question.put("description", snap.get("description"));
+        question.put("title", strOr(snap.get("title"), "Coding Problem"));
+        question.put("description", strOr(snap.get("description"), ""));
         question.put("difficulty", sq.getDifficulty() != null ? sq.getDifficulty().name() : "MEDIUM");
         question.put("tags", snap.getOrDefault("tags", List.of()));
         question.put("timeLimitMinutes", snap.getOrDefault("timeLimitMinutes", 30));
@@ -726,6 +731,13 @@ public class AnswerService {
                 "EVALUATION_REQUESTED",
                 answer.getId(),
                 envelope);
+    }
+
+    /** Non-null string projection: blank/null snapshot value → {@code fallback}. */
+    private static String strOr(Object value, String fallback) {
+        if (value == null) return fallback;
+        String s = String.valueOf(value);
+        return s.isBlank() ? fallback : s;
     }
 
     private static int computeTimeSpentMinutes(SessionQuestion sq, Answer answer) {

@@ -180,6 +180,12 @@ services:
       JUDGE0_BASE_URL: ${JUDGE0_BASE_URL}
       JUDGE0_AUTH_TOKEN: ${JUDGE0_AUTH_TOKEN}
       JUDGE_CALLBACK_BASE_URL: ${JUDGE_CALLBACK_BASE_URL}
+    # Bound the json-file log. An unrotated judge-service log once grew to
+    # 167 GB (tight Kafka-reconnect retry loop) and filled the host disk,
+    # crashing Kafka + Postgres. Keep at most 5×50 MB per container.
+    logging:
+      driver: json-file
+      options: { max-size: "50m", max-file: "5" }
     networks: [internal-net, mockwise-judge-net]
 
   # ─── API Gateway (bridge: public ↔ internal) ───────────────────
