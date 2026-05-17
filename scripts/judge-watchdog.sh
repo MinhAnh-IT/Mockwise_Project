@@ -44,22 +44,27 @@ disk=$(df -P / | awk 'NR==2{gsub("%","",$5); print $5}')
 [ -n "${disk:-}" ] && [ "$disk" -ge "$DISK_PCT_MAX" ] && \
   alert "disk / at ${disk}% (>=${DISK_PCT_MAX}%) — log/volume growth?"
 
-# 2) Containers — any mockwise/judge0 container not running or unhealthy.
+# 2) Containers — flag unhealthy / crashed, but NOT clean one-shot inits
+# ("Exited (0)" = ran to success) nor healthy "Up ..." services.
 bad=$(docker ps -a --format '{{.Names}}\t{{.Status}}' \
       | grep -iE 'mockwise|judge0' \
-      | grep -viE 'Up .*(healthy)?$' \
-      | grep -ivE '\(healthy\)' || true)
+      | awk -F'\t' '
+          $2 ~ /\(unhealthy\)/      { print; next }
+          $2 ~ /^Up/                { next }
+          $2 ~ /^Exited \(0\)/      { next }
+          { print }' || true)
 [ -n "$bad" ] && alert "container(s) not healthy: $(echo "$bad" | tr '\n' ';')"
 
 # 3) judge-service consumer group — stuck or lagging on code-submission.
+# Columns: GROUP TOPIC PARTITION CURRENT-OFFSET LOG-END-OFFSET LAG ...
 cg=$(docker exec "$KAFKA_CT" "$KAFKA_BIN" --bootstrap-server localhost:9092 \
        --describe --group "$GROUP" 2>/dev/null \
-     | awk -v t="$TOPIC" '$2==t {print $3, $5, $6}')   # CURRENT END LAG
+     | awk -v t="$TOPIC" '$2==t {print $4, $6}')   # CURRENT-OFFSET LAG
 if [ -z "$cg" ]; then
   alert "judge consumer group has no assignment for $TOPIC (consumer down?)"
 else
   cur=$(echo "$cg" | awk '{print $1}')
-  lag=$(echo "$cg" | awk '{print $3}')
+  lag=$(echo "$cg" | awk '{print $2}')
   if [ "$cur" = "-" ]; then
     alert "judge consumer never committed an offset on $TOPIC — poison pill?"
   elif [ "${lag:--}" != "-" ] && [ "$lag" -ge "$LAG_MAX" ] 2>/dev/null; then
