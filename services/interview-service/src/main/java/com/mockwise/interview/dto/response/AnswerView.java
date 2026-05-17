@@ -10,6 +10,8 @@ import com.mockwise.interview.enums.AnswerType;
 import com.mockwise.interview.enums.QuestionType;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
@@ -52,8 +54,31 @@ public record AnswerView(
         OffsetDateTime submittedAt,
         OffsetDateTime scoredAt,
         UUID storageObjectId,
-        String mediaUrl
+        String mediaUrl,
+        // CODE answers only, revealed once SCORED: the candidate's submitted
+        // source + the judge's per-case roster so the report can show the
+        // code and which test cases passed. Null for VIDEO answers and
+        // while the session is still in progress.
+        Coding coding
 ) {
+
+    /**
+     * Submitted code + judge outcome for a LIVE_CODING answer. Sourced from
+     * {@code answer.code/language} and the judge summary persisted on
+     * {@code rubric_scores.judge} (runnable path) or {@code raw_evaluation}
+     * (non-runnable CE/RE path).
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record Coding(
+            String code,
+            String language,
+            String judgeVerdict,
+            Integer testsPassed,
+            Integer testsTotal,
+            List<CaseResult> cases
+    ) {
+        public record CaseResult(String testCaseId, String status) {}
+    }
 
     /**
      * Masks score / feedback / verdict / evaluation detail when
@@ -84,6 +109,9 @@ public record AnswerView(
         EvaluationDetail detail = revealResults
                 ? EvaluationDetail.fromRaw(questionType, a.getRawEvaluation(), objectMapper)
                 : null;
+        Coding coding = (revealResults && a.getType() == AnswerType.CODE)
+                ? codingOf(a)
+                : null;
         return new AnswerView(
                 a.getId(),
                 a.getSessionId(),
@@ -100,7 +128,8 @@ public record AnswerView(
                 a.getSubmittedAt(),
                 a.getScoredAt(),
                 revealResults ? a.getStorageObjectId() : null,
-                /* mediaUrl */ null);
+                /* mediaUrl */ null,
+                coding);
     }
 
     /**
@@ -122,7 +151,58 @@ public record AnswerView(
                 answerId, sessionId, sessionQuestionId, type, status,
                 score, maxScore, feedback, verdict, evaluationDetail,
                 errorCode, errorMessage, submittedAt, scoredAt,
-                storageObjectId, url);
+                storageObjectId, url, coding);
+    }
+
+    /**
+     * Builds the coding projection from the persisted judge summary. The
+     * runnable path stores it on {@code rubric_scores.judge}; the
+     * non-runnable (CE/RE) path stores the same numbers on
+     * {@code raw_evaluation}. Best-effort — a missing/legacy shape yields a
+     * Coding with just the code/language filled in.
+     */
+    @SuppressWarnings("unchecked")
+    private static Coding codingOf(Answer a) {
+        Map<String, Object> judge = null;
+        Map<String, Object> rubric = a.getRubricScores();
+        if (rubric != null && rubric.get("judge") instanceof Map<?, ?> j) {
+            judge = (Map<String, Object>) j;
+        }
+        Map<String, Object> raw = a.getRawEvaluation();
+        Map<String, Object> src = judge != null
+                ? judge
+                : (raw != null && (raw.containsKey("testsTotal") || raw.containsKey("judgeVerdict"))
+                        ? raw : null);
+
+        String judgeVerdict = src == null ? null
+                : asStr(src.containsKey("verdict") ? src.get("verdict") : src.get("judgeVerdict"));
+        Integer testsPassed = src == null ? null : asInt(src.get("testsPassed"));
+        Integer testsTotal = src == null ? null : asInt(src.get("testsTotal"));
+
+        List<Coding.CaseResult> cases = new ArrayList<>();
+        if (src != null && src.get("cases") instanceof List<?> cs) {
+            for (Object o : cs) {
+                if (o instanceof Map<?, ?> cm) {
+                    Map<String, Object> m = (Map<String, Object>) cm;
+                    cases.add(new Coding.CaseResult(asStr(m.get("testCaseId")), asStr(m.get("status"))));
+                }
+            }
+        }
+        return new Coding(a.getCode(), a.getLanguage(), judgeVerdict, testsPassed, testsTotal, cases);
+    }
+
+    private static String asStr(Object o) {
+        return o == null ? null : o.toString();
+    }
+
+    private static Integer asInt(Object o) {
+        if (o instanceof Number n) return n.intValue();
+        if (o == null) return null;
+        try {
+            return Integer.valueOf(o.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private static AssessmentVerdict toVerdict(Map<String, Object> raw, ObjectMapper objectMapper) {
