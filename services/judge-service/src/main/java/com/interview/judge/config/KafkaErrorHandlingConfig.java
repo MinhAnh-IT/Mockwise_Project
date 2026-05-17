@@ -40,35 +40,36 @@ import java.util.Map;
  * <p>Spring Boot's Kafka auto-configuration detects the single
  * {@link DefaultErrorHandler} bean and installs it on the default listener
  * container factory, so no custom factory is needed.
+ *
+ * <p>Note: the DLT producer template is built as a <em>local</em> object, not
+ * a {@code @Bean}. Exposing a {@code KafkaTemplate} bean would trip Boot's
+ * {@code @ConditionalOnMissingBean(KafkaTemplate.class)} and suppress the
+ * auto-configured default template that {@code JudgeResultProducer} depends
+ * on (that broke 21 context-loading tests).
  */
 @Slf4j
 @Configuration
 public class KafkaErrorHandlingConfig {
 
-    /**
-     * Dedicated byte[]/byte[] template for the DLT. The recoverer republishes
-     * the original raw message bytes (extracted from the
-     * {@link DeserializationException}), so the producer must use a
-     * {@link ByteArraySerializer} — the app's existing JSON producer template
-     * would re-serialize and lose the original payload.
-     */
     @Bean
-    public KafkaTemplate<byte[], byte[]> dltKafkaTemplate(
+    public DefaultErrorHandler kafkaErrorHandler(
             @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers) {
+
+        // Dedicated byte[]/byte[] producer for the DLT: the recoverer
+        // republishes the original raw message bytes (extracted from the
+        // DeserializationException), so it must use a ByteArraySerializer —
+        // the app's JSON producer would re-serialize and lose the payload.
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
-        ProducerFactory<byte[], byte[]> pf = new DefaultKafkaProducerFactory<>(props);
-        return new KafkaTemplate<>(pf);
-    }
+        ProducerFactory<byte[], byte[]> dltProducerFactory = new DefaultKafkaProducerFactory<>(props);
+        KafkaTemplate<byte[], byte[]> dltTemplate = new KafkaTemplate<>(dltProducerFactory);
 
-    @Bean
-    public DefaultErrorHandler kafkaErrorHandler(KafkaTemplate<byte[], byte[]> dltKafkaTemplate) {
         // Send to "<originalTopic>.DLT", partition -1 so the broker assigns one
         // (the DLT may have a different partition count than the source topic).
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
-                dltKafkaTemplate,
+                dltTemplate,
                 (record, ex) -> {
                     log.error("Routing un-processable message from {}-{}@{} to DLT: {}",
                             record.topic(), record.partition(), record.offset(),
