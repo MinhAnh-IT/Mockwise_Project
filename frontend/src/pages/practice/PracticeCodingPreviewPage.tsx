@@ -34,6 +34,7 @@ export default function PracticeCodingPreviewPage() {
       sessionId="preview-session"
       question={PREVIEW_QUESTION}
       budget={1}
+      secondsLeft={null}
       busy={false}
       previewMode
       onSubmit={(code, language) => {

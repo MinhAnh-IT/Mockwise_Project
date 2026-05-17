@@ -26,7 +26,7 @@ public record CodingProblemView(
         int sequence,
         String title,
         String description,
-        Integer timeLimitMinutes,
+        String constraints,
         String optimalTimeComplexity,
         String optimalSpaceComplexity,
         FunctionMeta functionMeta,
@@ -47,7 +47,11 @@ public record CodingProblemView(
     public record SampleTestCase(
             String id,
             Map<String, Object> inputData,
-            Map<String, Object> expectedOutput
+            Map<String, Object> expectedOutput,
+            // LeetCode-style explanation for this worked example. Null when
+            // the question setter / generator didn't provide one. Safe to
+            // expose — visible (non-hidden) cases only.
+            String note
     ) {}
 
     /**
@@ -97,7 +101,8 @@ public record CodingProblemView(
                 samples.add(new SampleTestCase(
                         asString(t.get("id")),
                         t.get("inputData") instanceof Map<?, ?> in ? (Map<String, Object>) in : Map.of(),
-                        t.get("expectedOutput") instanceof Map<?, ?> eo ? (Map<String, Object>) eo : Map.of()));
+                        t.get("expectedOutput") instanceof Map<?, ?> eo ? (Map<String, Object>) eo : Map.of(),
+                        asString(t.get("note"))));
             }
         }
 
@@ -106,7 +111,7 @@ public record CodingProblemView(
                 sq.getSequence(),
                 asString(snap.get("title")),
                 asString(snap.get("description")),
-                snap.get("timeLimitMinutes") instanceof Number n ? n.intValue() : null,
+                asString(snap.get("constraints")),
                 asString(snap.get("optimalTimeComplexity")),
                 asString(snap.get("optimalSpaceComplexity")),
                 fnMeta,

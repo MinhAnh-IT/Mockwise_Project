@@ -87,6 +87,12 @@ export type TestCase = {
   expectedOutput: Record<string, unknown>;
   /** snake_case on the wire — QB entity declares @JsonProperty("is_hidden"). */
   is_hidden: boolean;
+  /**
+   * Optional human explanation (LeetCode "Explanation"). Shown next to the
+   * worked example in the candidate workspace; only meaningful on visible
+   * (non-hidden) cases. AI-generated cases carry it via the `note` field.
+   */
+  note?: string | null;
 };
 
 // ── Response DTOs ──────────────────────────────────────────────────────────
@@ -121,7 +127,8 @@ export type CoreQuestion = QuestionBase & {
 export type CodingQuestion = QuestionBase & {
   title: string;
   description: string;
-  timeLimitMinutes: number;
+  /** LeetCode-style constraints, markdown / multi-line. Optional. */
+  constraints: string | null;
   optimalTimeComplexity: string;
   optimalSpaceComplexity: string;
   functionMeta: FunctionMeta;
@@ -156,7 +163,8 @@ export type CodingQuestionRequest = {
   tags: string[];
   title: string;
   description: string;
-  timeLimitMinutes: number;
+  /** Optional LeetCode-style constraints, markdown / multi-line. */
+  constraints?: string;
   optimalTimeComplexity: string;
   optimalSpaceComplexity: string;
   functionMeta: FunctionMeta;
@@ -220,7 +228,8 @@ export type AiGeneratedCoding = {
   description: string;
   difficulty: string;
   tags: string[];
-  timeLimitMinutes: number;
+  /** LeetCode-style constraints, markdown / multi-line. "" if none. */
+  constraints: string;
   optimalTimeComplexity: string;
   optimalSpaceComplexity: string;
   functionMeta: FunctionMeta;

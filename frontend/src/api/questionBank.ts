@@ -194,8 +194,7 @@ export function mapGeneratedToCodingRequest(
     tags: g.tags ?? [],
     title: g.title ?? '',
     description: g.description ?? '',
-    timeLimitMinutes:
-      g.timeLimitMinutes && g.timeLimitMinutes >= 1 ? g.timeLimitMinutes : 30,
+    constraints: g.constraints?.trim() ? g.constraints : undefined,
     optimalTimeComplexity: g.optimalTimeComplexity ?? '',
     optimalSpaceComplexity: g.optimalSpaceComplexity ?? '',
     functionMeta: {
@@ -211,6 +210,7 @@ export function mapGeneratedToCodingRequest(
       inputData: tc.inputData ?? {},
       expectedOutput: tc.expectedOutput ?? {},
       is_hidden: !!tc.isHidden,
+      note: tc.note?.trim() ? tc.note : undefined,
     })),
   };
 }

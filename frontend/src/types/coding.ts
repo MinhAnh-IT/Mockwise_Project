@@ -50,6 +50,11 @@ export type SampleTestCase = {
   id: string;
   inputData: Record<string, unknown>;
   expectedOutput: Record<string, unknown>;
+  /**
+   * Human explanation for this example (LeetCode "Explanation"). Authored /
+   * AI-generated; null when none. Only ever present on visible sample cases.
+   */
+  note?: string | null;
 };
 
 /**
@@ -65,7 +70,12 @@ export type CodingProblemView = {
   title: string;
   /** Markdown. Rendered by ProblemPanel's lightweight renderer. */
   description: string;
-  timeLimitMinutes: number;
+  /**
+   * LeetCode-style constraints — markdown, multi-line (one constraint per
+   * row). Null when the question setter didn't provide any. Rendered as its
+   * own list section, separate from the description.
+   */
+  constraints: string | null;
   optimalTimeComplexity: string | null;
   optimalSpaceComplexity: string | null;
   functionMeta: FunctionMeta;

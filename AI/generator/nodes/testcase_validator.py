@@ -16,6 +16,21 @@ from models.generator_outputs import (
 )
 
 
+def _constraints_md(items: Any) -> str:
+    """
+    Render the analyzer's ``constraints: List[str]`` as a multi-line markdown
+    bullet list (LeetCode-style — one constraint per row). Empty / missing →
+    "" so the optional column stays null end-to-end.
+    """
+    if not items:
+        return ""
+    if isinstance(items, str):
+        return items.strip()
+    return "\n".join(
+        f"- {str(c).strip()}" for c in items if str(c).strip()
+    )
+
+
 def _build_final_response(
     req: GenerateTestcasesRequest,
     analysis: dict,
@@ -53,7 +68,7 @@ def _build_final_response(
         description=analysis["description"],
         difficulty=analysis["difficulty"],
         tags=analysis["tags"],
-        time_limit_minutes=analysis["time_limit_minutes"],
+        constraints=_constraints_md(analysis.get("constraints")),
         optimal_time_complexity=analysis["optimal_time_complexity"],
         optimal_space_complexity=analysis["optimal_space_complexity"],
         function_meta=function_meta,

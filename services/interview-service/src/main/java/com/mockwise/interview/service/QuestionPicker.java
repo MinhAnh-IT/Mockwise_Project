@@ -478,7 +478,7 @@ public class QuestionPicker {
         if (rich != null) {
             if (rich.title() != null) m.put("title", rich.title());
             if (rich.description() != null) m.put("description", rich.description());
-            if (rich.timeLimitMinutes() != null) m.put("timeLimitMinutes", rich.timeLimitMinutes());
+            if (rich.constraints() != null) m.put("constraints", rich.constraints());
             if (rich.optimalTimeComplexity() != null) m.put("optimalTimeComplexity", rich.optimalTimeComplexity());
             if (rich.optimalSpaceComplexity() != null) m.put("optimalSpaceComplexity", rich.optimalSpaceComplexity());
             if (rich.functionMeta() != null) m.put("functionMeta", rich.functionMeta());

@@ -39,7 +39,7 @@ public record QuestionSnapshotResponse(
         // LIVE_CODING
         String title,
         String description,
-        Integer timeLimitMinutes,
+        String constraints,
         String optimalTimeComplexity,
         String optimalSpaceComplexity,
         Map<String, Object> functionMeta,

@@ -14,7 +14,6 @@ export function buildMockProblem(
     sessionQuestionId,
     sequence,
     title: 'Two Sum',
-    timeLimitMinutes: 30,
     optimalTimeComplexity: 'O(n)',
     optimalSpaceComplexity: 'O(n)',
     description: [
@@ -28,10 +27,11 @@ export function buildMockProblem(
       'Output: [0,1]',
       'Giải thích: nums[0] + nums[1] = 2 + 7 = 9',
       '```',
-      '',
-      '### Ràng buộc',
+    ].join('\n'),
+    constraints: [
       '- 2 ≤ nums.length ≤ 10^4',
       '- -10^9 ≤ nums[i] ≤ 10^9',
+      '- -10^9 ≤ target ≤ 10^9',
       '- Luôn tồn tại đúng một lời giải.',
     ].join('\n'),
     functionMeta: {

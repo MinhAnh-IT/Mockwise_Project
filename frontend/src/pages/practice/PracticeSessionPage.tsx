@@ -25,6 +25,14 @@ type LocationState = {
 
 const POLL_INTERVAL_MS = 2000;
 
+/** Business code for SESSION_TIME_UP (interview-service StatusCode). */
+const SESSION_TIME_UP_CODE = 4089;
+
+/** Whole-seconds remaining until an ISO deadline, floored at 0. */
+function remainingSecs(deadlineIso: string): number {
+  return Math.max(0, Math.floor((Date.parse(deadlineIso) - Date.now()) / 1000));
+}
+
 /**
  * Live interview screen. State machine:
  *
@@ -55,6 +63,19 @@ export default function PracticeSessionPage() {
   const [error, setError] = useState<string | null>(null);
   const [bootstrapLoaded, setBootstrapLoaded] = useState<boolean>(!!bootstrap);
 
+  // One whole-session clock (no per-question limit). `deadline` is the
+  // server-authoritative ISO instant = startedAt + timeBudgetMinutes; the FE
+  // renders the countdown and ends the session when it hits zero. The server
+  // also enforces it (rejects late submits with SESSION_TIME_UP) and a reaper
+  // finalizes abandoned sessions, so this is UX, not the source of truth.
+  const [deadline, setDeadline] = useState<string | null>(
+    bootstrap?.deadlineAt ?? null,
+  );
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(
+    bootstrap?.deadlineAt ? remainingSecs(bootstrap.deadlineAt) : null,
+  );
+  const timeUpRef = useRef(false);
+
   // Track the sessionQuestionId we're waiting to advance past so the polling
   // loop knows which sequence is "old" vs "new".
   const lastSeenSqIdRef = useRef<string | null>(bootstrap?.firstQuestion.sessionQuestionId ?? null);
@@ -82,6 +103,10 @@ export default function PracticeSessionPage() {
           lastSeenSqIdRef.current = latest.sessionQuestionId;
         }
         setQuestionBudget(s.questionCount || latest?.sequence || 5);
+        if (s.deadlineAt) {
+          setDeadline(s.deadlineAt);
+          setSecondsLeft(remainingSecs(s.deadlineAt));
+        }
         setBootstrapLoaded(true);
       } catch (err) {
         const msg = err instanceof ApiError ? err.message : 'Không tải được phiên phỏng vấn.';
@@ -141,6 +166,19 @@ export default function PracticeSessionPage() {
     };
   }, [phase, sid, navigate, type]);
 
+  // Session countdown — one ticking clock for the whole interview. Stops
+  // once we're tearing down (finishing/finished) so it can't race the
+  // finish→report navigation.
+  useEffect(() => {
+    if (!deadline) return;
+    if (phase === 'finishing' || phase === 'finished') return;
+    setSecondsLeft(remainingSecs(deadline));
+    const id = window.setInterval(() => {
+      setSecondsLeft(remainingSecs(deadline));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [deadline, phase]);
+
   const handleSubmit = useCallback(
     async (blob: Blob, mimeType: string, uploadedObjectId: string | null) => {
       if (!sid || !current) return;
@@ -162,6 +200,12 @@ export default function PracticeSessionPage() {
         });
         setPhase('waiting');
       } catch (err) {
+        // Server clock ran out between render and submit — the session is
+        // already finalized server-side; go straight to the report.
+        if (err instanceof ApiError && err.code === SESSION_TIME_UP_CODE) {
+          navigate(`/practice/${type}/session/${sid}/report`, { replace: true });
+          return;
+        }
         const msg =
           err instanceof ApiError
             ? err.message
@@ -191,6 +235,10 @@ export default function PracticeSessionPage() {
         });
         setPhase('waiting');
       } catch (err) {
+        if (err instanceof ApiError && err.code === SESSION_TIME_UP_CODE) {
+          navigate(`/practice/${type}/session/${sid}/report`, { replace: true });
+          return;
+        }
         const msg =
           err instanceof ApiError
             ? err.message
@@ -220,6 +268,17 @@ export default function PracticeSessionPage() {
     }
     // Polling loop now waits for SCORED and navigates to /report.
   }, [sid]);
+
+  // Clock hit zero → end the session exactly like "Kết thúc sớm". Fires at
+  // most once; the server-side guard + deadline reaper are the authoritative
+  // backstop if the user's tab is closed or asleep.
+  useEffect(() => {
+    if (secondsLeft === null || secondsLeft > 0) return;
+    if (timeUpRef.current) return;
+    if (phase === 'finishing' || phase === 'finished') return;
+    timeUpRef.current = true;
+    void handleExit();
+  }, [secondsLeft, phase, handleExit]);
 
   if (!option || !sid) {
     navigate('/practice', { replace: true });
@@ -262,6 +321,7 @@ export default function PracticeSessionPage() {
         sessionId={sid}
         question={current}
         budget={questionBudget}
+        secondsLeft={secondsLeft}
         busy={phase === 'submitting'}
         onSubmit={handleSubmitCode}
         onExit={handleExit}
@@ -275,6 +335,7 @@ export default function PracticeSessionPage() {
         title={option.title}
         current={current.sequence}
         budget={questionBudget}
+        secondsLeft={secondsLeft}
         onExit={handleExit}
         exiting={phase === 'finishing'}
       />

@@ -69,7 +69,7 @@ public class QuestionSnapshotResponse {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     String description;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    Integer timeLimitMinutes;
+    String constraints;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     String optimalTimeComplexity;
     @JsonInclude(JsonInclude.Include.NON_NULL)

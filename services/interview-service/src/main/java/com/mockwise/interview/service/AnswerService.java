@@ -94,6 +94,7 @@ public class AnswerService {
     SideEffectApplier sideEffectApplier;
     QuestionPicker questionPicker;
     SessionFinalizerService sessionFinalizer;
+    SessionService sessionService;
     ObjectMapper objectMapper;
 
     // ── Submit (FE → orchestrator) ───────────────────────────────────────────
@@ -116,6 +117,10 @@ public class AnswerService {
         if (!session.getUserId().equals(userId)) {
             throw new BusinessException(StatusCode.SESSION_NOT_OWNER);
         }
+        // Server-authoritative time cutoff: if the session clock has run out,
+        // finalize it and reject this late submission with SESSION_TIME_UP
+        // (instead of silently accepting an answer past the deadline).
+        sessionService.ensureWithinTimeBudget(session);
         if (session.getStatus() != SessionStatus.IN_PROGRESS) {
             throw new BusinessException(StatusCode.SESSION_NOT_IN_PROGRESS);
         }
@@ -697,7 +702,7 @@ public class AnswerService {
         question.put("description", strOr(snap.get("description"), ""));
         question.put("difficulty", sq.getDifficulty() != null ? sq.getDifficulty().name() : "MEDIUM");
         question.put("tags", snap.getOrDefault("tags", List.of()));
-        question.put("timeLimitMinutes", snap.getOrDefault("timeLimitMinutes", 30));
+        question.put("constraints", strOr(snap.get("constraints"), ""));
         question.put("optimalComplexity", optimal);
 
         Map<String, Object> testSummary = new HashMap<>();

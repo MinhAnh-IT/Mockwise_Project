@@ -32,7 +32,10 @@ class LiveCodingQuestion(CamelModel):
     description: str = ""
     difficulty: str = "MEDIUM"
     tags: List[str] = Field(default_factory=list)
-    time_limit_minutes: int = 30
+    # LeetCode-style constraints block (markdown, multi-line). "" when the
+    # question setter didn't provide one. There is no per-question time
+    # limit any more — the interview is bounded by the session clock.
+    constraints: str = ""
     optimal_complexity: OptimalComplexity = Field(default_factory=OptimalComplexity)
 
     @field_validator("title", "description", "difficulty", mode="before")

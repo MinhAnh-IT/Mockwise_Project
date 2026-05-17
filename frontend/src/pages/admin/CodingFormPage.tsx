@@ -46,6 +46,8 @@ type TcRow = {
   inputText: string;
   outputText: string;
   is_hidden: boolean;
+  /** LeetCode-style explanation for this example. Shown only for non-hidden. */
+  noteText: string;
   error?: string;
 };
 
@@ -54,7 +56,6 @@ type Errors = Partial<
     | 'difficulty'
     | 'title'
     | 'description'
-    | 'timeLimitMinutes'
     | 'optimalTimeComplexity'
     | 'optimalSpaceComplexity'
     | 'fn'
@@ -72,7 +73,13 @@ const newKey = () =>
 const pretty = (v: unknown) => JSON.stringify(v ?? {}, null, 2);
 
 function emptyRow(): TcRow {
-  return { _k: newKey(), inputText: '{}', outputText: '{}', is_hidden: false };
+  return {
+    _k: newKey(),
+    inputText: '{}',
+    outputText: '{}',
+    is_hidden: false,
+    noteText: '',
+  };
 }
 
 export default function CodingFormPage() {
@@ -84,9 +91,9 @@ export default function CodingFormPage() {
   const [difficulty, setDifficulty] = useState<Difficulty | ''>('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  // Kept as the raw input string so the field can be cleared while typing
-  // (a numeric state would snap an empty box back to 0 → "015").
-  const [timeLimitMinutes, setTimeLimitMinutes] = useState('30');
+  // LeetCode-style constraints — free-form multi-line markdown, optional.
+  // One constraint per row; rendered as a list in the candidate workspace.
+  const [constraints, setConstraints] = useState('');
   const [optimalTimeComplexity, setOptimalTimeComplexity] = useState('');
   const [optimalSpaceComplexity, setOptimalSpaceComplexity] = useState('');
   const [tags, setTags] = useState<string[]>([]);
@@ -113,7 +120,7 @@ export default function CodingFormPage() {
     setDifficulty(q.difficulty);
     setTitle(q.title);
     setDescription(q.description);
-    setTimeLimitMinutes(String(q.timeLimitMinutes || 30));
+    setConstraints(q.constraints ?? '');
     setOptimalTimeComplexity(q.optimalTimeComplexity ?? '');
     setOptimalSpaceComplexity(q.optimalSpaceComplexity ?? '');
     setTags(q.tags ?? []);
@@ -131,6 +138,7 @@ export default function CodingFormPage() {
             inputText: pretty(tc.inputData),
             outputText: pretty(tc.expectedOutput),
             is_hidden: tc.is_hidden,
+            noteText: tc.note ?? '',
           }))
         : [emptyRow()],
     );
@@ -142,7 +150,7 @@ export default function CodingFormPage() {
       tags: q.tags,
       title: q.title,
       description: q.description,
-      timeLimitMinutes: q.timeLimitMinutes,
+      constraints: q.constraints ?? undefined,
       optimalTimeComplexity: q.optimalTimeComplexity,
       optimalSpaceComplexity: q.optimalSpaceComplexity,
       functionMeta: q.functionMeta,
@@ -194,9 +202,6 @@ export default function CodingFormPage() {
     if (!difficulty) e.difficulty = 'Chọn độ khó.';
     if (!title.trim()) e.title = 'Nhập tiêu đề.';
     if (!description.trim()) e.description = 'Nhập mô tả đề bài.';
-    const timeLimit = Number(timeLimitMinutes);
-    if (!Number.isInteger(timeLimit) || timeLimit < 1)
-      e.timeLimitMinutes = 'Thời gian tối thiểu là 1 phút.';
     if (!optimalTimeComplexity.trim())
       e.optimalTimeComplexity = 'Nhập độ phức tạp thời gian tối ưu.';
     if (!optimalSpaceComplexity.trim())
@@ -249,7 +254,7 @@ export default function CodingFormPage() {
       tags,
       title: title.trim(),
       description: description.trim(),
-      timeLimitMinutes: timeLimit,
+      constraints: constraints.trim() || undefined,
       optimalTimeComplexity: optimalTimeComplexity.trim(),
       optimalSpaceComplexity: optimalSpaceComplexity.trim(),
       functionMeta: {
@@ -268,6 +273,7 @@ export default function CodingFormPage() {
         inputData: p.inputData as Record<string, unknown>,
         expectedOutput: p.expectedOutput as Record<string, unknown>,
         is_hidden: p.r.is_hidden,
+        note: p.r.noteText.trim() || undefined,
       })),
     };
     return { body, errors: {} };
@@ -379,23 +385,23 @@ export default function CodingFormPage() {
                 rows={6}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Mô tả bài toán, ràng buộc, ví dụ…"
+                placeholder="Mô tả bài toán và ví dụ…"
               />
             </Field>
 
-            <div className="grid gap-5 sm:grid-cols-3">
-              <Field
-                label="Thời gian (phút)"
-                required
-                error={errors.timeLimitMinutes}
-              >
-                <Input
-                  type="number"
-                  min={1}
-                  value={timeLimitMinutes}
-                  onChange={(e) => setTimeLimitMinutes(e.target.value)}
-                />
-              </Field>
+            <Field
+              label="Ràng buộc"
+              hint="Tuỳ chọn — mỗi ràng buộc một dòng (kiểu LeetCode). Hỗ trợ markdown."
+            >
+              <Textarea
+                rows={4}
+                value={constraints}
+                onChange={(e) => setConstraints(e.target.value)}
+                placeholder={'- 1 <= n <= 10^5\n- -10^9 <= nums[i] <= 10^9'}
+              />
+            </Field>
+
+            <div className="grid gap-5 sm:grid-cols-2">
               <Field
                 label="Time complexity tối ưu"
                 required
@@ -664,6 +670,27 @@ export default function CodingFormPage() {
                       />
                     </div>
                   </div>
+                  {!row.is_hidden && (
+                    <div className="mt-3">
+                      <p className="mb-1 text-xs font-medium text-on-surface-variant">
+                        Giải thích ví dụ (tuỳ chọn — hiển thị cho thí sinh)
+                      </p>
+                      <Textarea
+                        rows={2}
+                        value={row.noteText}
+                        onChange={(e) =>
+                          setRows((arr) =>
+                            arr.map((x) =>
+                              x._k === row._k
+                                ? { ...x, noteText: e.target.value }
+                                : x,
+                            ),
+                          )
+                        }
+                        placeholder="VD: nums[0] + nums[1] = 2 + 7 = 9 nên trả về [0,1]."
+                      />
+                    </div>
+                  )}
                   {row.error && (
                     <p className="mt-2 text-xs text-red-600">{row.error}</p>
                   )}
@@ -713,7 +740,7 @@ function AiGenerateModal({
   const [tags, setTags] = useState<string[]>([]);
   const [optTime, setOptTime] = useState('');
   const [optSpace, setOptSpace] = useState('');
-  // Raw input strings (see note on timeLimitMinutes) — parsed in run().
+  // Raw input strings so the box can be cleared while typing — parsed in run().
   const [numTestcases, setNumTestcases] = useState('10');
   const [numVisible, setNumVisible] = useState('3');
   const [busy, setBusy] = useState(false);

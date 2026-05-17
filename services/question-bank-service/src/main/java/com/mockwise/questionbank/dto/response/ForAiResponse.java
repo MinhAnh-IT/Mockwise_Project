@@ -51,7 +51,7 @@ public class ForAiResponse {
 
     public static ForAiResponse fromCoding(String id, String title, String description,
                                             String difficulty, List<String> tags,
-                                            int timeLimitMinutes, String optimalTime, String optimalSpace) {
+                                            String constraints, String optimalTime, String optimalSpace) {
         return ForAiResponse.builder()
                 .interviewType("live_coding")
                 .question(Map.of(
@@ -60,7 +60,7 @@ public class ForAiResponse {
                         "description", description,
                         "difficulty", difficulty.toLowerCase(),
                         "tags", tags,
-                        "time_limit_minutes", timeLimitMinutes,
+                        "constraints", constraints != null ? constraints : "",
                         "optimal_complexity", Map.of("time", optimalTime, "space", optimalSpace)
                 ))
                 .build();

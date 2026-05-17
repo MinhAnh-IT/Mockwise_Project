@@ -63,10 +63,15 @@ Official starter code — JavaScript:
 {starter_js}
 
 NOTE: The fields above are the AUTHORITATIVE source of truth for this problem.
-You MUST use them verbatim for: title, description, difficulty, tags, constraints.
-Do NOT alter, paraphrase, or "improve" the description.
-When official starter code is provided for a language, use it VERBATIM (only normalize
-whitespace and replace any method body with `pass` / empty body / `// TODO`).
+- Use VERBATIM (do NOT translate or alter): title, difficulty, tags, the
+  function signature, all numbers/identifiers, and the official starter code
+  (only normalize whitespace and replace any method body with
+  `pass` / empty body / `// TODO`).
+- TRANSLATE into natural Vietnamese: the description prose and the constraints
+  prose. You MUST keep every code identifier, variable name, function name,
+  numeric bound and constraint expression EXACTLY as given (e.g. keep
+  `1 <= nums.length <= 10^4`, `nums[i]`, `target` unchanged) — translate only
+  the surrounding human-language sentences, not the math/code.
 """.strip()
     else:
         hints = []
@@ -108,10 +113,14 @@ Produce ALL fields below with strict formatting:
 TITLE
   - Exact problem title (capitalize correctly)
 
-DESCRIPTION
-  - Full problem statement including constraints and examples
-  - If LeetCode data was provided above: reproduce it faithfully (do NOT rewrite)
-  - If mode=custom: use the provided description as-is
+DESCRIPTION  (write in natural, fluent VIETNAMESE)
+  - Full problem statement (you may keep worked examples inside it).
+  - If LeetCode data was provided above: TRANSLATE the statement into
+    Vietnamese — do NOT just copy the English. Preserve meaning exactly and
+    keep every code identifier, variable name, number and example value
+    verbatim (only the prose is Vietnamese).
+  - If mode=custom: write the statement in Vietnamese based on the input.
+  - Do NOT translate the TITLE — keep it in its original language.
 
 DIFFICULTY
   - Must be exactly one of: EASY, MEDIUM, HARD (uppercase)
@@ -122,9 +131,6 @@ TAGS
   - Use standard LeetCode tags: array, string, hash-table, tree, graph,
     dynamic-programming, binary-search, two-pointers, sliding-window, stack,
     queue, heap, linked-list, math, bit-manipulation, backtracking, greedy, sorting
-
-TIME_LIMIT_MINUTES
-  - Estimate based on difficulty: EASY=20, MEDIUM=30, HARD=45
 
 OPTIMAL_TIME_COMPLEXITY
   - Big-O notation: O(1), O(log n), O(n), O(n log n), O(n²), O(2^n), etc.
@@ -461,15 +467,18 @@ STARTER_CODE  (object with FOUR fields: python, java, cpp, javascript)
   LeetCode-supplied starter already includes the correct ListNode/TreeNode
   prologue when applicable — keep it as-is.
 
-CONSTRAINTS
-  - List all input constraints (e.g. "2 <= nums.length <= 10^4")
-  - Include value ranges, array sizes, character sets, etc.
-  - If LeetCode provided constraints, use them verbatim.
+CONSTRAINTS  (one entry per constraint; prose in VIETNAMESE)
+  - List all input constraints: value ranges, array sizes, character sets, etc.
+  - Keep every mathematical/expression part EXACTLY (e.g.
+    `2 <= nums.length <= 10^4`, `-10^9 <= nums[i] <= 10^9`); only any
+    surrounding words are Vietnamese. A bare bound with no prose stays as-is.
+  - If LeetCode provided constraints, translate any prose to Vietnamese but
+    keep all numbers / expressions / identifiers unchanged.
 
-EDGE_CASE_HINTS
+EDGE_CASE_HINTS  (in VIETNAMESE)
   - List 3–6 specific edge cases relevant to this problem
-  - Examples: "empty array", "single element", "all negative numbers",
-    "duplicate values", "target not found", "maximum constraint input"
+  - Examples: "mảng rỗng", "một phần tử", "toàn số âm",
+    "có giá trị trùng", "không tìm thấy target", "đầu vào ở biên ràng buộc"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Fill ALL fields. Do not leave any field empty or null.

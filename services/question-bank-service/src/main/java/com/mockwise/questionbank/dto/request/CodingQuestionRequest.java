@@ -30,9 +30,8 @@ public class CodingQuestionRequest {
     @NotBlank(message = "description is required")
     String description;
 
-    @Min(value = 1, message = "timeLimitMinutes must be at least 1")
-    @Builder.Default
-    int timeLimitMinutes = 30;
+    /** Optional LeetCode-style constraints block (markdown). */
+    String constraints;
 
     @NotBlank(message = "optimalTimeComplexity is required")
     String optimalTimeComplexity;

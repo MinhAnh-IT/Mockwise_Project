@@ -39,6 +39,12 @@ type Props = {
   sessionId: string;
   question: PinnedQuestionView;
   budget: number;
+  /**
+   * Whole-session time remaining in seconds, owned by the parent
+   * (PracticeSessionPage drives one global countdown from the session
+   * deadline). Null = unknown / no clock. There is no per-question timer.
+   */
+  secondsLeft: number | null;
   /** Parent is running the final submit / finishing the session. */
   busy: boolean;
   /** Delegates to the existing CODE answer flow on PracticeSessionPage. */
@@ -56,14 +62,16 @@ const RUN_POLL_MAX = 50; // ~60s ceiling
 
 /**
  * Full-screen LeetCode-style coding workspace. Owns: problem fetch (with a
- * demo fallback until the BE contract lands), per-language code buffers, the
- * countdown timer (auto-submits at 0), Run (sample tests via the judge
- * passthrough), and Submit (delegated to the parent's CODE answer flow).
+ * demo fallback until the BE contract lands), per-language code buffers, Run
+ * (sample tests via the judge passthrough), and Submit (delegated to the
+ * parent's CODE answer flow). The interview clock is session-wide and lives
+ * in the parent — this only displays the remaining time it's handed.
  */
 export default function CodingWorkspace({
   sessionId,
   question,
   budget,
+  secondsLeft,
   busy,
   onSubmit,
   onExit,
@@ -83,8 +91,6 @@ export default function CodingWorkspace({
   const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState<RunResultView | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
-
-  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
 
   // Split-pane sizing (problem width %, console height %).
   const [leftPct, setLeftPct] = useState(42);
@@ -159,40 +165,12 @@ export default function CodingWorkspace({
         cpp: p.starterCode.cpp ?? '',
         javascript: p.starterCode.javascript ?? '',
       });
-      setSecondsLeft(p.timeLimitMinutes * 60);
     }
 
     return () => {
       cancelled = true;
     };
   }, [sessionId, sqId, question.sequence, previewMode]);
-
-  // ── Countdown — auto-submits once when it hits zero ─────────────────────
-  const autoSubmittedRef = useRef(false);
-  useEffect(() => {
-    autoSubmittedRef.current = false;
-  }, [sqId]);
-
-  useEffect(() => {
-    if (secondsLeft == null) return;
-    if (secondsLeft <= 0) return;
-    const t = window.setInterval(() => {
-      setSecondsLeft((s) => (s == null ? s : Math.max(0, s - 1)));
-    }, 1000);
-    return () => window.clearInterval(t);
-  }, [secondsLeft != null]);
-
-  useEffect(() => {
-    if (
-      secondsLeft === 0 &&
-      !autoSubmittedRef.current &&
-      problem &&
-      !busy
-    ) {
-      autoSubmittedRef.current = true;
-      onSubmit(codeByLang[language], language);
-    }
-  }, [secondsLeft, problem, busy, onSubmit, codeByLang, language]);
 
   const code = codeByLang[language];
   const setCode = useCallback(
