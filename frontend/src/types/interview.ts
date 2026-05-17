@@ -80,6 +80,10 @@ export type StartSessionOutput = {
   interviewType: InterviewType;
   questionBudget: number;
   timeBudgetMinutes: number;
+  // The interview is bounded by one session clock (no per-question limit).
+  // The FE renders a single global countdown from startedAt → deadlineAt.
+  startedAt: string;
+  deadlineAt: string;
   firstQuestion: PinnedQuestionView;
 };
 
@@ -327,6 +331,8 @@ export type SessionView = {
   timeBudgetMinutes: number;
   finalScore: number | null;
   startedAt: string;
+  // startedAt + timeBudgetMinutes — the interview's single deadline.
+  deadlineAt: string | null;
   finishedAt: string | null;
   scoredAt: string | null;
   topicProgress: TopicProgress[];

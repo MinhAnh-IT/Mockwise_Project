@@ -69,7 +69,7 @@ class GenerateTestcasesResponse(BaseModel):
     description: str
     difficulty: str                            # EASY | MEDIUM | HARD
     tags: List[str]
-    time_limit_minutes: int                    # JSON: timeLimitMinutes
+    constraints: str = ""                      # JSON: constraints — LeetCode-style, multi-line markdown
     optimal_time_complexity: str               # JSON: optimalTimeComplexity
     optimal_space_complexity: str              # JSON: optimalSpaceComplexity
     function_meta: FunctionMeta                # JSON: functionMeta

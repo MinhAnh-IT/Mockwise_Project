@@ -8,6 +8,7 @@ def build_live_coding_prompt(inp: LiveCodingInput, retry_instruction: str = "") 
     oc = q.optimal_complexity
     pass_rate = (ts.passed / ts.total * 100) if ts.total > 0 else 0.0
     tags_str = ", ".join(q.tags) if q.tags else "N/A"
+    constraints_str = q.constraints.strip() if q.constraints and q.constraints.strip() else "N/A"
 
     lang_map = {"en": "English", "vi": "Vietnamese"}
     language_label = lang_map.get(inp.response_language, "English")
@@ -54,13 +55,15 @@ Question ID     : {q.id}
 Title           : {q.title}
 Difficulty      : {q.difficulty}
 Topic Tags      : {tags_str}
-Time Limit      : {q.time_limit_minutes} minutes
 Time Spent      : {s.time_spent_minutes} minutes
 Language        : {s.language}
 Test Results    : {ts.passed}/{ts.total} passed ({pass_rate:.1f}%)
 
 PROBLEM DESCRIPTION:
 {q.description}
+
+CONSTRAINTS:
+{constraints_str}
 
 OPTIMAL COMPLEXITY HINT (provided by question setter):
   Time  : {oc.time}

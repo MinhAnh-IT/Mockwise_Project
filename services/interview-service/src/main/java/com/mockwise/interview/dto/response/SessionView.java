@@ -19,6 +19,9 @@ public record SessionView(
         int timeBudgetMinutes,
         Float finalScore,
         OffsetDateTime startedAt,
+        // startedAt + timeBudgetMinutes. The interview's single clock; the
+        // FE renders one global countdown to this. Null only pre-start.
+        OffsetDateTime deadlineAt,
         OffsetDateTime finishedAt,
         OffsetDateTime scoredAt,
         List<TopicProgress> topicProgress,

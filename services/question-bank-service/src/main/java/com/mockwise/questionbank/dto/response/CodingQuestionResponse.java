@@ -27,7 +27,7 @@ public class CodingQuestionResponse {
     List<String> tags;
     String title;
     String description;
-    int timeLimitMinutes;
+    String constraints;
     String optimalTimeComplexity;
     String optimalSpaceComplexity;
     FunctionMeta functionMeta;

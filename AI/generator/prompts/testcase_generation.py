@@ -84,7 +84,13 @@ STRICT RULES
 5. Each id must be unique: "tc-1", "tc-2", ..., "tc-{req.num_testcases}".
 6. Each testcase needs:
    - label  : short descriptor, e.g. "Sample — basic example", "Edge — empty array"
-   - note   : one sentence explaining why this testcase is important
+   - note   : a candidate-facing explanation of THIS example, written in
+              natural VIETNAMESE (LeetCode "Explanation" style) — explain how
+              the given input leads to the expected output (e.g.
+              "nums[0] + nums[1] = 2 + 7 = 9 nên trả về [0, 1]."). Keep all
+              identifiers / numbers verbatim; only the wording is Vietnamese.
+              Required for visible cases; for hidden cases a short reason is
+              fine.
 7. inputData is a JSON STRING (not an object) — serialize your input dict as a JSON string.
    Keys must match the function parameter names exactly: {list(p['name'] for p in analysis['params'])}
    Example: '{{"s": "abcabcbb"}}' or '{{"nums": [1, 2, 3], "target": 4}}'

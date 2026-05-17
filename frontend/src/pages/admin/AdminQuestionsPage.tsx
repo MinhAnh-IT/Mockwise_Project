@@ -423,7 +423,9 @@ function QuestionCard({
             )}
             {kind === 'coding' && (
               <>
-                <Pill>{(q as CodingQuestion).timeLimitMinutes} phút</Pill>
+                <Pill tone="secondary">
+                  {(q as CodingQuestion).optimalTimeComplexity}
+                </Pill>
                 <Pill>
                   {(q as CodingQuestion).testCases?.length ?? 0} test case
                 </Pill>

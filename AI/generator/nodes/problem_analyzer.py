@@ -33,7 +33,6 @@ class ProblemAnalysisOutput(BaseModel):
     description: str
     difficulty: Literal["EASY", "MEDIUM", "HARD"]
     tags: List[str]
-    time_limit_minutes: int
     optimal_time_complexity: str
     optimal_space_complexity: str
     fn: str
@@ -93,14 +92,17 @@ def problem_analyzer_node(state: GeneratorState) -> dict:
 
         # ── Step 3: override LLM output with authoritative sources ────────────
         if req.mode == "leetcode" and leetcode_problem:
-            # LeetCode data is ground truth — don't let the LLM drift
+            # LeetCode data is ground truth for the language-neutral fields —
+            # don't let the LLM drift on the title, difficulty or tags.
+            #
+            # description / constraints are intentionally NOT overridden: the
+            # prompt makes the model translate them into Vietnamese while
+            # preserving every identifier / number / expression verbatim, so
+            # copying the English back here would defeat that.
             result.title = leetcode_problem["title"]
-            result.description = leetcode_problem["description"]
             result.difficulty = leetcode_problem["difficulty"]
             if leetcode_problem.get("tags"):
                 result.tags = leetcode_problem["tags"][:5]
-            if leetcode_problem.get("constraints"):
-                result.constraints = leetcode_problem["constraints"]
         elif req.mode == "custom":
             if req.difficulty:
                 result.difficulty = req.difficulty.upper()

@@ -1,4 +1,4 @@
-import { LogOut } from 'lucide-react';
+import { Clock, LogOut } from 'lucide-react';
 
 type Props = {
   title: string;
@@ -6,12 +6,32 @@ type Props = {
   current: number;
   /** Backend's `questionBudget`. Shown as "câu N / mục tiêu ~M". */
   budget: number;
+  /**
+   * Whole-session time remaining (seconds). One clock for the whole
+   * interview — there is no per-question limit. Null = unknown.
+   */
+  secondsLeft: number | null;
   onExit: () => void;
   exiting: boolean;
 };
 
-export default function SessionHeader({ title, current, budget, onExit, exiting }: Props) {
+function fmt(secondsLeft: number | null): string {
+  if (secondsLeft == null) return '--:--';
+  const m = Math.floor(secondsLeft / 60);
+  const s = secondsLeft % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+export default function SessionHeader({
+  title,
+  current,
+  budget,
+  secondsLeft,
+  onExit,
+  exiting,
+}: Props) {
   const pct = Math.min(100, Math.round((current / Math.max(1, budget)) * 100));
+  const lowTime = secondsLeft != null && secondsLeft <= 60;
   return (
     <div className="bg-surface-container-lowest border-b border-outline-variant">
       <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-4">
@@ -28,6 +48,17 @@ export default function SessionHeader({ title, current, budget, onExit, exiting 
               style={{ width: `${pct}%` }}
             />
           </div>
+        </div>
+        <div
+          className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-bold tabular-nums ${
+            lowTime
+              ? 'bg-red-100 text-red-700'
+              : 'bg-surface-container text-on-surface'
+          }`}
+          title="Thời gian còn lại của phiên phỏng vấn"
+        >
+          <Clock className="w-4 h-4" />
+          {fmt(secondsLeft)}
         </div>
         <button
           type="button"

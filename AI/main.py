@@ -91,7 +91,12 @@ if __name__ == "__main__":
             ),
             "difficulty": "easy",
             "tags": ["array", "hash-table"],
-            "time_limit_minutes": 20,
+            "constraints": (
+                "- 2 <= nums.length <= 10^4\n"
+                "- -10^9 <= nums[i] <= 10^9\n"
+                "- -10^9 <= target <= 10^9\n"
+                "- Only one valid answer exists."
+            ),
             "optimal_complexity": {"time": "O(n)", "space": "O(n)"},
         },
         "submission": {

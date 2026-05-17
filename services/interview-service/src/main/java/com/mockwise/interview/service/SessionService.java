@@ -155,6 +155,8 @@ public class SessionService {
                     input.interviewType(),
                     codingPlan.size(),
                     timeBudget,
+                    session.getStartedAt(),
+                    deadlineOf(session),
                     signAudio(PinnedQuestionView.fromEntity(firstQuestion)).redacted());
         }
 
@@ -200,6 +202,8 @@ public class SessionService {
                 input.interviewType(),
                 blueprint.getQuestionBudget(),
                 timeBudget,
+                session.getStartedAt(),
+                deadlineOf(session),
                 // Session is IN_PROGRESS — strip rubric/classification fields
                 // so the candidate doesn't see expectedPoints, difficulty, topic, etc.
                 signAudio(PinnedQuestionView.fromEntity(firstQuestion)).redacted());
@@ -260,6 +264,7 @@ public class SessionService {
                 session.getTimeBudgetMinutes(),
                 session.getFinalScore(),
                 session.getStartedAt(),
+                deadlineOf(session),
                 session.getFinishedAt(),
                 session.getScoredAt(),
                 states.stream()
@@ -449,6 +454,79 @@ public class SessionService {
         // last answer's evaluation lands, this call is a no-op and the
         // gate fires later when the evaluation-completed consumer runs.
         sessionFinalizer.maybeRequestOverallReview(sessionId);
+    }
+
+    // ── Session time budget ──────────────────────────────────────────────────
+
+    /**
+     * Wall-clock end of the interview = {@code startedAt + timeBudgetMinutes}.
+     * The interview is bounded by this single session-level clock; there is
+     * no per-question time limit. Null only if the session never started.
+     */
+    public static OffsetDateTime deadlineOf(InterviewSession s) {
+        return s.getStartedAt() == null
+                ? null
+                : s.getStartedAt().plusMinutes(s.getTimeBudgetMinutes());
+    }
+
+    /**
+     * If the session is IN_PROGRESS and now past its deadline, finalize it
+     * exactly like {@link #finish} — flip → COMPLETED and gate the overall
+     * review. No ownership check: this is the shared end-of-clock path used
+     * by the in-flight guard ({@link #ensureWithinTimeBudget}) and the
+     * {@link com.mockwise.interview.service.SessionDeadlineReaper}.
+     *
+     * <p>Caller must already hold a transaction (the session row is mutated
+     * and saved here).
+     *
+     * @return true iff the clock is up (this call ended it, or it was
+     *         already ended by time on a prior call within the deadline race)
+     */
+    boolean applyTimeBudgetExpiry(InterviewSession session) {
+        if (session.getStatus() != SessionStatus.IN_PROGRESS) {
+            // User-finished / cancelled / scored is not a time-up condition —
+            // those flow through the normal SESSION_NOT_IN_PROGRESS path.
+            return false;
+        }
+        OffsetDateTime deadline = deadlineOf(session);
+        if (deadline == null || !OffsetDateTime.now().isAfter(deadline)) {
+            return false;
+        }
+        session.setStatus(SessionStatus.COMPLETED);
+        session.setFinishedAt(OffsetDateTime.now());
+        sessionRepo.save(session);
+        log.info("Session {} → COMPLETED (time budget {}m exhausted)",
+                session.getId(), session.getTimeBudgetMinutes());
+        // Same gate as /finish — once every answer is terminal this stages
+        // the single overall-review request; a no-op if answers are still
+        // processing (the evaluation-completed consumer fires it later).
+        sessionFinalizer.maybeRequestOverallReview(session.getId());
+        return true;
+    }
+
+    /**
+     * In-flight guard for write actions (answer submit). Finalizes the
+     * session and raises {@code SESSION_TIME_UP} when the clock is up so a
+     * late submission can't slip in after the interview has ended. Must run
+     * inside the caller's transaction.
+     */
+    public void ensureWithinTimeBudget(InterviewSession session) {
+        if (applyTimeBudgetExpiry(session)) {
+            throw new BusinessException(StatusCode.SESSION_TIME_UP);
+        }
+    }
+
+    /**
+     * Reaper entry point — locks the row, then applies the expiry. Its own
+     * transaction so one stuck session doesn't block the sweep of the rest.
+     *
+     * @return true iff the session was (or just became) ended by time
+     */
+    @Transactional
+    public boolean expireIfOverBudget(UUID sessionId) {
+        InterviewSession s = sessionRepo.findByIdForUpdate(sessionId)
+                .orElseThrow(() -> new BusinessException(StatusCode.SESSION_NOT_FOUND));
+        return applyTimeBudgetExpiry(s);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

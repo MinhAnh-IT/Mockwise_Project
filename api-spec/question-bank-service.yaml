@@ -214,11 +214,11 @@ components:
         description:
           type: string
           example: "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target."
-        timeLimitMinutes:
-          type: integer
-          minimum: 1
-          default: 30
-          example: 20
+        constraints:
+          type: string
+          nullable: true
+          description: Optional LeetCode-style constraints block (markdown).
+          example: "1 <= nums.length <= 10^4\n-10^9 <= nums[i] <= 10^9"
         optimalTimeComplexity:
           type: string
           example: "O(n)"
@@ -350,8 +350,9 @@ components:
           type: string
         description:
           type: string
-        timeLimitMinutes:
-          type: integer
+        constraints:
+          type: string
+          nullable: true
         optimalTimeComplexity:
           type: string
         optimalSpaceComplexity:
@@ -434,8 +435,8 @@ components:
         description:
           type: string
           nullable: true
-        timeLimitMinutes:
-          type: integer
+        constraints:
+          type: string
           nullable: true
         optimalTimeComplexity:
           type: string
@@ -469,7 +470,7 @@ components:
             Shape varies by interview_type:
             - **behavioral**: id, text, competency, expected_signals
             - **core_conceptual**: id, text, domain, key_concepts, depth_expected
-            - **live_coding**: id, title, description, difficulty, tags, time_limit_minutes, optimal_complexity
+            - **live_coding**: id, title, description, difficulty, tags, constraints, optimal_complexity
 
     ForJudgeResponse:
       type: object

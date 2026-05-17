@@ -31,6 +31,7 @@ public enum StatusCode {
     SESSION_NOT_FOUND(4041, "Interview session not found", 404),
     SESSION_NOT_OWNER(4031, "Caller is not the owner of this session", 403),
     SESSION_NOT_IN_PROGRESS(4090, "Session is not in IN_PROGRESS state", 409),
+    SESSION_TIME_UP(4089, "Session time budget exhausted — the interview has ended", 409),
     SESSION_NOT_FINISHED(4091, "Session is not finished — cannot fetch report yet", 409),
     QUESTION_NOT_IN_SESSION(4092, "Question id is not part of this session", 400),
     BLUEPRINT_NOT_FOUND(4042, "No blueprint configured for the requested role/level/type", 404),

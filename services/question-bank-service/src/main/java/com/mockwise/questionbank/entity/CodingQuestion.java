@@ -33,9 +33,9 @@ public class CodingQuestion {
     @Column(nullable = false, columnDefinition = "TEXT")
     String description;
 
-    @Column(nullable = false)
-    @Builder.Default
-    int timeLimitMinutes = 30;
+
+    @Column(columnDefinition = "TEXT")
+    String constraints;
 
     @Column(nullable = false, length = 50)
     String optimalTimeComplexity;

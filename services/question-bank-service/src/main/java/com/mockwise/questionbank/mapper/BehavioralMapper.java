@@ -95,7 +95,7 @@ public interface BehavioralMapper {
     // LIVE_CODING fields → null
     @Mapping(target = "title",                  ignore = true)
     @Mapping(target = "description",            ignore = true)
-    @Mapping(target = "timeLimitMinutes",        ignore = true)
+    @Mapping(target = "constraints",            ignore = true)
     @Mapping(target = "optimalTimeComplexity",  ignore = true)
     @Mapping(target = "optimalSpaceComplexity", ignore = true)
     @Mapping(target = "functionMeta",           ignore = true)

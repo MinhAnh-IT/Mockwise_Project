@@ -298,7 +298,7 @@ public class QuestionService {
                         id, cq.getTitle(), cq.getDescription(),
                         base.getDifficulty().name(),
                         Arrays.asList(base.getTags()),
-                        cq.getTimeLimitMinutes(),
+                        cq.getConstraints(),
                         cq.getOptimalTimeComplexity(),
                         cq.getOptimalSpaceComplexity());
             }
