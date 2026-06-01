@@ -151,9 +151,26 @@ FUNCTION SIGNATURE
   return_type  : return type string
   order_matters: true if output array/list order is significant
                  (false for problems like twoSum, groupAnagrams, permutations)
-  in_place     : true if function mutates the FIRST argument instead of returning
-                 a new value (e.g. sortColors, reverseString, rotate). When true,
-                 set return_type to "void".
+  in_place     : true IF AND ONLY IF the function's contract is to mutate the
+                 FIRST argument AND has no meaningful return value
+                 (e.g. sortColors, reverseString, rotate, reverseArray).
+
+                 STRICT RULE — enforced by the schema validator:
+                   in_place=true  ⇒  return_type MUST be "void".
+
+                 The judge's driver IGNORES the function's return value when
+                 in_place=true and compares against the FIRST parameter after
+                 mutation. Setting in_place=true with any other return_type
+                 will be REJECTED and the request will fail.
+
+                 If the canonical LeetCode signature returns a useful value
+                 alongside an in-place side effect (e.g. removeElement /
+                 removeDuplicates from sorted array, both return int k and
+                 mutate nums), pick the OTHER modelling:
+                   in_place=false  +  return_type="int"
+                 The judge will compare against the returned value only; the
+                 candidate is still expected to mutate but the mutation is
+                 not verified by the judge.
 
   ALLOWED type strings (these are the ONLY valid values — pick the closest match;
   do NOT invent new ones, do NOT use Python/JS-only types like float/list/object):

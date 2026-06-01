@@ -92,11 +92,25 @@ STRICT RULES
               Required for visible cases; for hidden cases a short reason is
               fine.
 7. inputData is a JSON STRING (not an object) — serialize your input dict as a JSON string.
-   Keys must match the function parameter names exactly: {list(p['name'] for p in analysis['params'])}
+   Keys must EXACTLY equal the function parameter names (no extras, no missing,
+   no renames): {list(p['name'] for p in analysis['params'])}
+   The validator will REJECT any testcase whose inputData has the wrong key set.
    Example: '{{"s": "abcabcbb"}}' or '{{"nums": [1, 2, 3], "target": 4}}'
 8. expectedOutput is a JSON STRING (not an object) — must have exactly one key "result".
    Example: '{{"result": 3}}' or '{{"result": [0, 1]}}' or '{{"result": true}}'
    NEVER leave inputData or expectedOutput as an empty string or empty object.
+
+   ── result-value semantics (DRIVER CONTRACT) ──
+   - When inPlace=false (most problems): result is the VALUE the function
+     returns, with the same JSON shape as return_type. Example for
+     twoSum (return=int[]): '{{"result": [0, 1]}}'.
+   - When inPlace=true (pure-mutation problems, e.g. sortColors,
+     reverseString, rotate): result is the FIRST parameter AFTER the
+     in-place mutation, with the same JSON shape as params[0].type. The
+     driver ignores the function's return value in this mode. Example for
+     sortColors(nums=[2,0,2,1,1,0]): '{{"result": [0, 0, 1, 1, 2, 2]}}'.
+   Never put the wrong shape — a scalar where an array is expected (or
+   vice-versa) will WA on every case at submit time.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Think step by step:
