@@ -776,5 +776,3 @@ question_budget là trần tổng (câu chính + follow-up). Ví dụ BEHAVIORAL
 4. Gợi ý/giới hạn thời gian mỗi bài CODING (P2).
 
 Bạn muốn tôi đi sâu phương án kỹ thuật cho mục nào, hay seed bổ sung các blueprint còn thiếu (đặc biệt senior và các role/junior chưa có)?
-</content>
-</invoke>

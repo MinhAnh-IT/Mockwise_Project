@@ -15,4 +15,3 @@
 
 ALTER TABLE behavioral_questions
     ALTER COLUMN competency TYPE VARCHAR(64);
-</content>

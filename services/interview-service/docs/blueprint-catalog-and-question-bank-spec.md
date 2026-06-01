@@ -422,4 +422,3 @@ loại cần tối thiểu:
       không `QUESTION_BANK_UNAVAILABLE`; pin được câu 1.
 - [ ] BEHAVIORAL/CORE chạy hết tới `EndSession` (coverage hoặc budget) → SCORED.
 - [ ] CODING submit đủ slot → mỗi bài có verdict judge (+AI nếu chạy được).
-</content>
