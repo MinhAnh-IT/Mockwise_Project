@@ -22,28 +22,46 @@ public final class BlueprintNormalizer {
 
     private BlueprintNormalizer() {}
 
-    private static final Map<String, String> TRACK_ALIASES = Map.of(
-            "backend",   "BACKEND",
-            "back-end",  "BACKEND",
-            "frontend",  "FRONTEND",
-            "front-end", "FRONTEND",
-            "fullstack", "FULLSTACK",
-            "full-stack","FULLSTACK",
-            "mobile",    "MOBILE",
-            "devops",    "DEVOPS",
-            "qa",        "QA",
-            "data-engineer", "DATA_ENGINEER"
+    // Keys are the lowercased+trimmed user-profile track names. Values are the
+    // canonical blueprint tokens. Must stay in sync with the actual
+    // position_tracks rows in user-profile (see blueprint-catalog-and-question-bank-spec.md
+    // §1.2): "QA/Tester", "AI/ML Engineer", "Data Engineer", "BA", etc.
+    private static final Map<String, String> TRACK_ALIASES = Map.ofEntries(
+            Map.entry("backend",            "BACKEND"),
+            Map.entry("back-end",           "BACKEND"),
+            Map.entry("frontend",           "FRONTEND"),
+            Map.entry("front-end",          "FRONTEND"),
+            Map.entry("fullstack",          "FULLSTACK"),
+            Map.entry("full-stack",         "FULLSTACK"),
+            Map.entry("mobile",             "MOBILE"),
+            Map.entry("devops",             "DEVOPS"),
+            Map.entry("qa",                 "QA"),
+            Map.entry("qa/tester",          "QA"),
+            Map.entry("tester",             "QA"),
+            Map.entry("data engineer",      "DATA_ENGINEER"),
+            Map.entry("data-engineer",      "DATA_ENGINEER"),
+            Map.entry("ai/ml engineer",     "AI_ML"),
+            Map.entry("ai/ml",              "AI_ML"),
+            Map.entry("ml engineer",        "AI_ML"),
+            Map.entry("ba",                 "BA"),
+            Map.entry("business analyst",   "BA")
     );
 
-    private static final Map<String, String> LEVEL_ALIASES = Map.of(
-            "junior", "junior",
-            "intern", "junior",
-            "fresher","junior",
-            "mid",    "mid",
-            "middle", "mid",
-            "senior", "senior",
-            "lead",   "senior",
-            "staff",  "senior"
+    // Maps every seniority label (incl. management/leadership tiers) onto the
+    // three blueprint levels. Director/Manager/Principal/Staff/Lead all fold to
+    // senior — interview difficulty doesn't model an "above senior" tier.
+    private static final Map<String, String> LEVEL_ALIASES = Map.ofEntries(
+            Map.entry("junior",    "junior"),
+            Map.entry("intern",    "junior"),
+            Map.entry("fresher",   "junior"),
+            Map.entry("mid",       "mid"),
+            Map.entry("middle",    "mid"),
+            Map.entry("senior",    "senior"),
+            Map.entry("lead",      "senior"),
+            Map.entry("staff",     "senior"),
+            Map.entry("principal", "senior"),
+            Map.entry("manager",   "senior"),
+            Map.entry("director",  "senior")
     );
 
     /** "Backend" → "BACKEND"; unknown tracks fall through uppercased + non-letters stripped. */
