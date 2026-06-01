@@ -29,7 +29,7 @@ public class BehavioralQuestion {
     String text;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @Column(nullable = false, length = 64)
     Competency competency;
 
     @Type(StringArrayType.class)
