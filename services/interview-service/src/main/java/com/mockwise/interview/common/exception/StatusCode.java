@@ -38,6 +38,7 @@ public enum StatusCode {
 
     // ── Answer state machine ────────────────────────────────────────────────
     ANSWER_NOT_FOUND(4043, "Answer not found", 404),
+    ANSWER_ALREADY_SUBMITTED(4100, "This question has already been answered", 409),
     ANSWER_OWNER_MISMATCH(4032, "Answer does not belong to the caller", 403),
     STORAGE_OBJECT_OWNER_MISMATCH(4033, "Storage object owner mismatch", 403),
     STORAGE_OBJECT_NOT_READY(4093, "Storage object is not READY", 409),

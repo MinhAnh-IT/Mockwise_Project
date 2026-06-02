@@ -28,6 +28,14 @@ const POLL_INTERVAL_MS = 2000;
 /** Business code for SESSION_TIME_UP (interview-service StatusCode). */
 const SESSION_TIME_UP_CODE = 4089;
 
+/**
+ * ANSWER_ALREADY_SUBMITTED — the server enforces one answer per question, so a
+ * reload-during-waiting or a retried submit hits this. The answer is already
+ * in, so we treat it as success and move to `waiting` (the next question / SCORED
+ * arrives via polling).
+ */
+const ANSWER_ALREADY_SUBMITTED_CODE = 4100;
+
 /** Whole-seconds remaining until an ISO deadline, floored at 0. */
 function remainingSecs(deadlineIso: string): number {
   return Math.max(0, Math.floor((Date.parse(deadlineIso) - Date.now()) / 1000));
@@ -101,6 +109,11 @@ export default function PracticeSessionPage() {
         if (latest) {
           setCurrent(latest);
           lastSeenSqIdRef.current = latest.sessionQuestionId;
+          // If the latest pinned question was already answered, the candidate
+          // is mid-wait for the next one (or for scoring) — resume into
+          // `waiting` so the poll picks it up, instead of re-recording an
+          // already-submitted answer.
+          if (latest.answered) setPhase('waiting');
         }
         setQuestionBudget(s.questionCount || latest?.sequence || 5);
         if (s.deadlineAt) {
@@ -179,6 +192,19 @@ export default function PracticeSessionPage() {
     return () => window.clearInterval(id);
   }, [deadline, phase]);
 
+  // Warn before leaving/closing the tab mid-interview so a candidate doesn't
+  // lose an in-progress recording by accident. The server-side reaper still
+  // finalizes the session if they leave anyway, so this is a UX guard only.
+  useEffect(() => {
+    if (phase === 'finishing' || phase === 'finished') return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [phase]);
+
   const handleSubmit = useCallback(
     async (blob: Blob, mimeType: string, uploadedObjectId: string | null) => {
       if (!sid || !current) return;
@@ -206,6 +232,11 @@ export default function PracticeSessionPage() {
           navigate(`/practice/${type}/session/${sid}/report`, { replace: true });
           return;
         }
+        // Already answered (retry / double-submit) — the answer is in; just wait.
+        if (err instanceof ApiError && err.code === ANSWER_ALREADY_SUBMITTED_CODE) {
+          setPhase('waiting');
+          return;
+        }
         const msg =
           err instanceof ApiError
             ? err.message
@@ -228,15 +259,28 @@ export default function PracticeSessionPage() {
       setPhase('submitting');
       setError(null);
       try {
-        await submitAnswer(sid, current.sessionQuestionId, {
+        const out = await submitAnswer(sid, current.sessionQuestionId, {
           type: 'CODE',
           code,
           language,
         });
-        setPhase('waiting');
+        // CODING is non-adaptive: the server pins + returns the next problem
+        // synchronously, so advance immediately (no 2s poll). When it's null
+        // we just submitted the last problem → wait for scoring/finalize.
+        if (out.nextQuestion) {
+          lastSeenSqIdRef.current = out.nextQuestion.sessionQuestionId;
+          setCurrent(out.nextQuestion);
+          setPhase('recording');
+        } else {
+          setPhase('waiting');
+        }
       } catch (err) {
         if (err instanceof ApiError && err.code === SESSION_TIME_UP_CODE) {
           navigate(`/practice/${type}/session/${sid}/report`, { replace: true });
+          return;
+        }
+        if (err instanceof ApiError && err.code === ANSWER_ALREADY_SUBMITTED_CODE) {
+          setPhase('waiting');
           return;
         }
         const msg =
@@ -306,12 +350,12 @@ export default function PracticeSessionPage() {
   // the SessionHeader + QuestionCard + VideoRecorder stack.
   if (current.questionType === 'LIVE_CODING') {
     if (phase === 'waiting' || phase === 'finishing') {
+      // For CODING the next problem is delivered synchronously on submit, so
+      // reaching `waiting` means the last problem is in — we're finalizing.
       return (
         <div className="grid h-screen place-items-center bg-zinc-950 px-6 text-center">
           <p className="text-sm text-zinc-400">
-            {phase === 'finishing'
-              ? 'Đang kết thúc phiên và tổng hợp báo cáo…'
-              : `Đã nộp câu ${current.sequence}. Đang chờ câu tiếp theo…`}
+            Đã nộp bài cuối. Đang chấm và tổng hợp báo cáo…
           </p>
         </div>
       );

@@ -253,6 +253,16 @@ public class SessionService {
                 ? loadAnswersBySessionQuestion(sessionId, typeBySq, userId)
                 : Map.of();
 
+        // Which pinned questions already have an answer — exposed mid-flight as
+        // a non-sensitive boolean so the FE can resume into the right phase on
+        // reload (answered + waiting vs not-yet-answered + recording). Cheap id
+        // load; on the SCORED path we already have the full answer map.
+        java.util.Set<UUID> answeredSqIds = revealFull
+                ? answerBySq.keySet()
+                : answerRepo.findBySessionId(sessionId).stream()
+                        .map(Answer::getSessionQuestionId)
+                        .collect(java.util.stream.Collectors.toSet());
+
         return new SessionView(
                 session.getId(),
                 session.getUserId(),
@@ -285,6 +295,7 @@ public class SessionService {
                                     ? v
                                     : v.withLatestAnswerId(a.answerId()).withAnswer(a);
                         })
+                        .map(v -> v.withAnswered(answeredSqIds.contains(v.sessionQuestionId())))
                         .map(v -> revealFull ? v : v.redacted())
                         .toList(),
                 extractOverallReview(session)

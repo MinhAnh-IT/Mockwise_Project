@@ -15,6 +15,9 @@ public interface AnswerRepository extends JpaRepository<Answer, UUID> {
 
     Optional<Answer> findBySessionQuestionId(UUID sessionQuestionId);
 
+    /** One answer per session_question is the invariant; submit() guards on this. */
+    boolean existsBySessionQuestionId(UUID sessionQuestionId);
+
     Optional<Answer> findByStorageObjectId(UUID storageObjectId);
 
     /**

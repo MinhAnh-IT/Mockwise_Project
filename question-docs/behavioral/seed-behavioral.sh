@@ -38,12 +38,12 @@ echo "== copying dataset + inner script to VPS =="
 scp "$NDJSON" "$INNER" "$REMOTE_HOST:/tmp/"
 
 echo "== seeding (create + TTS + activate) =="
-ssh "$REMOTE_HOST" \
-  NET="$NET" QB_BASE="$QB_BASE" UID_HDR="$UID_HDR" CURL_IMAGE="$CURL_IMAGE" \
-  'docker run --rm \
-     --network "$NET" \
-     -e BASE="$QB_BASE" \
-     -e UID_HDR="$UID_HDR" \
+# Values are interpolated locally (double quotes) so the remote receives literals;
+# quoting each value keeps it intact on the remote shell.
+ssh "$REMOTE_HOST" "docker run --rm \
+     --network '$NET' \
+     -e BASE='$QB_BASE' \
+     -e UID_HDR='$UID_HDR' \
      -v /tmp/behavioral-questions.ndjson:/data.ndjson:ro \
      -v /tmp/seed-inner.sh:/seed-inner.sh:ro \
-     --entrypoint sh "$CURL_IMAGE" /seed-inner.sh'
+     --entrypoint sh '$CURL_IMAGE' /seed-inner.sh"
