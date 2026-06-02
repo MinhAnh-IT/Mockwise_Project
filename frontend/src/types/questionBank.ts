@@ -19,9 +19,27 @@ export type QuestionStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE';
 export type QuestionType = 'BEHAVIORAL' | 'CORE_CONCEPTUAL' | 'LIVE_CODING';
 
 export type Competency =
+  // Amazon Leadership Principles — primary taxonomy for behavioral blueprints.
+  // Must match question-bank `Competency` enum byte-for-byte (cross-service contract).
+  | 'CUSTOMER_OBSESSION'
+  | 'OWNERSHIP'
+  | 'INVENT_AND_SIMPLIFY'
+  | 'ARE_RIGHT_A_LOT'
+  | 'LEARN_AND_BE_CURIOUS'
+  | 'HIRE_AND_DEVELOP_THE_BEST'
+  | 'INSIST_ON_HIGHEST_STANDARDS'
+  | 'THINK_BIG'
+  | 'BIAS_FOR_ACTION'
+  | 'FRUGALITY'
+  | 'EARN_TRUST'
+  | 'DIVE_DEEP'
+  | 'HAVE_BACKBONE_DISAGREE_AND_COMMIT'
+  | 'DELIVER_RESULTS'
+  | 'STRIVE_TO_BE_EARTHS_BEST_EMPLOYER'
+  | 'SUCCESS_AND_SCALE_BROAD_RESPONSIBILITY'
+  // Legacy generic competencies (pre-LP) — kept so already-seeded questions load.
   | 'CONFLICT_RESOLUTION'
   | 'LEADERSHIP'
-  | 'OWNERSHIP'
   | 'TEAMWORK'
   | 'FAILURE'
   | 'GROWTH'
@@ -56,7 +74,7 @@ export type TargetRole =
   | 'DEVOPS'
   | 'QA'
   | 'DATA_ENGINEER'
-  | 'AI';
+  | 'AI_ML';
 
 /** FE-only tab key. Maps 1:1 onto the three create/list endpoints. */
 export type QuestionKind = 'behavioral' | 'core' | 'coding';
@@ -269,9 +287,26 @@ export const KIND_LABEL: Record<QuestionKind, string> = {
 };
 
 export const COMPETENCY_LABEL: Record<Competency, string> = {
+  // Amazon Leadership Principles
+  CUSTOMER_OBSESSION: 'Ám ảnh vì khách hàng',
+  OWNERSHIP: 'Tinh thần làm chủ',
+  INVENT_AND_SIMPLIFY: 'Sáng tạo & đơn giản hoá',
+  ARE_RIGHT_A_LOT: 'Phán đoán chuẩn xác',
+  LEARN_AND_BE_CURIOUS: 'Học hỏi & tò mò',
+  HIRE_AND_DEVELOP_THE_BEST: 'Tuyển & phát triển người giỏi',
+  INSIST_ON_HIGHEST_STANDARDS: 'Giữ tiêu chuẩn cao nhất',
+  THINK_BIG: 'Tư duy lớn',
+  BIAS_FOR_ACTION: 'Ưu tiên hành động',
+  FRUGALITY: 'Tiết kiệm',
+  EARN_TRUST: 'Tạo dựng niềm tin',
+  DIVE_DEEP: 'Đào sâu vấn đề',
+  HAVE_BACKBONE_DISAGREE_AND_COMMIT: 'Phản biện rồi cam kết',
+  DELIVER_RESULTS: 'Tạo ra kết quả',
+  STRIVE_TO_BE_EARTHS_BEST_EMPLOYER: 'Môi trường làm việc tốt nhất',
+  SUCCESS_AND_SCALE_BROAD_RESPONSIBILITY: 'Thành công & trách nhiệm rộng',
+  // Legacy generic competencies
   CONFLICT_RESOLUTION: 'Giải quyết xung đột',
   LEADERSHIP: 'Lãnh đạo',
-  OWNERSHIP: 'Tinh thần làm chủ',
   TEAMWORK: 'Làm việc nhóm',
   FAILURE: 'Đối mặt thất bại',
   GROWTH: 'Phát triển bản thân',
@@ -308,7 +343,7 @@ export const TARGET_ROLE_LABEL: Record<TargetRole, string> = {
   DEVOPS: 'DevOps',
   QA: 'QA',
   DATA_ENGINEER: 'Data Engineer',
-  AI: 'AI Engineer',
+  AI_ML: 'AI / ML Engineer',
 };
 
 export const DIFFICULTIES: Difficulty[] = ['EASY', 'MEDIUM', 'HARD'];
