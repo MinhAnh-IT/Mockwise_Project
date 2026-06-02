@@ -46,6 +46,7 @@ public enum StatusCode {
 
     // ── Blueprint admin ──────────────────────────────────────────────────────
     BLUEPRINT_NO_TOPICS(4002, "Blueprint must have at least one topic", 400),
+    BLUEPRINT_TOPIC_INVALID(4003, "Invalid topic for this interview type: %s", 400),
     BLUEPRINT_DUPLICATE(4096, "Another default blueprint already exists for this (role, level, type)", 409),
     BLUEPRINT_IN_USE(4097, "Cannot delete blueprint — sessions still reference it", 409),
 

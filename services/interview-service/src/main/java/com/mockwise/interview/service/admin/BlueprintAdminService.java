@@ -10,6 +10,7 @@ import com.mockwise.interview.dto.admin.response.BlueprintAdminResponse;
 import com.mockwise.interview.entity.BlueprintTopic;
 import com.mockwise.interview.entity.InterviewBlueprint;
 import com.mockwise.interview.enums.InterviewType;
+import com.mockwise.interview.enums.TopicKind;
 import com.mockwise.interview.repository.InterviewBlueprintRepository;
 import com.mockwise.interview.repository.InterviewSessionRepository;
 import jakarta.persistence.criteria.Predicate;
@@ -43,7 +44,7 @@ public class BlueprintAdminService {
 
     @Transactional
     public BlueprintAdminResponse create(BlueprintCreateRequest req) {
-        validateTopics(req.topics());
+        validateTopics(req.topics(), req.interviewType());
 
         String role = BlueprintNormalizer.normalizeRole(req.targetRole());
         String level = BlueprintNormalizer.normalizeLevel(req.level());
@@ -53,7 +54,7 @@ public class BlueprintAdminService {
                 .targetRole(role)
                 .level(level)
                 .interviewType(req.interviewType())
-                .topics(toEntities(req.topics()))
+                .topics(toEntities(req.topics(), req.interviewType()))
                 .questionBudget(req.questionBudget() != null ? req.questionBudget() : 8)
                 .timeBudgetMinutes(req.timeBudgetMinutes() != null ? req.timeBudgetMinutes() : 45)
                 .maxFollowUpsPerTopic(req.maxFollowUpsPerTopic() != null ? req.maxFollowUpsPerTopic() : 2)
@@ -101,13 +102,13 @@ public class BlueprintAdminService {
 
     @Transactional
     public BlueprintAdminResponse update(UUID id, BlueprintUpdateRequest req) {
-        validateTopics(req.topics());
+        validateTopics(req.topics(), req.interviewType());
         InterviewBlueprint b = load(id);
 
         b.setTargetRole(BlueprintNormalizer.normalizeRole(req.targetRole()));
         b.setLevel(BlueprintNormalizer.normalizeLevel(req.level()));
         b.setInterviewType(req.interviewType());
-        b.setTopics(toEntities(req.topics()));
+        b.setTopics(toEntities(req.topics(), req.interviewType()));
         if (req.questionBudget() != null) b.setQuestionBudget(req.questionBudget());
         if (req.timeBudgetMinutes() != null) b.setTimeBudgetMinutes(req.timeBudgetMinutes());
         if (req.maxFollowUpsPerTopic() != null) b.setMaxFollowUpsPerTopic(req.maxFollowUpsPerTopic());
@@ -168,18 +169,48 @@ public class BlueprintAdminService {
         }
     }
 
-    private static void validateTopics(List<BlueprintTopicDto> topics) {
+    /**
+     * Cross-field topic validation that depends on the interview type — the
+     * piece bean-validation on {@link BlueprintTopicDto} cannot express:
+     * <ul>
+     *   <li>BEHAVIORAL → every topic is a COMPETENCY with a non-blank value;</li>
+     *   <li>CORE → every topic is a DOMAIN with a non-blank value;</li>
+     *   <li>CODING → kind/topicValue are ignored (slot carries only difficulty).</li>
+     * </ul>
+     * The kind defaults to the type's expected kind when omitted, but an
+     * explicit mismatch (e.g. a DOMAIN topic on a BEHAVIORAL blueprint) is
+     * rejected so an admin cannot silently author a blueprint that breaks at
+     * {@code /start}.
+     */
+    private static void validateTopics(List<BlueprintTopicDto> topics, InterviewType type) {
         if (topics == null || topics.isEmpty()) {
             throw new BusinessException(StatusCode.BLUEPRINT_NO_TOPICS);
         }
+        if (type == InterviewType.CODING) {
+            return; // CODING slots only need targetDifficulty (validated by @NotNull on the DTO)
+        }
+        TopicKind expected = type == InterviewType.BEHAVIORAL ? TopicKind.COMPETENCY : TopicKind.DOMAIN;
+        for (BlueprintTopicDto d : topics) {
+            if (d.kind() != null && d.kind() != expected) {
+                throw new BusinessException(StatusCode.BLUEPRINT_TOPIC_INVALID,
+                        type + " topics must be " + expected + ", got " + d.kind());
+            }
+            if (d.topicValue() == null || d.topicValue().isBlank()) {
+                throw new BusinessException(StatusCode.BLUEPRINT_TOPIC_INVALID,
+                        "topicValue is required for " + type + " topics");
+            }
+        }
     }
 
-    private static List<BlueprintTopic> toEntities(List<BlueprintTopicDto> dtos) {
+    private static List<BlueprintTopic> toEntities(List<BlueprintTopicDto> dtos, InterviewType type) {
+        boolean coding = type == InterviewType.CODING;
+        TopicKind expected = type == InterviewType.BEHAVIORAL ? TopicKind.COMPETENCY : TopicKind.DOMAIN;
         List<BlueprintTopic> out = new ArrayList<>(dtos.size());
         for (BlueprintTopicDto d : dtos) {
             out.add(BlueprintTopic.builder()
-                    .kind(d.kind())
-                    .topicValue(d.topicValue() == null ? null : d.topicValue().trim().toUpperCase())
+                    // CODING: store a clean slot (kind/topicValue null) matching the V5 seed.
+                    .kind(coding ? null : expected)
+                    .topicValue(coding || d.topicValue() == null ? null : d.topicValue().trim().toUpperCase())
                     .importance(d.importance())
                     .targetDifficulty(d.targetDifficulty())
                     .orderHint(d.orderHint())

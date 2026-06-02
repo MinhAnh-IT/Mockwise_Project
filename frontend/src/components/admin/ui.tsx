@@ -16,6 +16,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
   CheckCircle2,
+  ClipboardList,
   LayoutDashboard,
   Library,
   Loader2,
@@ -49,6 +50,7 @@ type AdminNavItem = {
 const ADMIN_NAV: AdminNavItem[] = [
   { to: '/admin', label: 'Tổng quan', icon: LayoutDashboard, end: true },
   { to: '/admin/questions', label: 'Ngân hàng câu hỏi', icon: Library },
+  { to: '/admin/blueprints', label: 'Blueprint phỏng vấn', icon: ClipboardList },
 ];
 
 function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {

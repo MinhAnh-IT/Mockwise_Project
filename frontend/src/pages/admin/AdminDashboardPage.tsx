@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   BookOpen,
+  ClipboardList,
   Code2,
   Database,
   MessagesSquare,
@@ -16,6 +17,7 @@ import {
   listCore,
   type ListPage,
 } from '@/api/questionBank';
+import { listBlueprints } from '@/api/blueprint';
 import {
   AdminShell,
   Button,
@@ -93,6 +95,7 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Record<QuestionKind, KindStat> | null>(
     null,
   );
+  const [blueprintTotal, setBlueprintTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,6 +103,13 @@ export default function AdminDashboardPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    listBlueprints({}, 0, 1)
+      .then((res) => {
+        if (!cancelled) setBlueprintTotal(res.totalCount);
+      })
+      .catch(() => {
+        if (!cancelled) setBlueprintTotal(null);
+      });
     Promise.all(KINDS.map((k) => loadKind(k.fetcher)))
       .then(([behavioral, core, coding]) => {
         if (cancelled) return;
@@ -240,6 +250,41 @@ export default function AdminDashboardPage() {
                   </div>
                 );
               })}
+            </div>
+
+            {/* Interview configuration */}
+            <div>
+              <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-on-surface-variant">
+                Cấu hình phỏng vấn
+              </h2>
+              <div className="flex flex-col gap-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+                    <ClipboardList className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-extrabold leading-none text-on-surface">
+                      {fmt(blueprintTotal)}
+                    </p>
+                    <p className="mt-1 text-sm text-on-surface-variant">
+                      blueprint — mẫu cấu hình buổi phỏng vấn theo vị trí · cấp · loại
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/admin/blueprints/new')}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Tạo blueprint
+                  </Button>
+                  <Button variant="ghost" onClick={() => navigate('/admin/blueprints')}>
+                    Quản lý
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
 
             {/* Quick actions */}

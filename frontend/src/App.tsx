@@ -24,6 +24,8 @@ import AdminQuestionsPage from '@/pages/admin/AdminQuestionsPage';
 import BehavioralFormPage from '@/pages/admin/BehavioralFormPage';
 import CoreFormPage from '@/pages/admin/CoreFormPage';
 import CodingFormPage from '@/pages/admin/CodingFormPage';
+import BlueprintsPage from '@/pages/admin/BlueprintsPage';
+import BlueprintFormPage from '@/pages/admin/BlueprintFormPage';
 
 export default function App() {
   return (
@@ -176,6 +178,30 @@ export default function App() {
             element={
               <AdminRoute>
                 <CodingFormPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/blueprints"
+            element={
+              <AdminRoute>
+                <BlueprintsPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/blueprints/new"
+            element={
+              <AdminRoute>
+                <BlueprintFormPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/blueprints/:id/edit"
+            element={
+              <AdminRoute>
+                <BlueprintFormPage />
               </AdminRoute>
             }
           />
