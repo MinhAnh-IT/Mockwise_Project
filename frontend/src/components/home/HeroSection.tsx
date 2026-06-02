@@ -1,9 +1,12 @@
 import { motion } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { fadeIn, staggerContainer } from '@/lib/animations';
+import { useStartHref } from '@/lib/cta';
 import { SITE } from '@/data/site';
 
 export default function HeroSection() {
+  const startHref = useStartHref();
   return (
     <section className="relative overflow-hidden bg-surface-container-lowest px-6 py-20 md:py-32 flex flex-col items-center text-center">
       <motion.div
@@ -36,19 +39,19 @@ export default function HeroSection() {
           variants={fadeIn}
           className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
         >
-          <button
-            type="button"
+          <Link
+            to={startHref}
             className="bg-secondary text-on-secondary px-8 py-3 rounded-xl font-semibold hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-secondary/20"
           >
             Bắt đầu miễn phí
             <ArrowRight className="w-5 h-5" />
-          </button>
-          <button
-            type="button"
-            className="border border-outline-variant text-on-surface px-8 py-3 rounded-xl font-semibold hover:bg-surface-container-low transition-all"
+          </Link>
+          <Link
+            to={startHref}
+            className="border border-outline-variant text-on-surface px-8 py-3 rounded-xl font-semibold hover:bg-surface-container-low transition-all flex items-center justify-center"
           >
             Xem bản dùng thử
-          </button>
+          </Link>
         </motion.div>
 
         <motion.div variants={fadeIn} className="relative w-full max-w-5xl mx-auto">

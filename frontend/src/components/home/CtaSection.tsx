@@ -1,6 +1,9 @@
 import { motion } from 'motion/react';
+import { Link } from 'react-router-dom';
+import { useStartHref } from '@/lib/cta';
 
 export default function CtaSection() {
+  const startHref = useStartHref();
   return (
     <section className="py-24 px-6 md:px-12">
       <motion.div
@@ -21,18 +24,18 @@ export default function CtaSection() {
             Xây dựng phản xạ cần thiết cho những vị trí kỹ thuật cạnh tranh nhất thế giới.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              type="button"
+            <Link
+              to={startHref}
               className="bg-white text-slate-950 px-10 py-4 rounded-2xl font-bold hover:bg-slate-100 transition-colors shadow-xl"
             >
               Tạo tài khoản của bạn
-            </button>
-            <button
-              type="button"
+            </Link>
+            <Link
+              to="/#pricing"
               className="bg-white/5 backdrop-blur-md border border-white/10 text-white px-10 py-4 rounded-2xl font-bold hover:bg-white/10 transition-colors"
             >
               Bảng giá
-            </button>
+            </Link>
           </div>
         </div>
       </motion.div>

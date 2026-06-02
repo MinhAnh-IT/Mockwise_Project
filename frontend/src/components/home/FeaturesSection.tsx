@@ -1,7 +1,10 @@
 import { motion } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { BrainCircuit, CheckCircle2, Code2, Layout } from 'lucide-react';
+import { useStartHref } from '@/lib/cta';
 
 export default function FeaturesSection() {
+  const startHref = useStartHref();
   return (
     <section id="features" className="scroll-mt-16 py-20 px-6 md:px-12 bg-surface">
       <div className="max-w-7xl mx-auto">
@@ -52,12 +55,12 @@ export default function FeaturesSection() {
                 Đi sâu vào lĩnh vực cụ thể của bạn, từ Thiết kế hệ thống đến Quản lý sản phẩm và
                 hơn thế nữa.
               </p>
-              <button
-                type="button"
-                className="w-full py-3 bg-white/20 backdrop-blur-md rounded-xl font-bold border border-white/30 hover:bg-white/30 transition-all text-xs tracking-widest uppercase"
+              <Link
+                to={startHref}
+                className="block text-center w-full py-3 bg-white/20 backdrop-blur-md rounded-xl font-bold border border-white/30 hover:bg-white/30 transition-all text-xs tracking-widest uppercase"
               >
                 Khám phá lĩnh vực
-              </button>
+              </Link>
             </div>
           </motion.div>
 
@@ -91,12 +94,12 @@ export default function FeaturesSection() {
                 Tham gia cùng hơn 50.000 ứng viên ngay hôm nay.
               </p>
             </div>
-            <button
-              type="button"
+            <Link
+              to={startHref}
               className="bg-on-surface text-surface-container-lowest px-8 py-3 rounded-full font-bold hover:scale-105 transition-transform flex items-center gap-2"
             >
               Bắt đầu ngay
-            </button>
+            </Link>
           </motion.div>
         </div>
       </div>

@@ -5,7 +5,15 @@ export type PricingPlan = {
   price: string;
   priceSuffix?: string;
   features: string[];
-  ctaLabel: string;
+  /**
+   * Which CTA destination the card button resolves to (see PricingSection):
+   * - 'start'   → primary sign-up / practice flow
+   * - 'upgrade' → checkout (guests are sent to register first)
+   * Omit to render the card with no button (e.g. "contact sales" plans whose
+   * contact channel isn't wired up yet).
+   */
+  ctaKind?: 'start' | 'upgrade';
+  ctaLabel?: string;
   highlighted?: boolean;
   cardClassName: string;
   ctaClassName: string;
@@ -23,6 +31,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       'Phản hồi AI cơ bản',
       'Truy cập kho tài liệu chung',
     ],
+    ctaKind: 'start',
     ctaLabel: 'Bắt đầu ngay',
     cardClassName:
       'bg-surface-container-lowest p-10 rounded-3xl border border-outline-variant flex flex-col hover:shadow-xl transition-all',
@@ -41,6 +50,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       'Theo dõi ngôn ngữ cơ thể & giọng điệu',
       'Ưu tiên hỗ trợ 24/7',
     ],
+    ctaKind: 'upgrade',
     ctaLabel: 'Nâng cấp ngay',
     highlighted: true,
     cardClassName:
@@ -59,7 +69,8 @@ export const PRICING_PLANS: PricingPlan[] = [
       'Báo cáo tiến độ chi tiết',
       'Tích hợp API hệ thống',
     ],
-    ctaLabel: 'Liên hệ kinh doanh',
+    // "Liên hệ kinh doanh" CTA intentionally omitted for now — no contact
+    // channel wired up yet, so the card renders without a button.
     cardClassName:
       'bg-surface-container-lowest p-10 rounded-3xl border border-outline-variant flex flex-col hover:shadow-xl transition-all',
     ctaClassName:
