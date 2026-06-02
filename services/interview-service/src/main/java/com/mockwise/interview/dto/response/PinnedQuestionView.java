@@ -59,7 +59,14 @@ public record PinnedQuestionView(
         // render the per-question detail card without a follow-up call to
         // /answers/{aid}. Mid-flight responses leave this null via
         // {@link #redacted}.
-        AnswerView answer
+        AnswerView answer,
+        // Mid-flight UX flag: whether this pinned question already has an
+        // answer. Lets the FE restore the correct phase on reload — a
+        // candidate who already answered and is waiting for the next question
+        // must resume into "waiting", not re-record an answered question.
+        // Non-sensitive (leaks no rubric), so {@link #redacted} keeps it.
+        // Null when unknown (e.g. the freshly-pinned first question).
+        Boolean answered
 ) {
 
     /** Build from an entity. {@code audioUrl} stays null — call {@link #withSignedAudio}. */
@@ -89,7 +96,8 @@ public record PinnedQuestionView(
                 /* audioUrl */ null,
                 expectedPoints,
                 /* latestAnswerId */ null,
-                /* answer */ null
+                /* answer */ null,
+                /* answered */ null
         );
     }
 
@@ -111,7 +119,7 @@ public record PinnedQuestionView(
                 sessionQuestionId, sequence, questionId, questionType,
                 topicKind, topicValue, difficulty, source, isFollowUp,
                 parentSessionQuestionId, text, audioKey, url, expectedPoints,
-                latestAnswerId, answer);
+                latestAnswerId, answer, answered);
     }
 
     /**
@@ -126,7 +134,7 @@ public record PinnedQuestionView(
                 sessionQuestionId, sequence, questionId, questionType,
                 topicKind, topicValue, difficulty, source, isFollowUp,
                 parentSessionQuestionId, text, audioKey, audioUrl, expectedPoints,
-                answerId, answer);
+                answerId, answer, answered);
     }
 
     /**
@@ -141,7 +149,16 @@ public record PinnedQuestionView(
                 sessionQuestionId, sequence, questionId, questionType,
                 topicKind, topicValue, difficulty, source, isFollowUp,
                 parentSessionQuestionId, text, audioKey, audioUrl, expectedPoints,
-                latestAnswerId, answerView);
+                latestAnswerId, answerView, answered);
+    }
+
+    /** Returns a copy with the mid-flight {@code answered} flag set. */
+    public PinnedQuestionView withAnswered(boolean wasAnswered) {
+        return new PinnedQuestionView(
+                sessionQuestionId, sequence, questionId, questionType,
+                topicKind, topicValue, difficulty, source, isFollowUp,
+                parentSessionQuestionId, text, audioKey, audioUrl, expectedPoints,
+                latestAnswerId, answer, wasAnswered);
     }
 
     /**
@@ -175,7 +192,8 @@ public record PinnedQuestionView(
                 audioUrl,
                 /* expectedPoints */ null,
                 /* latestAnswerId */ null,
-                /* answer */ null);
+                /* answer */ null,
+                answered);
     }
 
     @SuppressWarnings("unchecked")

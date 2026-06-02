@@ -66,6 +66,11 @@ export type PinnedQuestionView = {
   // per-question card without a follow-up call to /answers/{aid}. Same null
   // semantics as latestAnswerId.
   answer: AnswerView | null;
+  // Mid-flight flag: whether this pinned question already has an answer. Lets
+  // the session page resume into the correct phase after a reload (answered →
+  // "waiting" for the next question, not re-recording). Absent on the start
+  // path (treat as not answered).
+  answered?: boolean | null;
 };
 
 export type StartSessionInput = {
@@ -98,6 +103,10 @@ export type SubmitAnswerOutput = {
   answerId: string;
   status: AnswerStatus;
   submittedAt: string;
+  // CODING only: the next problem, pinned synchronously at submit, so the FE
+  // advances immediately without polling. Null/absent for adaptive (VIDEO),
+  // where the next question is gated on async scoring.
+  nextQuestion?: PinnedQuestionView | null;
 };
 
 /**

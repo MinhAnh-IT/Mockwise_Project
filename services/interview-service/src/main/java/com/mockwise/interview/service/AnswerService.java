@@ -44,6 +44,7 @@ import com.mockwise.interview.repository.SessionQuestionRepository;
 import com.mockwise.interview.repository.SessionTopicStateRepository;
 import com.mockwise.interview.dto.request.SubmitAnswerInput;
 import com.mockwise.interview.dto.response.CodingProblemView;
+import com.mockwise.interview.dto.response.PinnedQuestionView;
 import com.mockwise.interview.dto.response.SubmitAnswerOutput;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -130,6 +131,13 @@ public class AnswerService {
         if (!sq.getSessionId().equals(sessionId)) {
             throw new BusinessException(StatusCode.QUESTION_NOT_IN_SESSION);
         }
+        // One answer per session_question (the planner runs once per question;
+        // a duplicate would double-score a topic / over-count the budget). A
+        // reload-during-waiting or a retried submit lands here — reject cleanly
+        // so the FE can treat it as "already submitted" and resume waiting.
+        if (answerRepo.existsBySessionQuestionId(sessionQuestionId)) {
+            throw new BusinessException(StatusCode.ANSWER_ALREADY_SUBMITTED);
+        }
 
         // Pre-flight checks specific to type. For VIDEO we keep the storage
         // metadata around — tts-stt's `answer-submitted` consumer needs the
@@ -163,13 +171,31 @@ public class AnswerService {
 
         // CODING is non-adaptive — the next problem isn't gated on judge /
         // AI like the video flow's planner. Pin it right now (Task.md:
-        // "khi user submit … load câu tiếp theo lên lập tức") so the FE's
-        // next poll already sees it; scoring runs async in the background.
+        // "khi user submit … load câu tiếp theo lên lập tức") and return it so
+        // the FE advances immediately (no poll). Scoring runs async in the
+        // background. For VIDEO the next question is planner-gated → null.
+        PinnedQuestionView nextQuestion = null;
         if (input.type() == AnswerType.CODE) {
             pinNextCodingIfAny(session, sq);
+            nextQuestion = loadNextPinnedRedacted(session.getId(), sq.getSequence() + 1);
         }
 
-        return new SubmitAnswerOutput(answer.getId(), answer.getStatus(), answer.getSubmittedAt());
+        return new SubmitAnswerOutput(
+                answer.getId(), answer.getStatus(), answer.getSubmittedAt(), nextQuestion);
+    }
+
+    /**
+     * Loads the just-pinned next coding question (by sequence) as a redacted
+     * view, or null if the plan is exhausted (last problem submitted). Coding
+     * questions carry no audio, so no URL signing is needed.
+     */
+    private PinnedQuestionView loadNextPinnedRedacted(UUID sessionId, int sequence) {
+        return sessionQuestionRepo.findBySessionIdOrderBySequenceAsc(sessionId).stream()
+                .filter(q -> q.getSequence() == sequence)
+                .findFirst()
+                .map(PinnedQuestionView::fromEntity)
+                .map(PinnedQuestionView::redacted)
+                .orElse(null);
     }
 
     private StorageObjectResponse verifyStorageObject(UUID storageObjectId, String userId) {
