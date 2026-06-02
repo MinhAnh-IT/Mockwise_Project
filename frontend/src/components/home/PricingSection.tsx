@@ -1,3 +1,6 @@
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/auth/useAuth';
+import { useStartHref } from '@/lib/cta';
 import PricingItem from '@/components/ui/PricingItem';
 import { PRICING_PLANS, type PricingPlan } from '@/data/pricing';
 
@@ -23,6 +26,14 @@ export default function PricingSection() {
 }
 
 function PricingPlanCard({ plan }: { plan: PricingPlan }) {
+  const startHref = useStartHref();
+  const { status, role } = useAuth();
+  // 'upgrade' goes straight to checkout for signed-in users; guests register
+  // first, and admins (no payment surface) land on the console.
+  const upgradeHref =
+    status === 'authenticated' ? (role === 'ADMIN' ? '/admin' : '/payment') : '/register';
+  const ctaHref = plan.ctaKind === 'upgrade' ? upgradeHref : startHref;
+
   return (
     <div className={plan.cardClassName}>
       {plan.highlighted && (
@@ -45,9 +56,11 @@ function PricingPlanCard({ plan }: { plan: PricingPlan }) {
           <PricingItem key={feature} text={feature} />
         ))}
       </div>
-      <button type="button" className={plan.ctaClassName}>
-        {plan.ctaLabel}
-      </button>
+      {plan.ctaKind && (
+        <Link to={ctaHref} className={`block text-center ${plan.ctaClassName}`}>
+          {plan.ctaLabel}
+        </Link>
+      )}
     </div>
   );
 }
