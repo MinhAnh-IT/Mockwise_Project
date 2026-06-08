@@ -14,6 +14,7 @@ import {
 } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import {
+  Activity,
   AlertCircle,
   CheckCircle2,
   ClipboardCheck,
@@ -57,6 +58,7 @@ const ADMIN_NAV: AdminNavItem[] = [
   { to: '/admin/interviews', label: 'Buổi phỏng vấn', icon: ClipboardCheck },
   { to: '/admin/profiles', label: 'Người dùng', icon: Users },
   { to: '/admin/catalog', label: 'Vị trí & Cấp độ', icon: Layers },
+  { to: '/admin/monitoring', label: 'Giám sát hệ thống', icon: Activity },
 ];
 
 function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
