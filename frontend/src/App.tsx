@@ -29,6 +29,7 @@ import BlueprintFormPage from '@/pages/admin/BlueprintFormPage';
 import AdminProfilesPage from '@/pages/admin/AdminProfilesPage';
 import AdminCatalogPage from '@/pages/admin/AdminCatalogPage';
 import AdminInterviewsPage from '@/pages/admin/AdminInterviewsPage';
+import AdminMonitoringPage from '@/pages/admin/AdminMonitoringPage';
 
 export default function App() {
   return (
@@ -229,6 +230,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <AdminInterviewsPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/monitoring"
+            element={
+              <AdminRoute>
+                <AdminMonitoringPage />
               </AdminRoute>
             }
           />
