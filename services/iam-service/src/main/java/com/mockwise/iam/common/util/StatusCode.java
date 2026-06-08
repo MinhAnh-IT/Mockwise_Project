@@ -20,6 +20,9 @@ public enum StatusCode {
     ACCOUNT_NOT_FOUND(4003, "Account not found", 404),
     USER_ALREADY_EXISTS(4002, "Email %s already exists", 409),
     CREATE_PROFILE_FAILED(4001, "Create profile failed", 500),
+    ACCOUNT_BLOCKED(4351, "Account has been blocked", 403),
+    CANNOT_BLOCK_SELF(4352, "You cannot block your own account", 400),
+    CANNOT_BLOCK_ADMIN(4353, "Admin accounts cannot be blocked", 400),
 
     // --- OTP ---
     INVALID_OTP(4004, "Invalid OTP", 400),

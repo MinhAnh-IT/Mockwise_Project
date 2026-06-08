@@ -6,5 +6,6 @@ public record UserResponse(
         String userId,
         String email,
         Role role,
-        boolean isVerified
+        boolean isVerified,
+        boolean blocked
 ) {}

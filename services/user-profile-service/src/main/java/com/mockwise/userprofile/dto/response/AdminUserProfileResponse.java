@@ -9,6 +9,7 @@ public record AdminUserProfileResponse(
         String fullName,
         String email,
         Boolean isVerified,
+        Boolean blocked,
         PositionResponse position,
         String city,
         Integer experience,

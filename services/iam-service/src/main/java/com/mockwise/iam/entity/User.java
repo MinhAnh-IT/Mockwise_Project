@@ -37,4 +37,14 @@ public class User {
     @Column(nullable = false)
     @Builder.Default
     boolean isVerified = false;
+
+    /**
+     * Admin-controlled ban flag. When true the account cannot sign in and any
+     * live session is killed (block bumps {@code tokenVersion} and revokes all
+     * refresh tokens). Distinct from {@code isVerified}: a verified user can
+     * still be blocked.
+     */
+    @Column(nullable = false)
+    @Builder.Default
+    boolean blocked = false;
 }

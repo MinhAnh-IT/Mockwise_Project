@@ -62,6 +62,10 @@ public class AuthService {
             throw new BusinessException(StatusCode.ACCOUNT_NOT_VERIFIED);
         }
 
+        if (user.isBlocked()) {
+            throw new BusinessException(StatusCode.ACCOUNT_BLOCKED);
+        }
+
         AuthenticatedUser authenticatedUser = userMapper.toAuthenticatedUser(user);
         String accessToken = tokenService.generateAccessToken(authenticatedUser);
         String refreshToken = tokenService.generateRefreshToken(user.getUserId(), UUID.randomUUID().toString());
@@ -107,7 +111,7 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ResponseCode.NOT_FOUND, "User not found: " + userId));
 
-        if (refreshTokenService.isRevoked(tokenId) || tokenVersion < user.getTokenVersion()) {
+        if (refreshTokenService.isRevoked(tokenId) || tokenVersion < user.getTokenVersion() || user.isBlocked()) {
             throw new BusinessException(ResponseCode.UNAUTHORIZED);
         }
 
@@ -210,7 +214,7 @@ public class AuthService {
                     .map(Number::intValue)
                     .orElseThrow(() -> new BusinessException(StatusCode.INVALID_TOKEN));
 
-            boolean active = tokenVer >= user.getTokenVersion();
+            boolean active = tokenVer >= user.getTokenVersion() && !user.isBlocked();
             return new TokenIntrospectResponse(active, userId, username, role, exp);
         } catch (Exception e) {
             return new TokenIntrospectResponse(false, null, null, null, 0L);
