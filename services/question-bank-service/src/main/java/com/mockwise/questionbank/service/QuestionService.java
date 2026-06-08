@@ -377,6 +377,49 @@ public class QuestionService {
         log.info("Audio key updated for question id={}", id);
     }
 
+    /**
+     * Re-run TTS for a BEHAVIORAL / CORE question from its current text and
+     * persist the fresh object key. Lets an admin recover audio that failed to
+     * generate (TTS outage at create time) or refresh a clip without having to
+     * re-save the whole question. On TTS failure the audio key is left
+     * untouched and the call surfaces an error so the admin can retry.
+     *
+     * @return the new audio object key
+     */
+    @Transactional
+    public String regenerateAudio(String id) {
+        Question base = questionRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(StatusCode.QUESTION_NOT_FOUND));
+
+        return switch (base.getType()) {
+            case BEHAVIORAL -> {
+                BehavioralQuestion bq = behavioralRepository.findById(id)
+                        .orElseThrow(() -> new BusinessException(StatusCode.QUESTION_NOT_FOUND));
+                TtsClient.TtsResult tts = ttsClient.synthesize(id, bq.getText());
+                if (!tts.success()) {
+                    throw new BusinessException(StatusCode.AUDIO_GENERATION_FAILED);
+                }
+                bq.setAudioKey(tts.objectKey());
+                behavioralRepository.save(bq);
+                log.info("Regenerated audio for behavioral question id={} audio_key={}", id, tts.objectKey());
+                yield tts.objectKey();
+            }
+            case CORE_CONCEPTUAL -> {
+                CoreQuestion cq = coreRepository.findById(id)
+                        .orElseThrow(() -> new BusinessException(StatusCode.QUESTION_NOT_FOUND));
+                TtsClient.TtsResult tts = ttsClient.synthesize(id, cq.getText());
+                if (!tts.success()) {
+                    throw new BusinessException(StatusCode.AUDIO_GENERATION_FAILED);
+                }
+                cq.setAudioKey(tts.objectKey());
+                coreRepository.save(cq);
+                log.info("Regenerated audio for core question id={} audio_key={}", id, tts.objectKey());
+                yield tts.objectKey();
+            }
+            case LIVE_CODING -> throw new BusinessException(StatusCode.AUDIO_NOT_SUPPORTED);
+        };
+    }
+
     @Transactional(readOnly = true)
     public String getAudioKey(String id) {
         Question base = questionRepository.findById(id)

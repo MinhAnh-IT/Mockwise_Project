@@ -10,6 +10,7 @@ import {
   updateStatus,
   type ListPage,
 } from '@/api/questionBank';
+import QuestionAudioRow from '@/components/admin/QuestionAudio';
 import {
   AdminShell,
   Button,
@@ -222,6 +223,12 @@ export default function AdminQuestionsPage() {
       state: { record: q },
     });
 
+  // Reflect a freshly (re)generated audio key on the card without a refetch.
+  const onAudioUpdated = (id: string, audioKey: string) =>
+    setItems((list) =>
+      list.map((it) => (it.id === id ? { ...it, audioKey } : it)),
+    );
+
   return (
     <AdminShell
       title="Ngân hàng câu hỏi"
@@ -349,6 +356,8 @@ export default function AdminQuestionsPage() {
               onEdit={() => goEdit(q)}
               onDelete={() => setPendingDelete(q)}
               onStatus={(s) => onChangeStatus(q, s)}
+              onToast={setToast}
+              onAudioUpdated={onAudioUpdated}
             />
           ))}
           {hasNext && (
@@ -385,12 +394,16 @@ function QuestionCard({
   onEdit,
   onDelete,
   onStatus,
+  onToast,
+  onAudioUpdated,
 }: {
   kind: QuestionKind;
   q: AnyQuestion;
   onEdit: () => void;
   onDelete: () => void;
   onStatus: (s: QuestionStatus) => void;
+  onToast: (t: ToastState) => void;
+  onAudioUpdated: (id: string, audioKey: string) => void;
 }) {
   const title =
     kind === 'coding'
@@ -443,6 +456,17 @@ function QuestionCard({
                   #{t}
                 </span>
               ))}
+            </div>
+          )}
+
+          {kind !== 'coding' && (
+            <div className="mt-2">
+              <QuestionAudioRow
+                questionId={q.id}
+                audioKey={(q as BehavioralQuestion | CoreQuestion).audioKey ?? null}
+                onToast={onToast}
+                onUpdated={(key) => onAudioUpdated(q.id, key)}
+              />
             </div>
           )}
 

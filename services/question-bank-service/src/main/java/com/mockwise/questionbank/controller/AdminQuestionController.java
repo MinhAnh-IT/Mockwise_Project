@@ -169,4 +169,14 @@ public class AdminQuestionController {
         questionService.updateAudioKey(id, body.getAudioKey());
         return ResponseEntity.ok(ApiResponse.success(null));
     }
+
+    /**
+     * Re-synthesize the question's audio via TTS from its current text and
+     * return the new object key. Lets an admin recover/refresh audio without
+     * re-saving the whole question. BEHAVIORAL / CORE only.
+     */
+    @PostMapping("/{id}/audio/regenerate")
+    public ResponseEntity<ApiResponse<String>> regenerateAudio(@PathVariable String id) {
+        return ResponseEntity.ok(ApiResponse.success(questionService.regenerateAudio(id)));
+    }
 }
