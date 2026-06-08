@@ -26,6 +26,9 @@ import CoreFormPage from '@/pages/admin/CoreFormPage';
 import CodingFormPage from '@/pages/admin/CodingFormPage';
 import BlueprintsPage from '@/pages/admin/BlueprintsPage';
 import BlueprintFormPage from '@/pages/admin/BlueprintFormPage';
+import AdminProfilesPage from '@/pages/admin/AdminProfilesPage';
+import AdminCatalogPage from '@/pages/admin/AdminCatalogPage';
+import AdminInterviewsPage from '@/pages/admin/AdminInterviewsPage';
 
 export default function App() {
   return (
@@ -202,6 +205,30 @@ export default function App() {
             element={
               <AdminRoute>
                 <BlueprintFormPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/profiles"
+            element={
+              <AdminRoute>
+                <AdminProfilesPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/catalog"
+            element={
+              <AdminRoute>
+                <AdminCatalogPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/interviews"
+            element={
+              <AdminRoute>
+                <AdminInterviewsPage />
               </AdminRoute>
             }
           />

@@ -359,3 +359,43 @@ export type SessionView = {
   questions: PinnedQuestionView[];
   overallReview: OverallReviewView | null;
 };
+
+// ── Admin oversight (read-only) ──────────────────────────────────────────────
+
+/**
+ * One row of the admin session list (AdminSessionResponse). Shallow by design:
+ * lifecycle + scoring metadata only, never the answers/questions — admins
+ * oversee and report, they do not inspect a session's contents.
+ */
+export type AdminSession = {
+  id: string;
+  userId: string;
+  targetRole: string | null;
+  level: string | null;
+  interviewType: InterviewType | null;
+  status: SessionStatus;
+  questionCount: number;
+  finalScore: number | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  scoredAt: string | null;
+  createdAt: string;
+};
+
+export type AdminSessionFilters = {
+  userId?: string;
+  status?: SessionStatus;
+  interviewType?: InterviewType;
+  targetRole?: string;
+  level?: string;
+  from?: string;
+  to?: string;
+};
+
+/** Mirrors AdminSessionStatsResponse. */
+export type InterviewSessionStats = {
+  totalSessions: number;
+  byStatus: Record<string, number>;
+  byType: Record<string, number>;
+  averageScore: number | null;
+};
