@@ -10,6 +10,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface UserMapper {
     @Mapping(target = "isVerified", ignore = true)
+    @Mapping(target = "blocked", ignore = true)
     @Mapping(target = "tokenVersion", ignore = true)
     @Mapping(target = "userId", ignore = true)
     @Mapping(target = "role", ignore = true)

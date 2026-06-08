@@ -6,6 +6,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -16,7 +17,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface InterviewSessionRepository extends JpaRepository<InterviewSession, UUID> {
+public interface InterviewSessionRepository
+        extends JpaRepository<InterviewSession, UUID>, JpaSpecificationExecutor<InterviewSession> {
 
     List<InterviewSession> findByUserIdOrderByCreatedAtDesc(String userId);
 
@@ -83,4 +85,21 @@ public interface InterviewSessionRepository extends JpaRepository<InterviewSessi
                AND now() > started_at + (time_budget_minutes * interval '1 minute')
             """, nativeQuery = true)
     int completeOverBudgetInProgressSessions();
+
+    // ── Admin stats (native + scalar on purpose) ────────────────────────────
+    // Aggregating over the raw columns avoids hydrating InterviewSession, so a
+    // legacy row with an interview_type no longer in the Java enum can't abort
+    // the whole stats query (same reasoning as the reaper queries above).
+
+    /** {@code [status, count]} rows across all sessions. */
+    @Query(value = "SELECT status, COUNT(*) FROM interview_session GROUP BY status", nativeQuery = true)
+    List<Object[]> countGroupedByStatus();
+
+    /** {@code [interview_type, count]} rows; interview_type may be null. */
+    @Query(value = "SELECT interview_type, COUNT(*) FROM interview_session GROUP BY interview_type", nativeQuery = true)
+    List<Object[]> countGroupedByType();
+
+    /** Mean final score over scored sessions, or null when none have a score. */
+    @Query(value = "SELECT AVG(final_score) FROM interview_session WHERE final_score IS NOT NULL", nativeQuery = true)
+    Double averageFinalScore();
 }

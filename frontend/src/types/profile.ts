@@ -65,3 +65,56 @@ export type PositionLevel = {
   positionRole: string;
   active: boolean;
 };
+
+// ── Admin views ──────────────────────────────────────────────────────────────
+
+/**
+ * One row of the admin profile list (AdminUserProfileResponse). Differs from the
+ * self/service `UserProfile` shape: it carries IAM-joined `email`/`isVerified`
+ * and the raw `avatarObjectKey` is omitted (admin list has no signed avatar URL).
+ */
+export type AdminUserProfile = {
+  userId: string;
+  fullName: string;
+  email: string | null;
+  isVerified: boolean | null;
+  /** Admin ban flag (from IAM). A blocked user cannot sign in. */
+  blocked: boolean | null;
+  position: Position;
+  city: string;
+  experience: number;
+  techStack?: string[];
+  preferredLanguage?: Language;
+  yearsInCurrentRole?: number | null;
+  industries?: string[];
+};
+
+export type AdminProfileFilters = {
+  trackId?: string;
+  levelId?: string;
+  keyword?: string;
+};
+
+/** Mirrors the shared `com.core.apiresponse.pagination.PageResponse`. */
+export type PageResult<T> = {
+  items: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  numberOfElements: number;
+};
+
+export type ProfileStats = {
+  totalProfiles: number;
+};
+
+export type PositionTrackInput = {
+  name: string;
+  active?: boolean;
+};
+
+export type PositionLevelInput = {
+  positionRole: string;
+  active?: boolean;
+};

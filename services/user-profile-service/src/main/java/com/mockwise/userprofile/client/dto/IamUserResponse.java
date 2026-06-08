@@ -9,7 +9,8 @@ import lombok.Builder;
 public record IamUserResponse(
         String userId,
         String email,
-        Boolean isVerified
+        Boolean isVerified,
+        Boolean blocked
 ) {
 }
 

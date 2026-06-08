@@ -2,12 +2,10 @@ package com.mockwise.userprofile.controller;
 
 import com.core.apiresponse.pagination.PageResponse;
 import com.core.apiresponse.response.ApiResponse;
-import com.mockwise.userprofile.dto.request.UserProfileUpdateRequest;
 import com.mockwise.userprofile.dto.response.AdminUserProfileResponse;
 import com.mockwise.userprofile.dto.response.ProfileStatsResponse;
 import com.mockwise.userprofile.dto.response.UserProfileResponse;
 import com.mockwise.userprofile.service.UserProfileService;
-import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -45,14 +43,6 @@ public class AdminUserProfileController {
     @GetMapping("/{userId}")
     public ResponseEntity<ApiResponse<UserProfileResponse>> getProfile(@PathVariable String userId) {
         UserProfileResponse result = userProfileService.getProfileById(userId);
-        return ResponseEntity.ok(ApiResponse.success(result));
-    }
-
-    @PatchMapping("/{userId}")
-    public ResponseEntity<ApiResponse<UserProfileResponse>> updateProfile(
-            @PathVariable String userId,
-            @Valid @RequestBody UserProfileUpdateRequest request) {
-        UserProfileResponse result = userProfileService.updateProfileAsAdmin(userId, request);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 

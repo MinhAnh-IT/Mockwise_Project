@@ -37,7 +37,9 @@ public interface UserProfileMapper {
     @Mapping(source = "profile.industries", target = "industries")
     @Mapping(source = "email", target = "email")
     @Mapping(source = "isVerified", target = "isVerified")
-    AdminUserProfileResponse toAdminResponse(UserProfileResponse profile, String email, Boolean isVerified);
+    @Mapping(source = "blocked", target = "blocked")
+    AdminUserProfileResponse toAdminResponse(
+            UserProfileResponse profile, String email, Boolean isVerified, Boolean blocked);
 
     default ProfileStatsResponse toStatsResponse(long totalProfiles) {
         ProfileStatsResponse stats = new ProfileStatsResponse();

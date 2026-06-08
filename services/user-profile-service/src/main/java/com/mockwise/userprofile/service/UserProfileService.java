@@ -215,25 +215,11 @@ public class UserProfileService {
             IamUserResponse userInfo = iamUserService.getUserInfo(profile.userId());
             String email = userInfo.email() != null ? userInfo.email() : "";
             boolean isVerified = Boolean.TRUE.equals(userInfo.isVerified());
-            enrichedProfiles.add(userProfileMapper.toAdminResponse(profile, email, isVerified));
+            boolean blocked = Boolean.TRUE.equals(userInfo.blocked());
+            enrichedProfiles.add(userProfileMapper.toAdminResponse(profile, email, isVerified, blocked));
         }
 
         return new PageImpl<>(enrichedProfiles, pageable, profiles.getTotalElements());
-    }
-
-    @Transactional
-    public UserProfileResponse updateProfileAsAdmin(String userId, UserProfileUpdateRequest request) {
-        UserProfile profile = userProfileRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ResponseCode.NOT_FOUND,
-                        "Profile not found for user: " + userId));
-
-        userProfileMapper.updateEntityFromDto(request, profile);
-        applyPositionUpdate(profile, request);
-        normalizeAndValidate(profile);
-
-        UserProfile saved = userProfileRepository.save(profile);
-        log.info("Admin updated user profile for userId={}", userId);
-        return toEnrichedResponse(saved);
     }
 
     public ProfileStatsResponse getProfileStats() {

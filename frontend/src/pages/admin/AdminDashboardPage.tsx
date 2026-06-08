@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   BookOpen,
+  ClipboardCheck,
   ClipboardList,
   Code2,
   Database,
+  Layers,
   MessagesSquare,
   Plus,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 import { ApiError } from '@/api/client';
@@ -18,6 +21,8 @@ import {
   type ListPage,
 } from '@/api/questionBank';
 import { listBlueprints } from '@/api/blueprint';
+import { getProfileStats } from '@/api/adminProfile';
+import { getSessionStats } from '@/api/adminInterviews';
 import {
   AdminShell,
   Button,
@@ -96,6 +101,8 @@ export default function AdminDashboardPage() {
     null,
   );
   const [blueprintTotal, setBlueprintTotal] = useState<number | null>(null);
+  const [profileTotal, setProfileTotal] = useState<number | null>(null);
+  const [sessionTotal, setSessionTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,6 +116,20 @@ export default function AdminDashboardPage() {
       })
       .catch(() => {
         if (!cancelled) setBlueprintTotal(null);
+      });
+    getProfileStats()
+      .then((s) => {
+        if (!cancelled) setProfileTotal(s.totalProfiles);
+      })
+      .catch(() => {
+        if (!cancelled) setProfileTotal(null);
+      });
+    getSessionStats()
+      .then((s) => {
+        if (!cancelled) setSessionTotal(s.totalSessions);
+      })
+      .catch(() => {
+        if (!cancelled) setSessionTotal(null);
       });
     Promise.all(KINDS.map((k) => loadKind(k.fetcher)))
       .then(([behavioral, core, coding]) => {
@@ -281,6 +302,82 @@ export default function AdminDashboardPage() {
                   </Button>
                   <Button variant="ghost" onClick={() => navigate('/admin/blueprints')}>
                     Quản lý
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+                    <ClipboardCheck className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-extrabold leading-none text-on-surface">
+                      {fmt(sessionTotal)}
+                    </p>
+                    <p className="mt-1 text-sm text-on-surface-variant">
+                      buổi phỏng vấn đã diễn ra — chỉ xem &amp; thống kê
+                    </p>
+                  </div>
+                </div>
+                <Button variant="ghost" onClick={() => navigate('/admin/interviews')}>
+                  Xem &amp; thống kê
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* User & catalog management */}
+            <div>
+              <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-on-surface-variant">
+                Người dùng & danh mục
+              </h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+                      <Users className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-extrabold leading-none text-on-surface">
+                        {fmt(profileTotal)}
+                      </p>
+                      <p className="mt-1 text-xs text-on-surface-variant">
+                        hồ sơ người dùng
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    className="mt-4 self-start"
+                    onClick={() => navigate('/admin/profiles')}
+                  >
+                    Quản lý hồ sơ
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="flex flex-col rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                      <Layers className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-on-surface">
+                        Vị trí & Cấp độ
+                      </p>
+                      <p className="mt-0.5 text-xs text-on-surface-variant">
+                        Lĩnh vực (tracks) + cấp độ (levels)
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    className="mt-4 self-start"
+                    onClick={() => navigate('/admin/catalog')}
+                  >
+                    Quản lý danh mục
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>

@@ -16,12 +16,15 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
   CheckCircle2,
+  ClipboardCheck,
   ClipboardList,
+  Layers,
   LayoutDashboard,
   Library,
   Loader2,
   LogOut,
   Menu,
+  Users,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -51,6 +54,9 @@ const ADMIN_NAV: AdminNavItem[] = [
   { to: '/admin', label: 'Tổng quan', icon: LayoutDashboard, end: true },
   { to: '/admin/questions', label: 'Ngân hàng câu hỏi', icon: Library },
   { to: '/admin/blueprints', label: 'Blueprint phỏng vấn', icon: ClipboardList },
+  { to: '/admin/interviews', label: 'Buổi phỏng vấn', icon: ClipboardCheck },
+  { to: '/admin/profiles', label: 'Người dùng', icon: Users },
+  { to: '/admin/catalog', label: 'Vị trí & Cấp độ', icon: Layers },
 ];
 
 function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
