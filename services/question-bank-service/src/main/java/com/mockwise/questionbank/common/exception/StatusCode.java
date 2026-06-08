@@ -15,6 +15,7 @@ public enum StatusCode {
     QUESTION_TYPE_MISMATCH(4001, "Question type does not match the requested operation", 400),
     AUDIO_NOT_SUPPORTED(4002, "Audio is only supported for BEHAVIORAL and CORE_CONCEPTUAL questions", 400),
     AUDIO_NOT_AVAILABLE(4003, "Audio is not available for this question yet", 404),
+    AUDIO_GENERATION_FAILED(5024, "Audio generation failed — TTS service is unavailable. Please try again.", 502),
     FOR_JUDGE_NOT_SUPPORTED(4004, "for-judge payload is only available for LIVE_CODING questions", 400),
 
     // --- Validation ---

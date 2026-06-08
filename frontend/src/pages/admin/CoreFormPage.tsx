@@ -16,6 +16,7 @@ import {
   Toast,
   type ToastState,
 } from '@/components/admin/ui';
+import QuestionAudioRow from '@/components/admin/QuestionAudio';
 import {
   DIFFICULTIES,
   DIFFICULTY_LABEL,
@@ -50,6 +51,7 @@ export default function CoreFormPage() {
   const [keyConcepts, setKeyConcepts] = useState<string[]>([]);
   const [depthExpected, setDepthExpected] = useState('');
   const [tags, setTags] = useState<string[]>([]);
+  const [audioKey, setAudioKey] = useState<string | null>(null);
 
   const [errors, setErrors] = useState<Errors>({});
   const [toast, setToast] = useState<ToastState>(null);
@@ -65,6 +67,7 @@ export default function CoreFormPage() {
     setKeyConcepts(q.keyConcepts ?? []);
     setDepthExpected(q.depthExpected ?? '');
     setTags(q.tags ?? []);
+    setAudioKey(q.audioKey ?? null);
   }
 
   useEffect(() => {
@@ -253,6 +256,20 @@ export default function CoreFormPage() {
           <Field label="Tags" hint="Tuỳ chọn — dùng để lọc.">
             <TagInput value={tags} onChange={setTags} />
           </Field>
+
+          {mode === 'edit' && id && (
+            <Field
+              label="Âm thanh (TTS)"
+              hint="Nghe thử bản đọc câu hỏi. “Tạo lại” dùng nội dung đã lưu; sửa nội dung rồi Lưu sẽ tự tạo lại."
+            >
+              <QuestionAudioRow
+                questionId={id}
+                audioKey={audioKey}
+                onToast={setToast}
+                onUpdated={setAudioKey}
+              />
+            </Field>
+          )}
 
           <div className="flex justify-end gap-2 border-t border-outline-variant pt-5">
             <Button

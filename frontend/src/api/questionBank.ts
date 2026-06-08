@@ -12,6 +12,7 @@
  *   called with a hand-rolled fetch that surfaces the `detail` message.
  */
 import { request, unwrap } from '@/api/client';
+import { API_BASE_URL } from '@/lib/env';
 import type {
   AiGenerateRequest,
   AiGeneratedCoding,
@@ -153,6 +154,27 @@ export function updateStatus(
 
 export function deleteQuestion(id: string): Promise<void> {
   return request(`${ADMIN}/${id}`, { method: 'DELETE' });
+}
+
+// ── Audio (BEHAVIORAL / CORE only) ─────────────────────────────────────────
+
+/**
+ * Same-origin URL that streams a question's TTS clip from storage-service.
+ * The route is public (anyone with the random object key can play it), so the
+ * admin can bind it straight to `<audio src>` without an authed-fetch dance —
+ * the same surface the interview flow uses.
+ */
+export function questionAudioUrl(audioKey: string): string {
+  return `${API_BASE_URL}/api/v1/storage/question-audio/${audioKey}`;
+}
+
+/**
+ * Re-synthesize a question's audio from its current text via TTS and return the
+ * new object key. Recovers audio that failed to generate at create time or
+ * refreshes a stale clip. Throws on TTS failure so the caller can prompt a retry.
+ */
+export function regenerateAudio(id: string): Promise<string> {
+  return unwrap(`${ADMIN}/${id}/audio/regenerate`, { method: 'POST' });
 }
 
 // ── AI generate-testcases (server-side proxy) ──────────────────────────────
