@@ -100,13 +100,19 @@ monitoring:
       url: ${QUESTION_BANK_SERVICE_URL:http://localhost:8084}/api/v1/question-bank/questions/health
     - name: Judge
       url: ${JUDGE_SERVICE_URL:http://localhost:8083}/
+    - name: Judge0
+      url: ${JUDGE0_BASE_URL:http://localhost:2358}/about
     - name: Storage
       url: ${STORAGE_SERVICE_URL:http://localhost:8085}/api/v1/storage/health
     - name: TTS-STT
       url: ${TTS_STT_SERVICE_URL:http://localhost:8086}/api/v1/tts-stt/health
-    - name: AI Selector
+    - name: Mail
+      url: ${MAIL_SERVICE_URL:http://mail-service:8087}/
+    - name: AI Service
       url: ${AI_SERVICE_URL:http://localhost:8000}/health
   infra:
+    - name: MySQL
+      target: ${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}
     - name: PostgreSQL
       target: ${POSTGRES_HOST:postgres}:${POSTGRES_PORT:5432}
     - name: Redis
