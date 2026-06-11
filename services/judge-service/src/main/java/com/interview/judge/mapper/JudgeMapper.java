@@ -72,6 +72,7 @@ public interface JudgeMapper {
      * Assembles {@link JudgeResultEvent} from finalized job + all task results.
      */
     @Mapping(target = "submissionId", source = "job.submissionId")
+    @Mapping(target = "origin",       source = "job.origin")
     @Mapping(target = "verdict",      source = "job.verdict")
     @Mapping(target = "results",      source = "results")
     JudgeResultEvent toJudgeResultEvent(JudgeJob job, List<JudgeTaskResult> results);

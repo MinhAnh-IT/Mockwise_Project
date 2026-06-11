@@ -53,6 +53,15 @@ public class JudgeResultConsumer {
                 ack.acknowledge();
                 return;
             }
+            // practice-service shares this topic. Anything not INTERVIEW (null =
+            // legacy interview) is not ours — ack and skip so we don't try to
+            // resolve a non-existent answer and poison-loop the partition.
+            if (event.origin() != null && !"INTERVIEW".equalsIgnoreCase(event.origin())) {
+                log.debug("Skipping non-interview verdict submissionId={} origin={}",
+                        event.submissionId(), event.origin());
+                ack.acknowledge();
+                return;
+            }
             if (!dedup.markProcessed(event.submissionId(), "SUBMISSION_JUDGED")) {
                 log.debug("submission-judged {} already processed — skipping", event.submissionId());
                 ack.acknowledge();

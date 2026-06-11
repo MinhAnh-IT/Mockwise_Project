@@ -16,6 +16,10 @@ import PracticePage from '@/pages/practice/PracticePage';
 import PracticeQuestionsPage from '@/pages/practice/PracticeQuestionsPage';
 import PracticeReportPage from '@/pages/practice/PracticeReportPage';
 import PracticeSessionPage from '@/pages/practice/PracticeSessionPage';
+import ProblemListPage from '@/pages/problems/ProblemListPage';
+import ProblemWorkspacePage from '@/pages/problems/ProblemWorkspacePage';
+import SubmissionsPage from '@/pages/problems/SubmissionsPage';
+import StatsPage from '@/pages/problems/StatsPage';
 import EditProfilePage from '@/pages/profile/EditProfilePage';
 import ProfilePage from '@/pages/profile/ProfilePage';
 import HistoryPage from '@/pages/history/HistoryPage';
@@ -102,6 +106,41 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <PracticeQuestionsPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* LeetCode-style practice (practice-service). Distinct from the
+              mock-interview flow under /practice. Static child paths are
+              declared before /problems/:id so they win the match. */}
+          <Route
+            path="/problems"
+            element={
+              <ProtectedRoute>
+                <ProblemListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/problems/submissions"
+            element={
+              <ProtectedRoute>
+                <SubmissionsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/problems/stats"
+            element={
+              <ProtectedRoute>
+                <StatsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/problems/:id"
+            element={
+              <ProtectedRoute>
+                <ProblemWorkspacePage />
               </ProtectedRoute>
             }
           />
