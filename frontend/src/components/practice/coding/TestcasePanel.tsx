@@ -32,11 +32,18 @@ export default function TestcasePanel({
   const [tab, setTab] = useState<Tab>('cases');
   const [activeCase, setActiveCase] = useState(0);
 
-  // Jump to the result tab the moment a run finishes, like LeetCode does.
+  // A run/submit is actively in flight until it reaches a terminal result.
+  const terminal =
+    runResult != null &&
+    runResult.status !== 'RUNNING' &&
+    runResult.status !== 'PENDING';
+  const inFlight = running || (runResult != null && !terminal);
+
+  // Jump to the Result tab while a run is in flight (to show the spinner) and
+  // keep it there once a terminal result lands — like LeetCode does.
   useEffect(() => {
-    if (running) setTab('result');
-    else if (runResult) setTab('result');
-  }, [running, runResult]);
+    if (inFlight || terminal) setTab('result');
+  }, [inFlight, terminal]);
 
   const caseCount = sampleCases.length;
   const safeActive = Math.min(activeCase, Math.max(0, caseCount - 1));
@@ -53,7 +60,7 @@ export default function TestcasePanel({
           t={t}
         >
           Kết quả
-          {running && (
+          {inFlight && (
             <Loader2 className="ml-1.5 inline h-3 w-3 animate-spin text-sky-500" />
           )}
         </TabButton>
@@ -69,7 +76,8 @@ export default function TestcasePanel({
           />
         ) : (
           <ResultView
-            running={running}
+            inFlight={inFlight}
+            terminal={terminal}
             result={runResult}
             cases={sampleCases}
             t={t}
@@ -104,6 +112,36 @@ function TabButton({
   );
 }
 
+/**
+ * LeetCode-style labelled value box: a small grey label above a rounded,
+ * bordered field holding the monospace value. Used for both the testcase
+ * inputs and the per-case Output / Expected rows.
+ */
+function IOField({
+  label,
+  value,
+  t,
+  tone,
+}: {
+  label: string;
+  value: string;
+  t: CwTokens;
+  tone?: 'ok' | 'bad';
+}) {
+  const valueCls =
+    tone === 'ok' ? t.ok : tone === 'bad' ? t.bad : t.kvValue;
+  return (
+    <div>
+      <div className={`mb-1 text-xs ${t.textMuted}`}>{label}</div>
+      <div
+        className={`overflow-x-auto whitespace-pre-wrap break-words rounded-lg border px-3 py-2 font-mono text-[13px] ${t.sigBox} ${valueCls}`}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
 function CasesView({
   cases,
   active,
@@ -132,7 +170,7 @@ function CasesView({
             key={c.id}
             type="button"
             onClick={() => onPick(i)}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+            className={`rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors ${
               i === active ? t.pillActive : t.pill
             }`}
           >
@@ -140,48 +178,56 @@ function CasesView({
           </button>
         ))}
       </div>
-      <div className="space-y-2">
+      {/* LeetCode shows ONLY the inputs here — the expected answer appears in
+          the Result tab after running, so it isn't given away up front. */}
+      <div className="space-y-3">
         {Object.entries(tc.inputData).map(([k, v]) => (
-          <KV key={k} label={k} value={fmt(v)} t={t} />
+          <IOField key={k} label={`${k} =`} value={fmt(v)} t={t} />
         ))}
-        <KV
-          label="Kết quả mong đợi"
-          value={Object.values(tc.expectedOutput).map(fmt).join(', ')}
-          t={t}
-          muted
-        />
       </div>
     </div>
   );
 }
 
 function ResultView({
-  running,
+  inFlight,
+  terminal,
   result,
   cases,
   t,
 }: {
-  running: boolean;
+  inFlight: boolean;
+  terminal: boolean;
   result: RunResultView | null;
   cases: SampleTestCase[];
   t: CwTokens;
 }) {
-  if (running && !result) {
+  // Still running (or polling an unfinished submission): show only a spinner,
+  // never a half-computed "0/0" verdict.
+  if (inFlight || !terminal) {
+    if (inFlight) {
+      return (
+        <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+          <Loader2 className="h-6 w-6 animate-spin text-sky-500" />
+          <span className={`text-sm ${t.textBody}`}>
+            Đang chạy trên {cases.length} testcase mẫu…
+          </span>
+        </div>
+      );
+    }
     return (
-      <div className={`flex items-center gap-2 text-sm ${t.textBody}`}>
-        <Loader2 className="h-4 w-4 animate-spin text-sky-500" />
-        Đang chạy trên {cases.length} testcase mẫu…
+      <div className="flex h-full items-center justify-center px-4 text-center">
+        <p className={`text-xs ${t.textMuted}`}>
+          Bấm <span className={`font-semibold ${t.textBody}`}>Chạy</span> (hoặc
+          ⌘/Ctrl + ↵) để chạy thử trên testcase mẫu.
+        </p>
       </div>
     );
   }
-  if (!result) {
-    return (
-      <p className={`text-xs ${t.textMuted}`}>
-        Bấm <span className={`font-semibold ${t.textBody}`}>Chạy</span> (hoặc
-        ⌘/Ctrl + ↵) để chạy thử trên testcase mẫu.
-      </p>
-    );
-  }
+
+  // From here on `result` is a terminal RunResultView.
+  if (!result) return null;
+
   if (result.compileError) {
     return (
       <div>
@@ -206,9 +252,7 @@ function ResultView({
 
   return (
     <div>
-      <div
-        className={`mb-3 text-base font-bold ${allPass ? t.ok : t.bad}`}
-      >
+      <div className={`mb-3 text-base font-bold ${allPass ? t.ok : t.bad}`}>
         {allPass ? 'Accepted' : 'Sai kết quả'}{' '}
         <span className={`text-sm font-normal ${t.textMuted}`}>
           · {passed}/{total} testcase
@@ -222,7 +266,7 @@ function ResultView({
               key={c.testCaseId || c.index}
               className={`rounded-lg border p-3 ${t.card}`}
             >
-              <div className="mb-2 flex items-center justify-between">
+              <div className="mb-2.5 flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-sm font-semibold">
                   {ok ? (
                     <CheckCircle2 className={`h-4 w-4 ${t.ok}`} />
@@ -240,11 +284,18 @@ function ResultView({
                     : ''}
                 </span>
               </div>
-              <KV label="Output" value={c.stdout ?? '—'} t={t} />
-              <KV label="Mong đợi" value={c.expected ?? '—'} t={t} muted />
+              <div className="space-y-2.5">
+                <IOField
+                  label="Output"
+                  value={c.stdout ?? '—'}
+                  t={t}
+                  tone={ok ? 'ok' : 'bad'}
+                />
+                <IOField label="Kết quả mong đợi" value={c.expected ?? '—'} t={t} />
+              </div>
               {c.stderr && (
                 <pre
-                  className={`mt-2 overflow-x-auto rounded px-2.5 py-1.5 text-[12px] ${
+                  className={`mt-2.5 overflow-x-auto rounded px-2.5 py-1.5 text-[12px] ${
                     t.dark
                       ? 'bg-rose-950/40 text-rose-300'
                       : 'bg-rose-50 text-rose-700'
@@ -257,27 +308,6 @@ function ResultView({
           );
         })}
       </div>
-    </div>
-  );
-}
-
-function KV({
-  label,
-  value,
-  t,
-  muted,
-}: {
-  label: string;
-  value: string;
-  t: CwTokens;
-  muted?: boolean;
-}) {
-  return (
-    <div className="text-[13px]">
-      <span className={t.textMuted}>{label}: </span>
-      <code className={`font-mono ${muted ? t.kvMuted : t.kvValue}`}>
-        {value}
-      </code>
     </div>
   );
 }

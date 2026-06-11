@@ -158,7 +158,11 @@ export default function PracticeCodingWorkspace({
     }));
   }, [problem, language]);
 
-  // Poll a submission until terminal, mapping it into the console view.
+  // Poll a submission until terminal. We intentionally DO NOT push the
+  // intermediate (PENDING/JUDGING) snapshots into the console — surfacing a
+  // half-filled case list mid-run reads as a wrong "0/0" result. The console
+  // keeps showing the RUNNING spinner until the verdict is final, then we map
+  // the terminal submission once.
   const pollSubmission = useCallback(
     async (submissionId: string): Promise<SubmissionDetail | null> => {
       cancelPoll.current = false;
@@ -166,8 +170,8 @@ export default function PracticeCodingWorkspace({
         await new Promise((r) => setTimeout(r, POLL_MS));
         if (cancelPoll.current) return null;
         const sub = await getSubmission(submissionId);
-        setRunResult(mapSubmission(sub, problem));
         if (sub.status === 'DONE' || sub.status === 'FAILED') {
+          setRunResult(mapSubmission(sub, problem));
           return sub;
         }
       }
