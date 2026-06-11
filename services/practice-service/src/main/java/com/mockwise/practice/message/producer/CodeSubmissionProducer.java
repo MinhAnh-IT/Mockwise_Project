@@ -4,6 +4,7 @@ import com.mockwise.practice.message.event.CodeSubmissionEvent;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -25,7 +26,11 @@ public class CodeSubmissionProducer {
 
     KafkaTemplate<String, Object> kafkaTemplate;
 
+    // @NonFinal so @RequiredArgsConstructor does NOT pull this into the
+    // constructor (where Spring would try to autowire a String bean and fail);
+    // it's set by @Value field injection instead.
     @Value("${practice.kafka.topic.code-submission:code-submission}")
+    @NonFinal
     String topic;
 
     /**
