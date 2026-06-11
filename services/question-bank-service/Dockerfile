@@ -16,6 +16,7 @@ COPY question-bank-service/pom.xml question-bank-service/pom.xml
 COPY storage-service/pom.xml storage-service/pom.xml
 COPY tts-stt-service/pom.xml tts-stt-service/pom.xml
 COPY interview-service/pom.xml interview-service/pom.xml
+COPY practice-service/pom.xml practice-service/pom.xml
 COPY question-bank-service/src question-bank-service/src
 RUN mvn -B -pl question-bank-service clean package -DskipTests
 

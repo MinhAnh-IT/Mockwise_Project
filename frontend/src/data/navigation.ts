@@ -21,6 +21,7 @@ export const HEADER_NAV_GUEST: NavItem[] = [
 // live in the avatar dropdown — see USER_MENU_ITEMS.
 export const HEADER_NAV_USER: NavItem[] = [
   { label: 'Luyện tập', href: '/practice' },
+  { label: 'Luyện đề', href: '/problems' },
   { label: 'Bảng giá', href: '/#pricing' },
 ];
 

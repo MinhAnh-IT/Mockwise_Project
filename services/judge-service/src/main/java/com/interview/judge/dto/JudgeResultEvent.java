@@ -14,6 +14,8 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class JudgeResultEvent {
     UUID submissionId;
+    /** Echoed from {@link SubmissionEvent#getOrigin()} so practice/interview consumers can filter. */
+    String origin;
     String verdict;
     List<TaskResultDto> results;
 }

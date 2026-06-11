@@ -57,6 +57,11 @@ spring:
           predicates:
             - Path=/api/v1/interviews/**
 
+        - id: practice-service
+          uri: ${PRACTICE_SERVICE_URL:http://localhost:8089}
+          predicates:
+            - Path=/api/v1/practice/**
+
         - id: user-profile-service
           uri: ${USER_PROFILE_SERVICE_URL:http://localhost:8082}
           predicates:
@@ -96,6 +101,8 @@ monitoring:
       url: ${USER_PROFILE_SERVICE_URL:http://localhost:8082}/api/v1/position-tracks
     - name: Interview
       url: ${INTERVIEW_SERVICE_URL:http://localhost:8088}/api/v1/interviews/health
+    - name: Practice
+      url: ${PRACTICE_SERVICE_URL:http://localhost:8089}/api/v1/practice/health
     - name: Question Bank
       url: ${QUESTION_BANK_SERVICE_URL:http://localhost:8084}/api/v1/question-bank/questions/health
     - name: Judge

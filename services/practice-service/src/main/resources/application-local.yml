@@ -1,0 +1,10 @@
+# Local dev overrides. The catalog facade (Phase 0) only needs question-bank
+# reachable; point it wherever your question-bank-service runs.
+external:
+  services:
+    question-bank:
+      url: ${QUESTION_BANK_BASE_URL:http://localhost:8084/api/v1/question-bank}
+
+logging:
+  level:
+    com.mockwise.practice: DEBUG

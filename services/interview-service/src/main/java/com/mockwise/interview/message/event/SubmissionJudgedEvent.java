@@ -17,6 +17,12 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record SubmissionJudgedEvent(
         String submissionId,
+        /**
+         * Producing feature echoed by judge-service: {@code "INTERVIEW"} /
+         * {@code "PRACTICE"} / null (legacy interview). practice-service shares
+         * this topic now, so the consumer must ignore non-interview verdicts.
+         */
+        String origin,
         String verdict,
         List<CaseResult> results
 ) {

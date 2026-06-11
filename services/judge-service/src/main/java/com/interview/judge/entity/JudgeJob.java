@@ -32,6 +32,10 @@ public class JudgeJob {
     @Column(name = "submission_id", nullable = false, unique = true, columnDefinition = "CHAR(36)")
     UUID submissionId;
 
+    /** Producing feature: INTERVIEW (default / null) or PRACTICE. Echoed onto the result event. */
+    @Column(name = "origin")
+    String origin;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     JobStatus status = JobStatus.PENDING;

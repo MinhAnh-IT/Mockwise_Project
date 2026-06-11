@@ -63,4 +63,37 @@ public interface CodingQuestionRepository extends JpaRepository<CodingQuestion, 
             @Param("excludeIds") String excludeIds,
             @Param("limit")      int limit
     );
+
+    /**
+     * Practice catalog browse: ACTIVE coding problems only, with optional
+     * difficulty, tag-overlap, and case-insensitive title search ({@code q}).
+     * Ordered newest-first. Backs {@code GET /internal/coding-problems} which
+     * practice-service proxies to the LeetCode-style problem list.
+     */
+    @Query(
+        value = """
+                SELECT cq.* FROM coding_questions cq
+                JOIN questions q ON q.id = cq.id
+                WHERE q.status = 'ACTIVE'
+                  AND (:difficulty IS NULL OR q.difficulty = :difficulty)
+                  AND (:tags       IS NULL OR q.tags && CAST(:tags AS text[]))
+                  AND (:q          IS NULL OR cq.title ILIKE '%' || :q || '%')
+                ORDER BY q.created_at DESC
+                """,
+        countQuery = """
+                SELECT COUNT(*) FROM coding_questions cq
+                JOIN questions q ON q.id = cq.id
+                WHERE q.status = 'ACTIVE'
+                  AND (:difficulty IS NULL OR q.difficulty = :difficulty)
+                  AND (:tags       IS NULL OR q.tags && CAST(:tags AS text[]))
+                  AND (:q          IS NULL OR cq.title ILIKE '%' || :q || '%')
+                """,
+        nativeQuery = true
+    )
+    Page<CodingQuestion> findActiveProblems(
+            @Param("difficulty") String difficulty,
+            @Param("tags")       String tags,
+            @Param("q")          String q,
+            Pageable pageable
+    );
 }

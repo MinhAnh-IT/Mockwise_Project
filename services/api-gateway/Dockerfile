@@ -15,6 +15,7 @@ COPY question-bank-service/pom.xml question-bank-service/pom.xml
 COPY storage-service/pom.xml storage-service/pom.xml
 COPY tts-stt-service/pom.xml tts-stt-service/pom.xml
 COPY interview-service/pom.xml interview-service/pom.xml
+COPY practice-service/pom.xml practice-service/pom.xml
 COPY api-gateway/pom.xml api-gateway/pom.xml
 COPY api-gateway/src api-gateway/src
 RUN mvn -B -pl api-gateway clean package -DskipTests

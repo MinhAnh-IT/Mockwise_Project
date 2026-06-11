@@ -164,6 +164,27 @@ services:
     networks: [internal-net]
     depends_on: [question-bank-service, storage-service, tts-stt-service, user-profile-service, ai-service]
 
+  # ─── Practice Service (internal only) ─────────────────────────
+  # LeetCode-style practice: browses question-bank's coding catalog (Feign),
+  # dispatches Run/Submit to judge-service over Kafka tagged origin=PRACTICE,
+  # and owns per-user submission history + status + stats in its own
+  # `practice` Postgres DB. Consumes submission-judged with its own group id.
+  practice-service:
+    image: ghcr.io/minhanh-it/mockwise_project/practice-service:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      # Force prod so application-local.yml's localhost defaults are not loaded.
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/practice
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      QUESTION_BANK_BASE_URL: http://question-bank-service:8084/api/v1/question-bank
+    networks: [internal-net]
+    depends_on: [question-bank-service, judge-service]
+
   # ─── Judge Service (internal only) ────────────────────────────
   judge-service:
     image: ghcr.io/minhanh-it/mockwise_project/judge-service:${IMAGE_TAG:-latest}
@@ -202,10 +223,13 @@ services:
       STORAGE_SERVICE_URL: http://storage-service:8085
       TTS_STT_SERVICE_URL: http://tts-stt-service:8086
       INTERVIEW_SERVICE_URL: http://interview-service:8088
+      PRACTICE_SERVICE_URL: http://practice-service:8089
       AI_SERVICE_URL: http://ai-service:8000
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
-    networks: [public-net, internal-net]
-    depends_on: [iam-service, user-profile-service, judge-service, question-bank-service, storage-service, tts-stt-service, interview-service]
+    # mockwise-judge-net lets the monitoring probe reach judge0-server:2358
+    # (same network judge-service uses); the other two carry normal traffic.
+    networks: [public-net, internal-net, mockwise-judge-net]
+    depends_on: [iam-service, user-profile-service, judge-service, question-bank-service, storage-service, tts-stt-service, interview-service, practice-service]
 
   # ─── AI Service (internal only) ────────────────────────────────
   # Combined evaluation graph + question selector RAG. Selector half is

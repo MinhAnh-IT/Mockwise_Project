@@ -22,6 +22,7 @@ jobs:
       storage-service: ${{ steps.filter.outputs.storage-service }}
       tts-stt-service: ${{ steps.filter.outputs.tts-stt-service }}
       interview-service: ${{ steps.filter.outputs.interview-service }}
+      practice-service: ${{ steps.filter.outputs.practice-service }}
       ai-service: ${{ steps.filter.outputs.ai-service }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
@@ -55,6 +56,9 @@ jobs:
               - 'services/pom.xml'
             interview-service:
               - 'services/interview-service/**'
+              - 'services/pom.xml'
+            practice-service:
+              - 'services/practice-service/**'
               - 'services/pom.xml'
             ai-service:
               - 'AI/**'
@@ -277,6 +281,31 @@ jobs:
           PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       - name: Build Docker image
         run: docker build -f services/interview-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/interview-service:${{ github.sha }} services
+
+  build-practice-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.practice-service == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: PACKAGES_TOKEN
+      - name: Build & test
+        run: mvn -B -pl practice-service clean package -DskipTests
+        working-directory: services
+        env:
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+      - name: Build Docker image
+        run: docker build -f services/practice-service/Dockerfile --build-arg PACKAGES_TOKEN=${{ secrets.PACKAGES_TOKEN }} -t mockwise/practice-service:${{ github.sha }} services
 
   build-ai-service:
     needs: detect-changes

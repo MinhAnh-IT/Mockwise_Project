@@ -26,6 +26,7 @@
         <module>storage-service</module>
         <module>tts-stt-service</module>
         <module>interview-service</module>
+        <module>practice-service</module>
     </modules>
 
     <properties>
