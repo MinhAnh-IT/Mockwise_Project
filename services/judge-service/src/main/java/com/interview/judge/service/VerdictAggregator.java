@@ -41,6 +41,13 @@ public class VerdictAggregator {
         if (hasStatus(results, TaskStatus.WA)) {
             return "WA";
         }
+        // A task still PENDING means the job was finalized before every case
+        // completed — it must NEVER read as AC (that is how a PENDING case ends
+        // up under an "Accepted" verdict). Treat the incomplete run as failed.
+        if (hasStatus(results, TaskStatus.PENDING)) {
+            log.warn("Aggregating a job with PENDING task(s) — incomplete run, verdict=RE");
+            return "RE";
+        }
 
         return "AC";
     }
