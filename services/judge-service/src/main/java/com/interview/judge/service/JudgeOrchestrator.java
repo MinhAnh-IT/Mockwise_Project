@@ -178,8 +178,20 @@ public class JudgeOrchestrator {
         log.info("Handling Judge0 callback: taskId={}, judge0Status={}",
                 taskId, payload.getStatus() != null ? payload.getStatus().getId() : "null");
 
-        JudgeTaskResult task = judgeTaskResultRepository.findById(taskId)
+        // Locking read so duplicate callbacks for the same task serialize.
+        JudgeTaskResult task = judgeTaskResultRepository.findByIdForUpdate(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("JudgeTaskResult not found: " + taskId));
+
+        // Idempotency guard. Judge0 may POST a callback for the same task more
+        // than once. Only the FIRST terminal transition (PENDING → AC/WA/…) may
+        // advance doneCases — otherwise a duplicate callback overcounts doneCases
+        // and finalizes the job while another task is still PENDING, which then
+        // shows up as a PENDING case sitting under an "Accepted" verdict.
+        if (task.getStatus() != TaskStatus.PENDING) {
+            log.warn("Ignoring duplicate/late Judge0 callback for task {} (already {})",
+                    taskId, task.getStatus());
+            return;
+        }
 
         UUID jobId = task.getJob().getId();
 

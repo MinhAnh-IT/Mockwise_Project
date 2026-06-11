@@ -777,15 +777,26 @@ class Solution {
 
 // ── Edge cases & failure modes ────────────────────────────────────────────
 
-test("edge: missing Solution class → non-zero exit", (t) => {
-    const code = "function twoSum(nums, target) { return []; }";
+test("free function entry point (LeetCode JS style) works", (t) => {
+    // The starter code and the AI generator emit `var fn = function(){}` /
+    // `function fn(){}`, NOT a class. The driver must accept that.
+    const code = "function twoSum(nums, target) { return [nums.length, target]; }";
+    const meta = {
+        fn: "twoSum", return: "int[]", inPlace: false,
+        params: [{ name: "nums", type: "int[]" }, { name: "target", type: "int" }],
+    };
+    _ok(t, code, meta, ["[1,2]", "3"], "[2,3]");
+});
+
+test("edge: neither free function nor Solution class → non-zero exit", (t) => {
+    const code = "var unrelated = 1;";
     const meta = {
         fn: "twoSum", return: "int[]", inPlace: false,
         params: [{ name: "nums", type: "int[]" }, { name: "target", type: "int" }],
     };
     const { code: rc, stderr } = _run(code, meta, ["[1,2]", "3"]);
     assert.notEqual(rc, 0);
-    assert.match(stderr, /Solution/);
+    assert.match(stderr, /twoSum/);
 });
 
 test("edge: method not on Solution → clear error", (t) => {

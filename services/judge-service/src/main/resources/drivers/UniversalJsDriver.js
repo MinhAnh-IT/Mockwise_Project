@@ -164,12 +164,29 @@ function _main() {
         args.push(_parseValue(raw, paramsMeta[i].type));
     }
 
-    var sol = new Solution();
-    var method = sol[fnName];
-    if (typeof method !== "function") {
-        throw new Error("Method '" + fnName + "' not found on Solution");
+    // Resolve the user's entry point. Support BOTH conventions:
+    //  1) LeetCode JS style — a free function named meta.fn, e.g.
+    //     `var twoSum = function(nums, target) {…}` (what the starter code and
+    //     the AI generator both emit). A direct eval sees this module-scoped
+    //     binding by name.
+    //  2) `class Solution { twoSum(...) {} }` — consistency with the Java /
+    //     Python / C++ drivers.
+    var freeFn;
+    try { freeFn = eval(fnName); } catch (e) { freeFn = undefined; }
+
+    var result;
+    if (typeof freeFn === "function") {
+        result = freeFn.apply(null, args);
+    } else if (typeof Solution !== "undefined") {
+        var sol = new Solution();
+        var method = sol[fnName];
+        if (typeof method !== "function") {
+            throw new Error("Method '" + fnName + "' not found on Solution");
+        }
+        result = method.apply(sol, args);
+    } else {
+        throw new Error("No function '" + fnName + "' (nor class Solution) defined");
     }
-    var result = method.apply(sol, args);
 
     var out;
     if (inPlace) {
