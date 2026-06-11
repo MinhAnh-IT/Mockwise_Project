@@ -276,7 +276,15 @@ public class JudgeOrchestrator {
     private String decodeBase64(String encoded) {
         if (encoded == null || encoded.isBlank()) return null;
         try {
-            return new String(Base64.getDecoder().decode(encoded.trim()), StandardCharsets.UTF_8);
+            // MIME decoder, NOT the basic decoder: Judge0 returns base64 in MIME
+            // form (RFC 2045), which inserts a line separator every 76 chars once
+            // the payload exceeds ~57 bytes of output. Base64.getDecoder() rejects
+            // those newlines and throws, which previously fell through to the
+            // catch and stored the raw (still-encoded) base64 as stdout — making
+            // every test case whose correct output is longer than ~57 bytes a
+            // spurious WA. getMimeDecoder() ignores line separators (and any other
+            // non-alphabet chars), so both wrapped and unwrapped payloads decode.
+            return new String(Base64.getMimeDecoder().decode(encoded.trim()), StandardCharsets.UTF_8);
         } catch (Exception e) {
             log.warn("Failed to base64-decode value, returning as-is");
             return encoded;
