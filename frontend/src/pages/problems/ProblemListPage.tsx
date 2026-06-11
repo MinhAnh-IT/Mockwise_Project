@@ -30,6 +30,14 @@ const DIFFICULTY_TONE: Record<string, string> = {
   HARD: 'text-rose-600',
 };
 
+/** Active state for the difficulty filter pills (LeetCode-style colours). */
+const DIFFICULTY_PILL_ACTIVE: Record<string, string> = {
+  '': 'bg-on-surface text-surface',
+  EASY: 'bg-emerald-100 text-emerald-700',
+  MEDIUM: 'bg-amber-100 text-amber-700',
+  HARD: 'bg-rose-100 text-rose-700',
+};
+
 const DIFFICULTY_LABEL: Record<string, string> = {
   EASY: 'Dễ',
   MEDIUM: 'Trung bình',
@@ -130,35 +138,47 @@ export default function ProblemListPage() {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Filters — difficulty pills + search (LeetCode-style toolbar) */}
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
+          <div className="flex flex-wrap gap-2">
+            {DIFFICULTY_OPTIONS.map((o) => {
+              const active = difficulty === o.value;
+              return (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => setDifficulty(o.value)}
+                  className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                    active
+                      ? DIFFICULTY_PILL_ACTIVE[o.value] ?? 'bg-on-surface text-surface'
+                      : 'border border-outline-variant text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="relative sm:ml-auto sm:w-72">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm theo tiêu đề…"
-              className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest py-2.5 pl-9 pr-3 text-sm text-on-surface outline-none focus:border-primary"
+              className="w-full rounded-full border border-outline-variant bg-surface-container-lowest py-2 pl-9 pr-3 text-sm text-on-surface outline-none focus:border-primary"
             />
           </div>
-          <select
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value)}
-            className="rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2.5 text-sm font-medium text-on-surface outline-none focus:border-primary"
-          >
-            {DIFFICULTY_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
         </div>
 
-        {/* List */}
+        <p className="mb-2 px-1 text-xs text-on-surface-variant">{rangeLabel}</p>
+
+        {/* List — LeetCode-style table: status · #title · acceptance · difficulty */}
         <div className="overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest">
-          <div className="flex items-center justify-between border-b border-outline-variant/60 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-            <span>{rangeLabel}</span>
-            <span>Độ khó</span>
+          <div className="grid grid-cols-[2rem_1fr_5.5rem_5rem] items-center gap-3 border-b border-outline-variant/60 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+            <span aria-hidden />
+            <span>Tiêu đề</span>
+            <span className="text-right">Tỉ lệ AC</span>
+            <span className="text-right">Độ khó</span>
           </div>
 
           {loading ? (
@@ -173,41 +193,63 @@ export default function ProblemListPage() {
             </div>
           ) : (
             <ul>
-              {rows.map((p) => (
-                <li key={p.id}>
-                  <Link
-                    to={`/problems/${p.id}`}
-                    state={{ difficulty: p.difficulty }}
-                    className="flex items-center gap-3 border-b border-outline-variant/40 px-4 py-3.5 transition-colors last:border-b-0 hover:bg-surface-container-low"
+              {rows.map((p, i) => {
+                const num = page * PAGE_SIZE + i + 1;
+                return (
+                  <li
+                    key={p.id}
+                    className={i % 2 === 1 ? 'bg-surface-container-low/40' : ''}
                   >
-                    <StatusIcon status={p.myStatus} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-on-surface">
-                        {p.title}
-                      </p>
-                      {p.tags.length > 0 && (
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {p.tags.slice(0, 4).map((tag) => (
-                            <span
-                              key={tag}
-                              className="rounded-md bg-surface-container px-1.5 py-0.5 text-[11px] text-on-surface-variant"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <span
-                      className={`shrink-0 text-xs font-semibold ${
-                        p.difficulty ? DIFFICULTY_TONE[p.difficulty] ?? 'text-on-surface-variant' : 'text-on-surface-variant'
-                      }`}
+                    <Link
+                      to={`/problems/${p.id}`}
+                      state={{ difficulty: p.difficulty }}
+                      className="grid grid-cols-[2rem_1fr_5.5rem_5rem] items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-container-low"
                     >
-                      {p.difficulty ? DIFFICULTY_LABEL[p.difficulty] ?? p.difficulty : '—'}
-                    </span>
-                  </Link>
-                </li>
-              ))}
+                      <span className="flex justify-center">
+                        <StatusIcon status={p.myStatus} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm text-on-surface">
+                          <span className="tabular-nums text-on-surface-variant">
+                            {num}.
+                          </span>{' '}
+                          <span className="font-medium hover:text-primary">
+                            {p.title}
+                          </span>
+                        </p>
+                        {p.tags.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {p.tags.slice(0, 4).map((tag) => (
+                              <span
+                                key={tag}
+                                className="rounded-md bg-surface-container px-1.5 py-0.5 text-[11px] text-on-surface-variant"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-right text-xs tabular-nums text-on-surface-variant">
+                        {p.acceptanceRate != null
+                          ? `${(p.acceptanceRate * 100).toFixed(1)}%`
+                          : '—'}
+                      </span>
+                      <span
+                        className={`text-right text-xs font-semibold ${
+                          p.difficulty
+                            ? DIFFICULTY_TONE[p.difficulty] ?? 'text-on-surface-variant'
+                            : 'text-on-surface-variant'
+                        }`}
+                      >
+                        {p.difficulty
+                          ? DIFFICULTY_LABEL[p.difficulty] ?? p.difficulty
+                          : '—'}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
