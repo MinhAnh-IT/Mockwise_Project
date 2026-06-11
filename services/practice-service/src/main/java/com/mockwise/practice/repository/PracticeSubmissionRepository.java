@@ -31,7 +31,7 @@ public interface PracticeSubmissionRepository extends JpaRepository<PracticeSubm
             """)
     Page<PracticeSubmission> search(@Param("userId") String userId,
                                     @Param("questionId") String questionId,
-                                    @Param("mode") String mode,
+                                    @Param("mode") com.mockwise.practice.enums.SubmissionMode mode,
                                     @Param("verdict") String verdict,
                                     Pageable pageable);
 

@@ -252,7 +252,7 @@ public class PracticeSubmissionService {
         Page<PracticeSubmission> p = submissionRepo.search(
                 userId,
                 (problemId == null || problemId.isBlank()) ? null : problemId,
-                mode == null ? null : mode.name(),
+                mode,
                 (verdict == null || verdict.isBlank()) ? null : verdict,
                 PageRequest.of(page, size));
 
