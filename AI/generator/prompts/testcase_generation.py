@@ -112,13 +112,37 @@ STRICT RULES
    Never put the wrong shape — a scalar where an array is expected (or
    vice-versa) will WA on every case at submit time.
 
+9. ANSWER MUST BE UNIQUE PER INPUT (critical — the judge compares the
+   candidate's output to your single `result` with an EXACT match; there is
+   no special checker). Many problems accept MORE THAN ONE valid output for
+   the same input — e.g. Two Sum (several index pairs may hit the target),
+   "return ANY peak / any valid subset / any reordering", problems that say
+   "if multiple answers exist, return any". For every such problem you MUST
+   CONSTRUCT each input so that EXACTLY ONE valid answer exists, then put that
+   answer in `result`. Do not rely on the candidate happening to pick the same
+   one you did — they won't.
+     • Two Sum: ensure NO other pair besides your intended one sums to target
+       (check ALL pairs, not just yours). If a second pair also works, change
+       a number so it no longer does.
+     • "any valid X": pick inputs with a single feasible X (e.g. a strictly
+       single peak, a target reachable one way only).
+     • Order-insensitive collections: set orderMatters semantics via the
+       contract above; uniqueness here is about the SET of elements, not order.
+   If you cannot make the answer unique for a candidate input, discard that
+   input and choose a different one. An ambiguous input is a WRONG testcase
+   even when your `result` is "a" correct answer.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Think step by step:
 1. Read the problem and constraints carefully.
-2. Identify the sample examples from the description → use as Sample cases.
-3. Think of all boundary conditions → use as Edge cases.
-4. Generate diverse normal inputs → Normal cases.
-5. Design large/tricky inputs → Hidden cases.
-6. For EACH testcase, compute the expectedOutput manually before writing it.
-7. Verify: count=={req.num_testcases}, hidden=={req.num_hidden}, no duplicate inputs.
+2. Decide whether the problem can have MORE THAN ONE valid output for a given
+   input (see rule 9). If so, every input you craft must pin the answer down
+   to exactly one — verify by scanning for alternative valid answers.
+3. Identify the sample examples from the description → use as Sample cases.
+4. Think of all boundary conditions → use as Edge cases.
+5. Generate diverse normal inputs → Normal cases.
+6. Design large/tricky inputs → Hidden cases.
+7. For EACH testcase, compute the expectedOutput manually before writing it,
+   AND confirm no OTHER output would also be accepted for that input.
+8. Verify: count=={req.num_testcases}, hidden=={req.num_hidden}, no duplicate inputs.
 """.strip()
