@@ -1,6 +1,9 @@
 package com.mockwise.practice.message.config;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -85,9 +88,22 @@ public class KafkaConfig {
         return factory;
     }
 
-    /** Shared mapper for consumers parsing raw JSON payloads. */
+    /**
+     * Shared mapper for consumers parsing raw JSON payloads. This bean also
+     * becomes the primary ObjectMapper used by Spring MVC and the Feign
+     * decoder, so it MUST register the JavaTimeModule — otherwise serialising
+     * any response (every ApiResponse carries a LocalDateTime {@code timestamp})
+     * and decoding question-bank's enveloped responses both fail.
+     */
     @Bean
     public ObjectMapper objectMapper() {
-        return new ObjectMapper();
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // Match Spring Boot's default: the Feign decoder reuses this mapper to
+        // read question-bank's enveloped responses, and the client DTOs
+        // (QbCodingDetail, …) intentionally model only a subset of fields.
+        mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        return mapper;
     }
 }
