@@ -308,7 +308,7 @@ export default function PracticeCodingWorkspace({
       {/* Body */}
       <div className="flex min-h-0 flex-1">
         <div style={{ width: `${leftPct}%` }} className={`min-w-0 border-r ${t.border}`}>
-          <ProblemStatement problem={problem} dark={dark} />
+          <ProblemStatement problem={problem} difficulty={difficulty} dark={dark} />
         </div>
 
         <div onMouseDown={onDragX} className={`w-1.5 shrink-0 cursor-col-resize transition-colors ${t.divider}`} />
@@ -409,37 +409,92 @@ export default function PracticeCodingWorkspace({
   );
 }
 
-// ── Problem statement (title + description + examples + constraints) ───────
-function ProblemStatement({ problem, dark }: { problem: PracticeProblemDetail; dark: boolean }) {
+// ── Problem statement (LeetCode-style: title · difficulty · description ·
+//    examples · constraints · complexity) ────────────────────────────────────
+function fmtVal(value: unknown): string {
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function ProblemStatement({
+  problem,
+  difficulty,
+  dark,
+}: {
+  problem: PracticeProblemDetail;
+  difficulty?: string | null;
+  dark: boolean;
+}) {
   const t = cwTokens(dark);
   const examples = problem.sampleTestCases ?? [];
   const constraints = problem.constraints?.trim();
-  const fmtMap = (m: Record<string, unknown>) =>
+  const diff = difficulty
+    ? difficultyStyle(dark)[difficulty as 'EASY' | 'MEDIUM' | 'HARD'] ?? null
+    : null;
+
+  // Inputs render as `name = value` (LeetCode); the output shows only the
+  // value(s), never the internal `result` wrapper key.
+  const fmtInputs = (m: Record<string, unknown>) =>
     Object.entries(m)
-      .map(([k, v]) => `${k} = ${JSON.stringify(v)}`)
+      .map(([k, v]) => `${k} = ${fmtVal(v)}`)
       .join(', ');
+  const fmtOutputs = (m: Record<string, unknown>) =>
+    Object.values(m).map(fmtVal).join(', ');
 
   return (
-    <div className={`h-full overflow-y-auto px-5 py-4 ${t.panel}`}>
-      <h1 className={`mb-4 text-lg font-bold ${t.textStrong}`}>{problem.title}</h1>
-      <Markdown source={problem.description} dark={dark} />
+    <div className={`h-full overflow-y-auto px-6 py-5 ${t.panel}`}>
+      {/* Title + difficulty pill */}
+      <h1 className={`text-xl font-bold leading-snug ${t.textStrong}`}>
+        {problem.title}
+      </h1>
+      {diff && (
+        <div className="mt-2.5">
+          <span
+            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${diff.cls}`}
+          >
+            {diff.label}
+          </span>
+        </div>
+      )}
+
+      <div className="mt-4">
+        <Markdown source={problem.description} dark={dark} />
+      </div>
 
       {examples.length > 0 && (
-        <div className="mt-5 space-y-4">
+        <div className="mt-6 space-y-5">
           {examples.map((tc, idx) => (
             <div key={tc.id ?? idx}>
-              <p className={`mb-1.5 text-sm font-semibold ${t.textStrong}`}>Ví dụ {idx + 1}:</p>
-              <div className={`rounded-lg border px-3.5 py-2.5 text-[13px] leading-relaxed ${t.border} ${dark ? 'bg-zinc-900/60' : 'bg-zinc-50'}`}>
+              <p className={`mb-2 text-[15px] font-semibold ${t.textStrong}`}>
+                Ví dụ {idx + 1}:
+              </p>
+              {/* LeetCode example block: left accent bar + soft fill. */}
+              <div
+                className={`rounded-md border-l-4 px-4 py-3 text-[13px] leading-7 ${
+                  dark
+                    ? 'border-l-zinc-600 bg-zinc-900/60'
+                    : 'border-l-zinc-300 bg-zinc-100/70'
+                }`}
+              >
                 <p className={t.textBody}>
                   <span className={`font-semibold ${t.textStrong}`}>Input: </span>
-                  <code className="font-mono">{fmtMap(tc.inputData)}</code>
+                  <code className="font-mono">{fmtInputs(tc.inputData)}</code>
                 </p>
-                <p className={`mt-1 ${t.textBody}`}>
+                <p className={t.textBody}>
                   <span className={`font-semibold ${t.textStrong}`}>Output: </span>
-                  <code className="font-mono">{fmtMap(tc.expectedOutput)}</code>
+                  <code className="font-mono">{fmtOutputs(tc.expectedOutput)}</code>
                 </p>
                 {tc.note && tc.note.trim() && (
-                  <p className={`mt-1.5 text-[12px] ${t.textMuted}`}>{tc.note}</p>
+                  <p className={`mt-0.5 ${t.textBody}`}>
+                    <span className={`font-semibold ${t.textStrong}`}>
+                      Giải thích:{' '}
+                    </span>
+                    {tc.note}
+                  </p>
                 )}
               </div>
             </div>
@@ -448,8 +503,10 @@ function ProblemStatement({ problem, dark }: { problem: PracticeProblemDetail; d
       )}
 
       {constraints && (
-        <div className="mt-5">
-          <p className={`mb-1.5 text-sm font-semibold ${t.textStrong}`}>Ràng buộc:</p>
+        <div className="mt-6">
+          <p className={`mb-2 text-[15px] font-semibold ${t.textStrong}`}>
+            Ràng buộc:
+          </p>
           <div className={`text-[13px] ${t.textBody}`}>
             <Markdown source={constraints} dark={dark} />
           </div>
@@ -457,9 +514,21 @@ function ProblemStatement({ problem, dark }: { problem: PracticeProblemDetail; d
       )}
 
       {(problem.optimalTimeComplexity || problem.optimalSpaceComplexity) && (
-        <div className={`mt-5 text-[12px] ${t.textMuted}`}>
-          {problem.optimalTimeComplexity && <span>Thời gian tối ưu: {problem.optimalTimeComplexity} </span>}
-          {problem.optimalSpaceComplexity && <span>· Bộ nhớ: {problem.optimalSpaceComplexity}</span>}
+        <div className={`mt-6 flex flex-wrap gap-2 border-t pt-4 ${t.border}`}>
+          {problem.optimalTimeComplexity && (
+            <span
+              className={`rounded-md px-2.5 py-1 text-xs font-medium ${t.chip}`}
+            >
+              Thời gian tối ưu: {problem.optimalTimeComplexity}
+            </span>
+          )}
+          {problem.optimalSpaceComplexity && (
+            <span
+              className={`rounded-md px-2.5 py-1 text-xs font-medium ${t.chip}`}
+            >
+              Bộ nhớ tối ưu: {problem.optimalSpaceComplexity}
+            </span>
+          )}
         </div>
       )}
     </div>
