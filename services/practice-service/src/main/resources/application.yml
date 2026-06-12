@@ -84,6 +84,10 @@ external:
   services:
     question-bank:
       url: ${QUESTION_BANK_BASE_URL:http://question-bank-service:8084/api/v1/question-bank}
+    # Points at /profiles so the leaderboard's Feign path (/batch) resolves to
+    # /api/v1/profiles/batch — mirrors interview-service's user-profile client.
+    user-profile:
+      url: ${USER_PROFILE_BASE_URL:http://user-profile-service:8082/api/v1/profiles}
 
 logging:
   level:

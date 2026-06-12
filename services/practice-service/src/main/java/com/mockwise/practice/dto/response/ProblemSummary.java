@@ -8,8 +8,8 @@ import java.util.List;
  * One row in the practice problem-list UI.
  *
  * <p>{@code myStatus} is the caller's solved/attempted state; {@code acceptanceRate}
- * is the global accept ratio. Both are placeholders in Phase 0 ({@code NONE} /
- * {@code null}) until submission history (Phase 2/3) backs them.
+ * is the global accept ratio (accepted/graded SUBMITs, 0..1), {@code null} until a
+ * problem has its first graded submission.
  */
 public record ProblemSummary(
         String id,

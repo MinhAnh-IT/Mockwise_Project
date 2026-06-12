@@ -42,11 +42,14 @@ import java.util.UUID;
  * + per-(user, problem) status.
  *
  * <ul>
- *   <li><b>Run</b> dispatches only the visible sample cases; never touches status.</li>
- *   <li><b>Submit</b> dispatches the full case set (incl. hidden) and, on verdict,
- *       upserts ATTEMPTED → SOLVED.</li>
- *   <li>Verdict application ({@link #applyJudged}) is idempotent — a terminal
- *       submission is left untouched on redelivery.</li>
+ *   <li><b>Run</b> dispatches only the visible sample cases; it is <em>ephemeral</em>
+ *       — held in {@link RunResultStore} for the poll window, never persisted, and
+ *       it never touches problem status.</li>
+ *   <li><b>Submit</b> dispatches the full case set (incl. hidden), persists history,
+ *       and on verdict upserts ATTEMPTED → SOLVED.</li>
+ *   <li>Verdict application ({@link #applyJudged}) routes to the DB row (SUBMIT) or
+ *       the cached trial (RUN), and is idempotent — a terminal submission is left
+ *       untouched on redelivery.</li>
  * </ul>
  */
 @Slf4j
@@ -63,6 +66,7 @@ public class PracticeSubmissionService {
     PracticeSubmissionRepository submissionRepo;
     PracticeSubmissionCaseRepository caseRepo;
     PracticeProblemStatusRepository statusRepo;
+    RunResultStore runCache;
     PracticeProperties properties;
 
     // ── Run / Submit ────────────────────────────────────────────────────────
@@ -102,19 +106,29 @@ public class PracticeSubmissionService {
                 .toList();
 
         String submissionId = UUID.randomUUID().toString();
+        boolean run = mode == SubmissionMode.RUN;
+
         PracticeSubmission submission = new PracticeSubmission();
         submission.setId(submissionId);
         submission.setUserId(userId);
         submission.setQuestionId(problemId);
         submission.setProblemTitle(detail.title());
         submission.setDifficulty(detail.difficulty());
+        submission.setTags(detail.tags());
         submission.setLanguage(req.language().toLowerCase());
         submission.setSourceCode(req.code());
         submission.setMode(mode);
         submission.setStatus(SubmissionStatus.PENDING);
         submission.setTotalCases(selected.size());
         submission.setHiddenCaseIds(hiddenIds);
-        submissionRepo.save(submission);
+
+        // RUN is ephemeral (held in-memory for the poll window); only SUBMIT is persisted.
+        if (run) {
+            submission.setCreatedAt(LocalDateTime.now()); // no @PrePersist fires for a cached row
+            runCache.put(new RunResult(submission));
+        } else {
+            submissionRepo.save(submission);
+        }
 
         CodeSubmissionEvent event = new CodeSubmissionEvent(
                 submissionId,
@@ -132,55 +146,81 @@ public class PracticeSubmissionService {
             log.error("Failed to dispatch submission {} to judge: {}", submissionId, e.getMessage());
             submission.setStatus(SubmissionStatus.FAILED);
             submission.setFinishedAt(LocalDateTime.now());
-            submissionRepo.save(submission);
+            if (!run) submissionRepo.save(submission);
             throw new BusinessException(StatusCode.JUDGE_DISPATCH_FAILED);
         }
 
         submission.setStatus(SubmissionStatus.JUDGING);
-        submissionRepo.save(submission);
+        if (!run) submissionRepo.save(submission);
         return new SubmissionCreatedResponse(submissionId, SubmissionStatus.JUDGING);
     }
 
     // ── Verdict application (called by the Kafka consumer) ────────────────────
 
     /**
-     * Applies a judge verdict to its submission. Idempotent: a submission that
-     * is already DONE/FAILED is left untouched (Kafka is at-least-once). Only
-     * SUBMIT verdicts touch problem status.
+     * Applies a judge verdict to its submission. Routes to the persisted SUBMIT
+     * row or, failing that, the cached ephemeral RUN trial. Idempotent: a
+     * submission already DONE/FAILED is left untouched (Kafka is at-least-once).
      */
     @Transactional
     public void applyJudged(SubmissionJudgedEvent event) {
-        Optional<PracticeSubmission> found = submissionRepo.findById(event.submissionId());
-        if (found.isEmpty()) {
-            log.warn("Verdict for unknown submission {} — ignoring", event.submissionId());
+        Optional<PracticeSubmission> persisted = submissionRepo.findById(event.submissionId());
+        if (persisted.isPresent()) {
+            applyToSubmit(persisted.get(), event);
             return;
         }
-        PracticeSubmission submission = found.get();
+        RunResult run = runCache.get(event.submissionId());
+        if (run != null) {
+            applyToRun(run, event);
+            return;
+        }
+        log.warn("Verdict for unknown submission {} — ignoring", event.submissionId());
+    }
+
+    /** Persisted SUBMIT: write per-case rows, finalize the submission, upsert status. */
+    private void applyToSubmit(PracticeSubmission submission, SubmissionJudgedEvent event) {
+        if (isTerminal(submission)) return;
+        List<PracticeSubmissionCase> cases = buildCases(submission, event);
+        cases.forEach(caseRepo::save);
+        applyVerdict(submission, cases, event.verdict());
+        submissionRepo.save(submission);
+        if (submission.getMode() == SubmissionMode.SUBMIT) {
+            upsertProblemStatus(submission, event.verdict());
+        }
+    }
+
+    /** Ephemeral RUN: finalize the in-memory trial only — nothing is persisted. */
+    private void applyToRun(RunResult run, SubmissionJudgedEvent event) {
+        PracticeSubmission submission = run.getSubmission();
+        if (isTerminal(submission)) return;
+        List<PracticeSubmissionCase> cases = buildCases(submission, event);
+        run.setCases(cases);
+        applyVerdict(submission, cases, event.verdict());
+    }
+
+    private boolean isTerminal(PracticeSubmission submission) {
         if (submission.getStatus() == SubmissionStatus.DONE
                 || submission.getStatus() == SubmissionStatus.FAILED) {
             log.debug("Submission {} already terminal ({}) — skipping verdict",
                     submission.getId(), submission.getStatus());
-            return;
+            return true;
         }
+        return false;
+    }
 
+    /** Builds per-case rows (transient), suppressing I/O of hidden cases. */
+    private List<PracticeSubmissionCase> buildCases(PracticeSubmission submission, SubmissionJudgedEvent event) {
         Set<String> hiddenIds = submission.getHiddenCaseIds() == null
                 ? Set.of()
                 : Set.copyOf(submission.getHiddenCaseIds());
-
         List<SubmissionJudgedEvent.CaseResult> results = event.results() == null
                 ? List.of()
                 : event.results();
 
-        int passed = 0;
-        Integer maxRuntime = null;
-        Integer maxMemory = null;
+        List<PracticeSubmissionCase> cases = new ArrayList<>(results.size());
         int order = 0;
         for (SubmissionJudgedEvent.CaseResult r : results) {
             boolean hidden = r.testCaseId() != null && hiddenIds.contains(r.testCaseId());
-            if (VERDICT_ACCEPTED.equalsIgnoreCase(r.status())) passed++;
-            maxRuntime = max(maxRuntime, r.runtimeMs());
-            maxMemory = max(maxMemory, r.memoryKb());
-
             PracticeSubmissionCase c = new PracticeSubmissionCase();
             c.setId(UUID.randomUUID().toString());
             c.setSubmissionId(submission.getId());
@@ -190,24 +230,30 @@ public class PracticeSubmissionService {
             c.setRuntimeMs(r.runtimeMs());
             c.setMemoryKb(r.memoryKb());
             c.setHidden(hidden);
-            // Hidden cases never expose their I/O.
             c.setStdout(hidden ? null : r.stdout());
             c.setStderr(hidden ? null : r.stderr());
-            caseRepo.save(c);
+            cases.add(c);
         }
+        return cases;
+    }
 
-        submission.setVerdict(event.verdict());
+    /** Folds per-case results into the submission's aggregate verdict + counters. */
+    private void applyVerdict(PracticeSubmission submission, List<PracticeSubmissionCase> cases, String verdict) {
+        int passed = 0;
+        Integer maxRuntime = null;
+        Integer maxMemory = null;
+        for (PracticeSubmissionCase c : cases) {
+            if (VERDICT_ACCEPTED.equalsIgnoreCase(c.getStatus())) passed++;
+            maxRuntime = max(maxRuntime, c.getRuntimeMs());
+            maxMemory = max(maxMemory, c.getMemoryKb());
+        }
+        submission.setVerdict(verdict);
         submission.setPassedCases(passed);
-        submission.setTotalCases(results.isEmpty() ? submission.getTotalCases() : results.size());
+        submission.setTotalCases(cases.isEmpty() ? submission.getTotalCases() : cases.size());
         submission.setRuntimeMs(maxRuntime);
         submission.setMemoryKb(maxMemory);
         submission.setStatus(SubmissionStatus.DONE);
         submission.setFinishedAt(LocalDateTime.now());
-        submissionRepo.save(submission);
-
-        if (submission.getMode() == SubmissionMode.SUBMIT) {
-            upsertProblemStatus(submission, event.verdict());
-        }
     }
 
     private void upsertProblemStatus(PracticeSubmission submission, String verdict) {
@@ -226,6 +272,7 @@ public class PracticeSubmissionService {
                 });
 
         status.setDifficulty(submission.getDifficulty());
+        status.setTags(submission.getTags());
         status.setAttemptCount(status.getAttemptCount() + 1);
         status.setLastAttemptAt(now);
 
@@ -260,12 +307,46 @@ public class PracticeSubmissionService {
         return PageResponse.of(rows, p.getNumber(), p.getSize(), p.getTotalElements(), p.getTotalPages());
     }
 
+    /** LeetCode "progress" view: the user's SUBMITs rolled up per problem, newest activity first. */
+    @Transactional(readOnly = true)
+    public List<ProblemSubmissionGroup> listProblemGroups(String userId) {
+        return submissionRepo.groupByProblem(userId, VERDICT_ACCEPTED).stream()
+                .map(PracticeSubmissionService::toGroup)
+                .toList();
+    }
+
+    private static ProblemSubmissionGroup toGroup(Object[] row) {
+        long total = ((Number) row[3]).longValue();
+        long accepted = ((Number) row[4]).longValue();
+        Integer bestRuntime = row[5] == null ? null : ((Number) row[5]).intValue();
+        return new ProblemSubmissionGroup(
+                (String) row[0],            // questionId
+                (String) row[1],            // title
+                (String) row[2],            // difficulty
+                accepted > 0,               // solved
+                total,
+                accepted,
+                bestRuntime,                // best accepted runtime (null until solved)
+                (LocalDateTime) row[6],     // first solved at
+                (LocalDateTime) row[7]);    // last submitted at
+    }
+
     @Transactional(readOnly = true)
     public SubmissionDetail getSubmission(String userId, String id) {
-        PracticeSubmission s = submissionRepo.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new BusinessException(StatusCode.SUBMISSION_NOT_FOUND));
+        PracticeSubmission persisted = submissionRepo.findByIdAndUserId(id, userId).orElse(null);
+        if (persisted != null) {
+            return buildDetail(persisted, caseRepo.findBySubmissionIdOrderByOrderIndex(id));
+        }
+        // Fall back to an in-flight RUN trial (ownership-checked, never persisted).
+        RunResult run = runCache.get(id);
+        if (run != null && run.getSubmission().getUserId().equals(userId)) {
+            return buildDetail(run.getSubmission(), run.getCases());
+        }
+        throw new BusinessException(StatusCode.SUBMISSION_NOT_FOUND);
+    }
 
-        List<SubmissionCaseView> cases = caseRepo.findBySubmissionIdOrderByOrderIndex(id).stream()
+    private SubmissionDetail buildDetail(PracticeSubmission s, List<PracticeSubmissionCase> caseRows) {
+        List<SubmissionCaseView> cases = caseRows.stream()
                 .map(c -> new SubmissionCaseView(
                         c.getOrderIndex(), c.getTestCaseId(), c.getStatus(),
                         c.getRuntimeMs(), c.getMemoryKb(), c.isHidden(),

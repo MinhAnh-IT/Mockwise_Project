@@ -4,6 +4,7 @@ import com.core.apiresponse.response.ApiResponse;
 import com.mockwise.practice.common.security.CurrentUser;
 import com.mockwise.practice.dto.request.RunSubmitRequest;
 import com.mockwise.practice.dto.response.PageResponse;
+import com.mockwise.practice.dto.response.ProblemSubmissionGroup;
 import com.mockwise.practice.dto.response.SubmissionCreatedResponse;
 import com.mockwise.practice.dto.response.SubmissionDetail;
 import com.mockwise.practice.dto.response.SubmissionSummary;
@@ -17,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * Run / Submit dispatch and submission history. {@code userId} always comes
@@ -59,6 +62,13 @@ public class PracticeSubmissionController {
         String userId = CurrentUser.requireUserId();
         return ResponseEntity.ok(ApiResponse.success(
                 submissionService.listSubmissions(userId, problemId, mode, verdict, page, size)));
+    }
+
+    /** My SUBMITs rolled up per problem (LeetCode "progress" view), newest activity first. */
+    @GetMapping("/submissions/grouped")
+    public ResponseEntity<ApiResponse<List<ProblemSubmissionGroup>>> grouped() {
+        String userId = CurrentUser.requireUserId();
+        return ResponseEntity.ok(ApiResponse.success(submissionService.listProblemGroups(userId)));
     }
 
     /** One submission (source + per-case). Hidden cases expose status only. */

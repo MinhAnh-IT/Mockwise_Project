@@ -1,8 +1,12 @@
 import { unwrap } from '@/api/client';
 import type { CodingLanguage } from '@/types/coding';
 import type {
+  CommunityResponse,
+  LeaderboardResponse,
+  LeaderboardWindow,
   PageResponse,
   PracticeProblemDetail,
+  ProblemSubmissionGroup,
   ProblemSummary,
   SubmissionCreated,
   SubmissionDetail,
@@ -93,4 +97,22 @@ export function listSubmissions(
 
 export function getStats(): Promise<UserStats> {
   return unwrap(`${BASE}/stats`);
+}
+
+/** My SUBMITs rolled up per problem (LeetCode "progress" view), newest activity first. */
+export function listProblemGroups(): Promise<ProblemSubmissionGroup[]> {
+  return unwrap(`${BASE}/submissions/grouped`);
+}
+
+/** Difficulty-weighted leaderboard for a time window, plus my own standing. */
+export function getLeaderboard(
+  window: LeaderboardWindow = 'ALL',
+  limit = 50,
+): Promise<LeaderboardResponse> {
+  return unwrap(`${BASE}/leaderboard`, { query: { window, limit } });
+}
+
+/** Community insights: trending (this week) + hardest (lowest accept ratio) problems. */
+export function getCommunity(): Promise<CommunityResponse> {
+  return unwrap(`${BASE}/community`);
 }
