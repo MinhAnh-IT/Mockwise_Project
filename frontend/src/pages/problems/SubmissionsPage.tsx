@@ -142,9 +142,9 @@ export default function SubmissionsPage() {
   }, [filter, search]);
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="flex min-h-screen flex-col bg-surface">
       <Header />
-      <main className="mx-auto max-w-7xl px-6 pb-24 pt-28">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-6 pb-24 pt-28">
         <div className="mb-6 flex items-center gap-3">
           <span className="grid h-11 w-11 place-items-center rounded-2xl bg-secondary/10 text-secondary">
             <Target className="h-6 w-6" />

@@ -129,9 +129,9 @@ export default function ProblemListPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="flex min-h-screen flex-col bg-surface">
       <Header />
-      <main className="mx-auto max-w-7xl px-6 pb-24 pt-28">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-6 pb-24 pt-28">
         {/* Title row */}
         <div className="mb-6 flex items-center gap-3">
           <span className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-100 text-emerald-700">

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import { getCommunity, getLeaderboard } from '@/api/practice';
+import Avatar from '@/components/ui/Avatar';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
 import type {
@@ -39,47 +40,13 @@ const DIFFICULTY_TONE: Record<string, string> = {
   HARD: 'text-rose-600',
 };
 
-const AVATAR_COLORS = [
-  'bg-rose-500',
-  'bg-amber-500',
-  'bg-emerald-500',
-  'bg-sky-500',
-  'bg-violet-500',
-  'bg-fuchsia-500',
-  'bg-teal-500',
-  'bg-indigo-500',
-];
-
 function displayName(e: { fullName: string | null; userId: string }): string {
   if (e.fullName && e.fullName.trim()) return e.fullName.trim();
   return `Người dùng ${e.userId.slice(0, 4)}`;
 }
 
-function initials(name: string): string {
-  const parts = name.split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function avatarColor(userId: string): string {
-  let h = 0;
-  for (let i = 0; i < userId.length; i++) h = (h * 31 + userId.charCodeAt(i)) >>> 0;
-  return AVATAR_COLORS[h % AVATAR_COLORS.length];
-}
-
-function Avatar({ entry, size = 'md' }: { entry: LeaderboardEntry; size?: 'md' | 'lg' }) {
-  const name = displayName(entry);
-  const dims = size === 'lg' ? 'h-14 w-14 text-lg' : 'h-9 w-9 text-xs';
-  return (
-    <span
-      className={`grid shrink-0 place-items-center rounded-full font-bold text-white ${avatarColor(entry.userId)} ${dims}`}
-      title={name}
-    >
-      {initials(name)}
-    </span>
-  );
-}
+/** Same-origin avatar path — the shared <Avatar> fetches it with auth and falls back to initials. */
+const avatarSrc = (userId: string) => `/api/v1/storage/avatars/${userId}`;
 
 export default function StatsPage() {
   const [windowSel, setWindowSel] = useState<LeaderboardWindow>('ALL');
@@ -120,9 +87,9 @@ export default function StatsPage() {
   const rest = board?.entries.slice(3) ?? [];
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="flex min-h-screen flex-col bg-surface">
       <Header />
-      <main className="mx-auto max-w-7xl px-6 pb-24 pt-28">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-6 pb-24 pt-28">
         <div className="mb-6 flex items-center gap-3">
           <span className="grid h-11 w-11 place-items-center rounded-2xl bg-amber-100 text-amber-600">
             <Trophy className="h-6 w-6" />
@@ -295,7 +262,7 @@ function Podium({ entries }: { entries: LeaderboardEntry[] }) {
             className={`flex w-28 flex-col items-center rounded-2xl border border-outline-variant bg-surface-container-lowest px-3 py-4 shadow-sm sm:w-36 ${st.order}`}
           >
             <span className={`relative rounded-full ring-2 ${st.ring}`}>
-              <Avatar entry={e} size="lg" />
+              <Avatar src={avatarSrc(e.userId)} fullName={displayName(e)} size="lg" />
               <span className={`absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full text-[11px] font-bold ${st.badge}`}>
                 {e.rank}
               </span>
@@ -328,7 +295,7 @@ function LeaderRow({ entry, highlight }: { entry: LeaderboardEntry; highlight?: 
         {entry.rank}
       </span>
       <div className="flex min-w-0 items-center gap-2.5">
-        <Avatar entry={entry} />
+        <Avatar src={avatarSrc(entry.userId)} fullName={displayName(entry)} size="sm" />
         <span className="truncate text-sm font-medium text-on-surface" title={displayName(entry)}>
           {displayName(entry)}
           {highlight && <span className="ml-1 text-xs font-semibold text-secondary">(bạn)</span>}

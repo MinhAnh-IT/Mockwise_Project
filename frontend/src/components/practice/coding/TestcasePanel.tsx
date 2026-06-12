@@ -9,6 +9,8 @@ type Props = {
   sampleCases: SampleTestCase[];
   runResult: RunResultView | null;
   running: boolean;
+  /** Which action is in flight — drives the spinner copy (Run vs full grading). */
+  mode?: 'RUN' | 'SUBMIT' | null;
   dark: boolean;
 };
 
@@ -26,6 +28,7 @@ export default function TestcasePanel({
   sampleCases,
   runResult,
   running,
+  mode,
   dark,
 }: Props) {
   const t = cwTokens(dark);
@@ -80,6 +83,7 @@ export default function TestcasePanel({
             terminal={terminal}
             result={runResult}
             cases={sampleCases}
+            mode={mode}
             t={t}
           />
         )}
@@ -194,12 +198,14 @@ function ResultView({
   terminal,
   result,
   cases,
+  mode,
   t,
 }: {
   inFlight: boolean;
   terminal: boolean;
   result: RunResultView | null;
   cases: SampleTestCase[];
+  mode?: 'RUN' | 'SUBMIT' | null;
   t: CwTokens;
 }) {
   // Still running (or polling an unfinished submission): show only a spinner,
@@ -210,7 +216,9 @@ function ResultView({
         <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
           <Loader2 className="h-6 w-6 animate-spin text-sky-500" />
           <span className={`text-sm ${t.textBody}`}>
-            Đang chạy trên {cases.length} testcase mẫu…
+            {mode === 'SUBMIT'
+              ? 'Đang chấm trên toàn bộ test case…'
+              : `Đang chạy trên ${cases.length} testcase mẫu…`}
           </span>
         </div>
       );
