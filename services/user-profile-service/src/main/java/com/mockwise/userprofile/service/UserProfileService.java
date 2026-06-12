@@ -6,6 +6,7 @@ import com.mockwise.userprofile.common.exception.BusinessException;
 import com.mockwise.userprofile.dto.request.UserProfileRequest;
 import com.mockwise.userprofile.dto.request.UserProfileUpdateRequest;
 import com.mockwise.userprofile.dto.response.AdminUserProfileResponse;
+import com.mockwise.userprofile.dto.response.ProfileBriefResponse;
 import com.mockwise.userprofile.dto.response.ProfileStatsResponse;
 import com.mockwise.userprofile.dto.response.UserProfileResponse;
 import com.mockwise.userprofile.entity.Language;
@@ -102,6 +103,21 @@ public class UserProfileService {
                 .orElseThrow(() -> new BusinessException(ResponseCode.NOT_FOUND,
                         "Profile not found for user: " + userId));
         return toEnrichedResponse(profile);
+    }
+
+    /**
+     * Batch display-name lookup for service callers (e.g. the practice
+     * leaderboard). Missing ids are simply absent from the result — the caller
+     * falls back to a placeholder. Avatars are omitted by design.
+     */
+    public List<ProfileBriefResponse> getBriefs(List<String> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        List<ProfileBriefResponse> briefs = new ArrayList<>();
+        userProfileRepository.findAllById(userIds)
+                .forEach(p -> briefs.add(new ProfileBriefResponse(p.getUserId(), p.getFullName())));
+        return briefs;
     }
 
     /**

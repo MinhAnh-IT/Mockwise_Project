@@ -1,15 +1,18 @@
 package com.mockwise.practice.entity;
 
 import com.mockwise.practice.enums.ProblemStatus;
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.Type;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -48,6 +51,11 @@ public class PracticeProblemStatus {
 
     @Column(name = "best_runtime_ms")
     Integer bestRuntimeMs;
+
+    /** Denormalized question-bank tags of the problem — backs per-tag progress stats. */
+    @Type(JsonBinaryType.class)
+    @Column(name = "tags", columnDefinition = "jsonb")
+    List<String> tags;
 
     @Column(name = "first_solved_at")
     LocalDateTime firstSolvedAt;

@@ -13,6 +13,7 @@ import com.mockwise.practice.dto.response.ProblemSummary;
 import com.mockwise.practice.entity.PracticeProblemStatus;
 import com.mockwise.practice.enums.ProblemStatus;
 import com.mockwise.practice.repository.PracticeProblemStatusRepository;
+import com.mockwise.practice.repository.PracticeSubmissionRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -27,8 +28,8 @@ import java.util.stream.Collectors;
  * Read-only catalog facade for the practice feature. Proxies question-bank's
  * internal coding-problem catalog and re-shapes it for the user:
  * <ul>
- *   <li>list → {@link ProblemSummary} (per-user {@code myStatus} + acceptance
- *       are placeholders until Phase 2/3);</li>
+ *   <li>list → {@link ProblemSummary} with per-user {@code myStatus} and the
+ *       global {@code acceptanceRate} (accepted/graded SUBMITs) backed in;</li>
  *   <li>detail → {@link CodingProblemView} with hidden test cases stripped.</li>
  * </ul>
  */
@@ -38,8 +39,12 @@ import java.util.stream.Collectors;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PracticeCatalogService {
 
+    /** Judge aggregate verdict that counts as accepted — mirrors the submission service. */
+    private static final String VERDICT_ACCEPTED = "AC";
+
     QuestionBankClient questionBank;
     PracticeProblemStatusRepository statusRepo;
+    PracticeSubmissionRepository submissionRepo;
 
     /**
      * Paginated browse. Each row's {@code myStatus} is resolved from the
@@ -60,8 +65,13 @@ public class PracticeCatalogService {
                                 PracticeProblemStatus::getStatus,
                                 (a, b) -> a));
 
+        Map<String, Double> acceptanceByQuestion = acceptanceRates(ids);
+
         List<ProblemSummary> rows = qb.content().stream()
-                .map(s -> toSummary(s, statusByQuestion.getOrDefault(s.id(), ProblemStatus.NONE)))
+                .map(s -> toSummary(
+                        s,
+                        acceptanceByQuestion.get(s.id()),
+                        statusByQuestion.getOrDefault(s.id(), ProblemStatus.NONE)))
                 .toList();
 
         return PageResponse.of(rows, qb.page(), qb.size(), qb.totalElements(), qb.totalPages());
@@ -78,7 +88,7 @@ public class PracticeCatalogService {
 
     // ── Mapping ────────────────────────────────────────────────────────────────
 
-    private ProblemSummary toSummary(QbProblemSummary s, ProblemStatus myStatus) {
+    private ProblemSummary toSummary(QbProblemSummary s, Double acceptanceRate, ProblemStatus myStatus) {
         return new ProblemSummary(
                 s.id(),
                 s.title(),
@@ -86,8 +96,27 @@ public class PracticeCatalogService {
                 s.tags(),
                 s.optimalTimeComplexity(),
                 s.optimalSpaceComplexity(),
-                null,        // acceptanceRate (global per-problem) — future work
+                acceptanceRate,   // global accepted/graded SUBMITs; null until first graded submit
                 myStatus);
+    }
+
+    /**
+     * Global acceptance ratio (0..1) per question over graded SUBMITs. Questions
+     * with no graded submit yet are simply absent from the map → {@code null} on
+     * the row. Computed in one batched aggregate for the whole page.
+     */
+    private Map<String, Double> acceptanceRates(List<String> ids) {
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return submissionRepo.aggregateAcceptance(ids, VERDICT_ACCEPTED).stream()
+                .collect(Collectors.toMap(
+                        row -> (String) row[0],
+                        row -> {
+                            long total = ((Number) row[1]).longValue();
+                            long accepted = ((Number) row[2]).longValue();
+                            return (double) accepted / total;   // total ≥ 1 (GROUP BY)
+                        }));
     }
 
     private CodingProblemView toView(QbCodingDetail d) {

@@ -19,6 +19,9 @@ public interface PracticeProblemStatusRepository
 
     long countByUserIdAndStatus(String userId, ProblemStatus status);
 
+    /** Solved/attempted rows for a user — backs per-tag progress (tags read in-app). */
+    List<PracticeProblemStatus> findByUserIdAndStatus(String userId, ProblemStatus status);
+
     /** Solved counts grouped by denormalized difficulty for the stats page. */
     @Query("""
             SELECT s.difficulty, COUNT(s)

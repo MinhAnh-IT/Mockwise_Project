@@ -1,5 +1,9 @@
 package com.mockwise.practice.service;
 
+import com.core.apiresponse.response.ApiResponse;
+import com.mockwise.practice.client.questionbank.QuestionBankClient;
+import com.mockwise.practice.client.questionbank.dto.QbPage;
+import com.mockwise.practice.client.questionbank.dto.QbProblemSummary;
 import com.mockwise.practice.dto.response.UserStats;
 import com.mockwise.practice.enums.ProblemStatus;
 import com.mockwise.practice.enums.SubmissionMode;
@@ -8,10 +12,12 @@ import com.mockwise.practice.repository.PracticeSubmissionRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,15 +30,18 @@ import java.util.TreeSet;
  * (one row per attempted problem; submissions are user-scoped), so an on-read
  * aggregate stays simple and always consistent.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PracticeStatsService {
 
     private static final String VERDICT_ACCEPTED = "AC";
+    private static final List<String> DIFFICULTIES = List.of("EASY", "MEDIUM", "HARD");
 
     PracticeProblemStatusRepository statusRepo;
     PracticeSubmissionRepository submissionRepo;
+    QuestionBankClient questionBank;
 
     @Transactional(readOnly = true)
     public UserStats getStats(String userId) {
@@ -56,12 +65,76 @@ public class PracticeStatsService {
                 userId, SubmissionMode.SUBMIT, VERDICT_ACCEPTED);
         Double acceptanceRate = submitTotal == 0 ? null : (double) submitAccepted / submitTotal;
 
+        Map<String, Long> totalByDifficulty = catalogTotalsByDifficulty();
+        long totalProblems = totalByDifficulty.values().stream().mapToLong(Long::longValue).sum();
+
+        Map<String, Long> solvedByLanguage = solvedByLanguage(userId);
+        Map<String, Long> solvedByTag = solvedByTag(userId);
+
         List<LocalDate> acceptedDays = submissionRepo.findAcceptedSubmitDates(userId);
         int currentStreak = currentStreak(acceptedDays);
         int longestStreak = longestStreak(acceptedDays);
 
         return new UserStats(
-                solved, byDifficulty, attemptedTotal, acceptanceRate, currentStreak, longestStreak);
+                solved, totalProblems, byDifficulty, totalByDifficulty,
+                solvedByLanguage, solvedByTag,
+                attemptedTotal, acceptanceRate, currentStreak, longestStreak);
+    }
+
+    /** Distinct solved problems per language, highest first. */
+    private Map<String, Long> solvedByLanguage(String userId) {
+        Map<String, Long> byLang = new LinkedHashMap<>();
+        submissionRepo.countSolvedByLanguage(userId, VERDICT_ACCEPTED).stream()
+                .sorted((a, b) -> Long.compare(((Number) b[1]).longValue(), ((Number) a[1]).longValue()))
+                .forEach(row -> {
+                    if (row[0] != null) byLang.put(String.valueOf(row[0]), ((Number) row[1]).longValue());
+                });
+        return byLang;
+    }
+
+    /**
+     * Distinct solved problems per question-bank tag, highest first. Tags are
+     * denormalized onto problem-status on solve, so this stays a single local read.
+     */
+    private Map<String, Long> solvedByTag(String userId) {
+        Map<String, Long> tally = new HashMap<>();
+        for (var status : statusRepo.findByUserIdAndStatus(userId, ProblemStatus.SOLVED)) {
+            if (status.getTags() == null) continue;
+            for (String tag : status.getTags()) {
+                if (tag != null && !tag.isBlank()) tally.merge(tag, 1L, Long::sum);
+            }
+        }
+        return tally.entrySet().stream()
+                .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
+                .collect(LinkedHashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()), LinkedHashMap::putAll);
+    }
+
+    /**
+     * Global catalog size per difficulty, read from question-bank (one count
+     * query per difficulty via {@code size=1} + {@code totalElements}). Best-effort:
+     * if question-bank is unavailable the totals fall back to 0 so the rest of the
+     * stats payload still resolves.
+     */
+    private Map<String, Long> catalogTotalsByDifficulty() {
+        Map<String, Long> totals = new LinkedHashMap<>();
+        for (String difficulty : DIFFICULTIES) {
+            totals.put(difficulty, countCatalog(difficulty));
+        }
+        return totals;
+    }
+
+    private long countCatalog(String difficulty) {
+        try {
+            ApiResponse<QbPage<QbProblemSummary>> res =
+                    questionBank.listProblems(difficulty, null, null, 0, 1);
+            if (res == null || !res.isSuccess() || res.getData() == null) {
+                return 0L;
+            }
+            return res.getData().totalElements();
+        } catch (Exception ex) {
+            log.warn("Catalog count for difficulty={} failed: {}", difficulty, ex.getMessage());
+            return 0L;
+        }
     }
 
     /** Consecutive days up to today (or yesterday) with ≥1 accepted submit. */

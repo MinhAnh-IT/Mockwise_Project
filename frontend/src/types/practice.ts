@@ -91,9 +91,79 @@ export type SubmissionDetail = SubmissionSummary & {
 
 export type UserStats = {
   solvedTotal: number;
+  /** Global catalog size (sum of totalByDifficulty) — denominator for the ring. */
+  totalProblems: number;
   solvedByDifficulty: Record<string, number>;
+  totalByDifficulty: Record<string, number>;
+  /** Distinct solved problems per language (e.g. python/java). */
+  solvedByLanguage: Record<string, number>;
+  /** Distinct solved problems per question-bank tag. */
+  solvedByTag: Record<string, number>;
   attemptedTotal: number;
   acceptanceRate: number | null;
   currentStreakDays: number;
   longestStreakDays: number;
+};
+
+export type LeaderboardWindow = 'ALL' | 'WEEK' | 'MONTH';
+
+export type LeaderboardEntry = {
+  rank: number;
+  userId: string;
+  fullName: string | null;
+  solved: number;
+  /** Difficulty-weighted score (Easy 1, Medium 3, Hard 5). */
+  score: number;
+  easy: number;
+  medium: number;
+  hard: number;
+};
+
+export type LeaderboardMe = {
+  rank: number;
+  solved: number;
+  score: number;
+  /** Rounded percentile, 1..100 (lower is better). */
+  topPercent: number;
+};
+
+export type LeaderboardResponse = {
+  window: string;
+  totalParticipants: number;
+  entries: LeaderboardEntry[];
+  me: LeaderboardMe | null;
+};
+
+export type TrendingProblem = {
+  problemId: string;
+  title: string | null;
+  difficulty: string | null;
+  solvers: number;
+};
+
+export type HardestProblem = {
+  problemId: string;
+  title: string | null;
+  difficulty: string | null;
+  total: number;
+  accepted: number;
+  acceptanceRate: number;
+};
+
+export type CommunityResponse = {
+  trending: TrendingProblem[];
+  hardest: HardestProblem[];
+};
+
+/** One problem's roll-up across the user's graded SUBMITs — LeetCode "progress" row. */
+export type ProblemSubmissionGroup = {
+  problemId: string;
+  problemTitle: string | null;
+  difficulty: string | null;
+  solved: boolean;
+  submissionCount: number;
+  acceptedCount: number;
+  bestRuntimeMs: number | null;
+  firstSolvedAt: string | null;
+  lastSubmittedAt: string;
 };

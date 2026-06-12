@@ -22,6 +22,7 @@ public enum StatusCode {
     // --- Upstream ---
     QUESTION_BANK_UNAVAILABLE(5021, "Question bank is unavailable. Please try again.", 502),
     JUDGE_DISPATCH_FAILED(5022, "Failed to dispatch the submission to the judge. Please try again.", 502),
+    USER_PROFILE_UNAVAILABLE(5023, "User profile service is unavailable. Please try again.", 502),
 
     // --- Auth ---
     UNAUTHENTICATED(4010, "Authentication is required", 401);

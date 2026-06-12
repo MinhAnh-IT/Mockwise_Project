@@ -4,9 +4,11 @@ import com.core.apiresponse.response.ApiResponse;
 import com.mockwise.userprofile.common.security.CustomUserDetails;
 import com.mockwise.userprofile.dto.request.UserProfileRequest;
 import com.mockwise.userprofile.dto.request.UserProfileUpdateRequest;
+import com.mockwise.userprofile.dto.response.ProfileBriefResponse;
 import com.mockwise.userprofile.dto.response.UserProfileResponse;
 import com.mockwise.userprofile.service.UserProfileService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -38,6 +40,17 @@ public class UserProfileController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         UserProfileResponse result = service.getProfileById(userDetails.getUserId());
         return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    /**
+     * Batch display-name lookup ({@code ?ids=a,b,c}) for internal service callers
+     * (e.g. the practice leaderboard). Declared before {@code /{userId}} so the
+     * literal path wins the match.
+     */
+    @GetMapping("/batch")
+    public ResponseEntity<ApiResponse<List<ProfileBriefResponse>>> getBriefs(
+            @RequestParam("ids") List<String> ids) {
+        return ResponseEntity.ok(ApiResponse.success(service.getBriefs(ids)));
     }
 
     /**

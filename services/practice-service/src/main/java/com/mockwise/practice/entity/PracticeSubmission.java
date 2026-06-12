@@ -77,6 +77,11 @@ public class PracticeSubmission {
     @Column(name = "hidden_case_ids", columnDefinition = "jsonb")
     List<String> hiddenCaseIds;
 
+    /** Denormalized question-bank tags — copied onto problem-status on solve for per-tag stats. */
+    @Type(JsonBinaryType.class)
+    @Column(name = "tags", columnDefinition = "jsonb")
+    List<String> tags;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     LocalDateTime createdAt;
 
