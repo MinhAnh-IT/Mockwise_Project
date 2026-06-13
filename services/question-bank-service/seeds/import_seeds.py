@@ -35,6 +35,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 FILES = {
     "behavioral": SCRIPT_DIR / "behavioral_questions.json",
     "core":       SCRIPT_DIR / "core_questions.json",
+    "coding":     SCRIPT_DIR / "coding" / "coding_questions.json",
 }
 
 
@@ -79,7 +80,7 @@ def import_file(kind: str, dry_run: bool):
 
     ok, fail = 0, 0
     for i, q in enumerate(questions, 1):
-        text_preview = q.get("text", "")[:70].replace("\n", " ")
+        text_preview = (q.get("text") or q.get("title", ""))[:70].replace("\n", " ")
 
         if dry_run:
             print(f"  [{i:3d}/{len(questions)}] DRY  {text_preview}")
@@ -121,7 +122,7 @@ def import_file(kind: str, dry_run: bool):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("kind", nargs="?", default="all",
-                        choices=["all", "behavioral", "core"])
+                        choices=["all", "behavioral", "core", "coding"])
     parser.add_argument("--dry-run", action="store_true",
                         help="In ra danh sách, không gọi API")
     args = parser.parse_args()
@@ -135,7 +136,7 @@ def main():
     if args.dry_run:
         print("(dry-run)")
 
-    targets = ["behavioral", "core"] if args.kind == "all" else [args.kind]
+    targets = ["behavioral", "core", "coding"] if args.kind == "all" else [args.kind]
     total_ok = total_fail = 0
     for k in targets:
         ok, fail = import_file(k, args.dry_run)
