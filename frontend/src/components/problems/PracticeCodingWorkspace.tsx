@@ -83,6 +83,7 @@ export default function PracticeCodingWorkspace({
   });
 
   const [busy, setBusy] = useState(false); // a run/submit is in flight
+  const [pendingMode, setPendingMode] = useState<'RUN' | 'SUBMIT' | null>(null);
   const [runResult, setRunResult] = useState<RunResultView | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   // Banner for the last SUBMIT verdict (run results show in the console).
@@ -183,6 +184,7 @@ export default function PracticeCodingWorkspace({
   const handleRun = useCallback(async () => {
     if (!problem || busy) return;
     setBusy(true);
+    setPendingMode('RUN');
     setActionError(null);
     setVerdict(null);
     setRunResult({ status: 'RUNNING', compileError: null, cases: [] });
@@ -201,6 +203,7 @@ export default function PracticeCodingWorkspace({
   const handleSubmit = useCallback(async () => {
     if (!problem || busy) return;
     setBusy(true);
+    setPendingMode('SUBMIT');
     setActionError(null);
     setVerdict(null);
     setRunResult({ status: 'RUNNING', compileError: null, cases: [] });
@@ -372,6 +375,7 @@ export default function PracticeCodingWorkspace({
                 sampleCases={problem.sampleTestCases}
                 runResult={runResult}
                 running={busy}
+                mode={pendingMode}
                 dark={dark}
               />
             )}
