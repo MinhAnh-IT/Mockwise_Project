@@ -33,6 +33,14 @@ export type LoginResponseData = {
   accessToken: string;
 };
 
+export type OAuthProviderName = 'google' | 'github';
+
+export type OAuthLoginResponseData = {
+  accessToken: string;
+  /** When false, the SPA must route the user to complete their profile first. */
+  profileCompleted: boolean;
+};
+
 export type UserResponse = {
   userId: string;
   email: string;

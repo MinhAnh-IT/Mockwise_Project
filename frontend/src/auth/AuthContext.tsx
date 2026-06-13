@@ -27,6 +27,13 @@ export type AuthContextValue = {
   /** Decoded from the JWT `role` claim. Null until the first token resolves. */
   role: UserRole | null;
   signIn: (email: string, password: string) => Promise<void>;
+  /**
+   * Adopt a session minted by the social-login exchange. When the account still
+   * needs to complete its profile (`profileCompleted=false`) we skip loading the
+   * profile (it doesn't exist yet) and let the caller route to the completion
+   * page; status is still flipped to authenticated since the JWT is valid.
+   */
+  signInWithOAuth: (accessToken: string, profileCompleted: boolean) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -108,6 +115,14 @@ export function AuthProvider({ children }: Props) {
   }, []);
 
   useEffect(() => {
+    // The OAuth callback page is a full page load that establishes the session
+    // itself (code→token exchange). Skip the mount refresh there so its null
+    // result (no refresh cookie yet) can't race with and clobber the session
+    // the callback is about to set.
+    if (window.location.pathname === '/auth/callback') {
+      return;
+    }
+
     let cancelled = false;
     (async () => {
       const token = await refresh();
@@ -151,6 +166,17 @@ export function AuthProvider({ children }: Props) {
     [loadProfile, applyToken],
   );
 
+  const signInWithOAuth = useCallback(
+    async (accessToken: string, profileCompleted: boolean) => {
+      applyToken(accessToken);
+      if (profileCompleted) {
+        await loadProfile();
+      }
+      setStatus('authenticated');
+    },
+    [applyToken, loadProfile],
+  );
+
   const signOut = useCallback(async () => {
     try {
       await authApi.logout();
@@ -169,10 +195,11 @@ export function AuthProvider({ children }: Props) {
       profile,
       role,
       signIn,
+      signInWithOAuth,
       signOut,
       refreshProfile: loadProfile,
     }),
-    [status, profile, role, signIn, signOut, loadProfile],
+    [status, profile, role, signIn, signInWithOAuth, signOut, loadProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -396,6 +396,12 @@ jobs:
           context: frontend
           file: frontend/Dockerfile
           push: true
+          # Social-login client IDs are public (not secrets) and must be baked
+          # in at build time. Set as repo Variables under Settings → Secrets and
+          # variables → Actions → Variables.
+          build-args: |
+            VITE_GOOGLE_CLIENT_ID=${{ vars.VITE_GOOGLE_CLIENT_ID }}
+            VITE_GITHUB_CLIENT_ID=${{ vars.VITE_GITHUB_CLIENT_ID }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:${{ github.sha }}

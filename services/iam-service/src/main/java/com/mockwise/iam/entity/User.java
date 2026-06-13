@@ -1,5 +1,6 @@
 package com.mockwise.iam.entity;
 
+import com.mockwise.iam.enums.AuthProvider;
 import com.mockwise.iam.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
@@ -22,8 +23,36 @@ public class User {
     @Column(nullable = false, unique = true)
     String email;
 
-    @Column(nullable = false)
+    /**
+     * BCrypt password hash. {@code null} for accounts that only sign in via a
+     * social provider (Google/GitHub) and have never set a password. Password
+     * sign-in is gated on this being non-null.
+     */
+    @Column(nullable = true)
     String hashPass;
+
+    /**
+     * How the account was created / last linked. Informational only — see
+     * {@link AuthProvider}. Defaults to {@code LOCAL}.
+     */
+    @Column(nullable = false)
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    AuthProvider authProvider = AuthProvider.LOCAL;
+
+    /** Subject/id from the social provider (Google {@code sub}, GitHub user id). Null for pure-local accounts. */
+    @Column
+    String providerId;
+
+    /**
+     * Whether the user has filled in the required profile (track/level/city/...).
+     * Local registrations create the profile up-front so they are complete; a
+     * fresh OAuth account starts {@code false} until it completes the profile form.
+     * Existing rows default to {@code true} via the column definition.
+     */
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    @Builder.Default
+    boolean profileCompleted = true;
 
     @Column(nullable = false)
     @Builder.Default

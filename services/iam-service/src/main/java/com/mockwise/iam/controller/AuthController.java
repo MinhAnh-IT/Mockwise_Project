@@ -3,8 +3,10 @@ package com.mockwise.iam.controller;
 import com.core.apiresponse.response.ApiResponse;
 import com.mockwise.iam.dto.request.*;
 import com.mockwise.iam.dto.response.LoginResponse;
+import com.mockwise.iam.dto.response.OAuthLoginResponse;
 import com.mockwise.iam.dto.response.TokenIntrospectResponse;
 import com.mockwise.iam.service.AuthService;
+import com.mockwise.iam.service.OAuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     AuthService authService;
+    OAuthService oauthService;
 
     @GetMapping("/health")
     public ResponseEntity<ApiResponse<Void>> healthCheck() {
@@ -35,6 +38,15 @@ public class AuthController {
             HttpServletResponse response,
             HttpServletRequest request) {
         LoginResponse result = authService.login(body, response);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    @PostMapping("/oauth/{provider}/exchange")
+    public ResponseEntity<ApiResponse<OAuthLoginResponse>> oauthExchange(
+            @PathVariable String provider,
+            @RequestBody @Valid OAuthExchangeRequest body,
+            HttpServletResponse response) {
+        OAuthLoginResponse result = oauthService.exchange(provider, body, response);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 

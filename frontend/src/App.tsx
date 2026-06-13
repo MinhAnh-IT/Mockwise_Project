@@ -10,6 +10,8 @@ import RegisterPage from '@/pages/auth/RegisterPage';
 import VerifyAccountPage from '@/pages/auth/VerifyAccountPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
+import OAuthCallbackPage from '@/pages/auth/OAuthCallbackPage';
+import CompleteProfilePage from '@/pages/auth/CompleteProfilePage';
 import PracticeCodingPreviewPage from '@/pages/practice/PracticeCodingPreviewPage';
 import PracticeIntroPage from '@/pages/practice/PracticeIntroPage';
 import PracticePage from '@/pages/practice/PracticePage';
@@ -48,6 +50,15 @@ export default function App() {
           <Route path="/verify-account" element={<VerifyAccountPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+          <Route
+            path="/complete-profile"
+            element={
+              <ProtectedRoute>
+                <CompleteProfilePage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/profile"
             element={

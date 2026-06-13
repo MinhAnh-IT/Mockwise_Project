@@ -1,27 +1,19 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
-import { register, sendVerifyOtp } from '@/api/auth';
+import { completeProfile } from '@/api/auth';
 import { listPositionLevels, listPositionTracks } from '@/api/catalog';
-import { ApiError } from '@/api/client';
+import { useAuth } from '@/auth/useAuth';
 import AuthLayout from '@/components/auth/AuthLayout';
 import FormError from '@/components/auth/FormError';
 import Button from '@/components/form/Button';
 import Field from '@/components/form/Field';
 import Input from '@/components/form/Input';
-import PasswordInput from '@/components/form/PasswordInput';
 import Select from '@/components/form/Select';
-import SocialLoginButtons from '@/components/auth/SocialLoginButtons';
 import type { Language, PositionLevel, PositionTrack } from '@/types/profile';
 
-const PASSWORD_HINT =
-  'Tối thiểu 8 ký tự, gồm chữ hoa, chữ thường và ký tự đặc biệt.';
-
-const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$/;
-
-// Comma/newline-separated free-text → list of normalized lowercase tokens.
-// Backend re-normalizes anyway; we mirror it client-side so chip preview and
-// length-cap hints match what gets persisted.
+// Comma/newline-separated free-text → normalized lowercase tokens (mirrors
+// RegisterPage so behaviour is identical to the password sign-up path).
 function splitTokens(raw: string): string[] {
   const seen = new Set<string>();
   for (const part of raw.split(/[,\n]/)) {
@@ -31,11 +23,16 @@ function splitTokens(raw: string): string[] {
   return [...seen];
 }
 
-export default function RegisterPage() {
+/**
+ * First-time profile completion for social-login accounts. Google/GitHub give
+ * us email + name but none of the required track/level/city, so a fresh OAuth
+ * user is routed here before entering the app. If the profile already exists
+ * (e.g. the user navigates here directly), bounce to /profile.
+ */
+export default function CompleteProfilePage() {
   const navigate = useNavigate();
+  const { profile, refreshProfile } = useAuth();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [city, setCity] = useState('');
   const [experience, setExperience] = useState('0');
@@ -53,7 +50,11 @@ export default function RegisterPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  // Already has a profile → nothing to complete.
+  useEffect(() => {
+    if (profile) navigate('/profile', { replace: true });
+  }, [profile, navigate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,12 +82,6 @@ export default function RegisterPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-    setPasswordError(null);
-
-    if (!PASSWORD_RULE.test(password)) {
-      setPasswordError(PASSWORD_HINT);
-      return;
-    }
 
     const expNum = Number(experience);
     const yicrNum = yearsInCurrentRole.trim() === '' ? undefined : Number(yearsInCurrentRole);
@@ -108,32 +103,21 @@ export default function RegisterPage() {
 
     setSubmitting(true);
     try {
-      await register({
-        account: { email: email.trim(), password },
-        profile: {
-          fullName: fullName.trim(),
-          trackId,
-          levelId,
-          city: city.trim(),
-          experience: expNum,
-          preferredLanguage,
-          ...(yicrNum !== undefined ? { yearsInCurrentRole: yicrNum } : {}),
-          ...(techStack.length ? { techStack } : {}),
-          ...(industries.length ? { industries } : {}),
-        },
+      await completeProfile({
+        fullName: fullName.trim(),
+        trackId,
+        levelId,
+        city: city.trim(),
+        experience: expNum,
+        preferredLanguage,
+        ...(yicrNum !== undefined ? { yearsInCurrentRole: yicrNum } : {}),
+        ...(techStack.length ? { techStack } : {}),
+        ...(industries.length ? { industries } : {}),
       });
-      try {
-        await sendVerifyOtp(email.trim());
-      } catch {
-        // verification page can resend if first send fails
-      }
-      navigate(`/verify-account?email=${encodeURIComponent(email.trim())}`, { replace: true });
+      await refreshProfile();
+      navigate('/profile', { replace: true });
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        setError('Email này đã được đăng ký. Bạn vui lòng đăng nhập hoặc dùng email khác.');
-      } else {
-        setError(err instanceof Error ? err.message : 'Không thể đăng ký. Vui lòng thử lại.');
-      }
+      setError(err instanceof Error ? err.message : 'Không thể lưu hồ sơ. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);
     }
@@ -141,58 +125,14 @@ export default function RegisterPage() {
 
   return (
     <AuthLayout
-      title="Tạo tài khoản"
-      subtitle="Bắt đầu luyện phỏng vấn cùng MockWise"
+      title="Hoàn thiện hồ sơ"
+      subtitle="Một vài thông tin để MockWise cá nhân hoá câu hỏi cho bạn"
       size="md"
-      footer={
-        <>
-          Đã có tài khoản?{' '}
-          <Link to="/login" className="font-semibold text-secondary hover:underline">
-            Đăng nhập
-          </Link>
-        </>
-      }
     >
       <form onSubmit={handleSubmit} className="space-y-8">
         <FormError message={error ?? catalogError} />
 
-        <FormSection title="Tài khoản" description="Thông tin đăng nhập của bạn.">
-          <Field label="Email" htmlFor="email" required>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="ban@example.com"
-              required
-              autoComplete="email"
-            />
-          </Field>
-
-          <Field
-            label="Mật khẩu"
-            htmlFor="password"
-            required
-            hint={PASSWORD_HINT}
-            error={passwordError ?? undefined}
-          >
-            <PasswordInput
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Tạo mật khẩu mạnh"
-              invalid={!!passwordError}
-              minLength={8}
-              required
-              autoComplete="new-password"
-            />
-          </Field>
-        </FormSection>
-
-        <FormSection
-          title="Hồ sơ chuyên môn"
-          description="Giúp MockWise điều chỉnh độ khó và chủ đề câu hỏi cho bạn."
-        >
+        <section className="space-y-4">
           <Field label="Họ và tên" htmlFor="fullName" required>
             <Input
               id="fullName"
@@ -262,7 +202,7 @@ export default function RegisterPage() {
               />
             </Field>
           </div>
-        </FormSection>
+        </section>
 
         <details className="group rounded-2xl border border-outline-variant bg-surface-container-low/40 open:bg-surface-container-low/70 transition-colors">
           <summary className="cursor-pointer list-none px-5 py-4 flex items-center justify-between gap-3 select-none">
@@ -332,31 +272,9 @@ export default function RegisterPage() {
         </details>
 
         <Button type="submit" loading={submitting} fullWidth>
-          Tạo tài khoản
+          Hoàn tất
         </Button>
-
-        <SocialLoginButtons />
       </form>
     </AuthLayout>
-  );
-}
-
-type FormSectionProps = {
-  title: string;
-  description?: string;
-  children: ReactNode;
-};
-
-function FormSection({ title, description, children }: FormSectionProps) {
-  return (
-    <section className="space-y-4">
-      <header>
-        <h2 className="text-sm font-semibold text-on-surface">{title}</h2>
-        {description && (
-          <p className="text-xs text-on-surface-variant mt-0.5">{description}</p>
-        )}
-      </header>
-      <div className="space-y-4">{children}</div>
-    </section>
   );
 }

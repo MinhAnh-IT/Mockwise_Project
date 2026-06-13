@@ -138,7 +138,7 @@ export default function ProblemListPage() {
             <Code2 className="h-6 w-6" />
           </span>
           <div>
-            <h1 className="text-2xl font-bold text-on-surface">Luyện đề thuật toán</h1>
+            <h1 className="text-2xl font-bold text-on-surface">Luyện thuật toán</h1>
             <p className="text-sm text-on-surface-variant">
               Chọn đề, viết code, chạy thử rồi nộp để chấm toàn bộ test case.
             </p>

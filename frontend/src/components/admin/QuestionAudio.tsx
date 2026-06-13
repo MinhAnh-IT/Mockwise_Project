@@ -53,6 +53,14 @@ export default function QuestionAudioRow({
             preload="none"
             src={questionAudioUrl(audioKey)}
             className="h-8 max-w-[16rem] flex-1"
+            onPlay={(e) => {
+              // Only one clip should play at a time: pause every other
+              // audio element when this one starts.
+              const current = e.currentTarget;
+              document.querySelectorAll('audio').forEach((el) => {
+                if (el !== current) el.pause();
+              });
+            }}
           />
           <Button
             variant="ghost"

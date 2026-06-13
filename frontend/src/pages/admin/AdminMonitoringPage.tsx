@@ -25,6 +25,7 @@ import type {
 } from '@/types/monitoring';
 
 const REFRESH_MS = 10_000;
+const AUTO_REFRESH_KEY = 'admin.monitoring.autoRefresh';
 
 const STATE_TONE: Record<ComponentState, 'emerald' | 'amber' | 'red'> = {
   UP: 'emerald',
@@ -71,8 +72,16 @@ export default function AdminMonitoringPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [auto, setAuto] = useState(true);
+  // Persist the auto-refresh choice so it survives a page reload.
+  const [auto, setAuto] = useState(
+    () => localStorage.getItem(AUTO_REFRESH_KEY) !== 'false',
+  );
   const firstLoad = useRef(true);
+
+  const toggleAuto = (next: boolean) => {
+    setAuto(next);
+    localStorage.setItem(AUTO_REFRESH_KEY, String(next));
+  };
 
   const load = useCallback(async () => {
     if (firstLoad.current) setLoading(true);
@@ -116,7 +125,7 @@ export default function AdminMonitoringPage() {
             <input
               type="checkbox"
               checked={auto}
-              onChange={(e) => setAuto(e.target.checked)}
+              onChange={(e) => toggleAuto(e.target.checked)}
               className="h-3.5 w-3.5 accent-secondary"
             />
             Tự động (10s)

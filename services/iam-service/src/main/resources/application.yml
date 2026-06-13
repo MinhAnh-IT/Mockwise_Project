@@ -51,6 +51,14 @@ app:
     key_otp_verify_account: "key_verify_"
     key_otp_forgot_pass: "key_forgot_password_"
     time_expire: 300
+
+  oauth:
+    google:
+      client-id: ${OAUTH_GOOGLE_CLIENT_ID:}
+      client-secret: ${OAUTH_GOOGLE_CLIENT_SECRET:}
+    github:
+      client-id: ${OAUTH_GITHUB_CLIENT_ID:}
+      client-secret: ${OAUTH_GITHUB_CLIENT_SECRET:}
 api:
   response:
     enabled: false

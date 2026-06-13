@@ -42,6 +42,8 @@ public class AuthGatewayFilter implements GlobalFilter, Ordered {
     private static final List<PublicRoute> PUBLIC_ROUTES = List.of(
             new PublicRoute(HttpMethod.POST, "/api/v1/iam/users/register"),
             new PublicRoute(HttpMethod.POST, "/api/v1/iam/auth/sign-in"),
+            // Social-login code exchange — runs before any token exists.
+            new PublicRoute(HttpMethod.POST, "/api/v1/iam/auth/oauth/**"),
             new PublicRoute(HttpMethod.POST, "/api/v1/iam/auth/logout"),
             new PublicRoute(HttpMethod.POST, "/api/v1/iam/auth/token/renew"),
             new PublicRoute(HttpMethod.POST, "/api/v1/iam/auth/token/introspect"),

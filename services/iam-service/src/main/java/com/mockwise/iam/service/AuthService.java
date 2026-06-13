@@ -54,6 +54,12 @@ public class AuthService {
                 .orElseThrow(() -> new BusinessException(ResponseCode.NOT_FOUND,
                         "Account not found: " + request.email()));
 
+        // Social-only accounts (or accounts whose password was invalidated during
+        // an OAuth takeover) have no password hash — steer them to social login.
+        if (user.getHashPass() == null) {
+            throw new BusinessException(StatusCode.PASSWORD_LOGIN_UNAVAILABLE);
+        }
+
         if (!bcrypt.matches(request.password(), user.getHashPass())) {
             throw new BusinessException(StatusCode.INVALID_PASSWORD_OR_EMAIL);
         }
@@ -66,6 +72,15 @@ public class AuthService {
             throw new BusinessException(StatusCode.ACCOUNT_BLOCKED);
         }
 
+        return new LoginResponse(issueSession(user, response));
+    }
+
+    /**
+     * Mint an access token + refresh token for an already-authenticated user and
+     * set the refresh cookie. Shared by password login and social login — the
+     * user must already be persisted (the refresh token generation reloads it).
+     */
+    public String issueSession(User user, HttpServletResponse response) {
         AuthenticatedUser authenticatedUser = userMapper.toAuthenticatedUser(user);
         String accessToken = tokenService.generateAccessToken(authenticatedUser);
         String refreshToken = tokenService.generateRefreshToken(user.getUserId(), UUID.randomUUID().toString());
@@ -73,7 +88,7 @@ public class AuthService {
         refreshTokenService.saveWithLimit(refreshToken, jwtProperties.getMaxRefreshSessions());
         setRefreshTokenToCookie(refreshToken, response);
 
-        return new LoginResponse(accessToken);
+        return accessToken;
     }
 
     public void logout(HttpServletRequest request, HttpServletResponse response) {

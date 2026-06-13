@@ -16,12 +16,12 @@ export const HEADER_NAV_GUEST: NavItem[] = [
   { label: 'Bảng giá', href: '/#pricing' },
 ];
 
-// Authenticated header nav: only the primary action (Luyện tập) and the
-// upgrade driver (Bảng giá). Account-related items (history, payment, profile)
-// live in the avatar dropdown — see USER_MENU_ITEMS.
+// Authenticated header nav: the two practice surfaces (AI mock interview +
+// coding problem bank) and the upgrade driver (Bảng giá). Account-related items
+// (history, payment, profile) live in the avatar dropdown — see USER_MENU_ITEMS.
 export const HEADER_NAV_USER: NavItem[] = [
-  { label: 'Luyện tập', href: '/practice' },
-  { label: 'Luyện đề', href: '/problems' },
+  { label: 'Phỏng vấn thử', href: '/practice' },
+  { label: 'Luyện thuật toán', href: '/problems' },
   { label: 'Bảng giá', href: '/#pricing' },
 ];
 

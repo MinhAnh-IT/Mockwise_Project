@@ -51,3 +51,10 @@ nginx/ssl/
 *.pem
 *.key
 *.crt
+
+# Local OAuth/provider secrets — never commit
+secret/
+
+# Vite cache / build output
+frontend/.vite/
+frontend/dist/

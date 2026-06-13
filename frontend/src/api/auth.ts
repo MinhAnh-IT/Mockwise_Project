@@ -2,6 +2,9 @@ import { request, unwrap } from '@/api/client';
 import type {
   AccountRequest,
   LoginResponseData,
+  OAuthLoginResponseData,
+  OAuthProviderName,
+  ProfileDraftRequest,
   RegisterRequest,
   RegisterResponseData,
   ResetPasswordRequest,
@@ -23,6 +26,31 @@ export function register(payload: RegisterRequest): Promise<RegisterResponseData
     method: 'POST',
     body: payload,
     auth: false,
+  });
+}
+
+/**
+ * Exchange a social-provider authorization code for our own session. The
+ * refresh token comes back as an HttpOnly cookie (auth: false — there is no
+ * access token yet). `redirectUri` must match the one used to start the flow.
+ */
+export function exchangeOAuthCode(
+  provider: OAuthProviderName,
+  code: string,
+  redirectUri: string,
+): Promise<OAuthLoginResponseData> {
+  return unwrap(`${PREFIX}/auth/oauth/${provider}/exchange`, {
+    method: 'POST',
+    body: { code, redirectUri },
+    auth: false,
+  });
+}
+
+/** First-time profile completion for a social-login account (authed). */
+export function completeProfile(payload: ProfileDraftRequest): Promise<void> {
+  return request(`${PREFIX}/users/me/profile`, {
+    method: 'POST',
+    body: payload,
   });
 }
 

@@ -106,7 +106,7 @@ monitoring:
     - name: Question Bank
       url: ${QUESTION_BANK_SERVICE_URL:http://localhost:8084}/api/v1/question-bank/questions/health
     - name: Judge
-      url: ${JUDGE_SERVICE_URL:http://localhost:8083}/
+      url: ${JUDGE_SERVICE_URL:http://localhost:8083}/actuator/health
     - name: Judge0
       url: ${JUDGE0_BASE_URL:http://localhost:2358}/about
     - name: Storage
@@ -114,7 +114,7 @@ monitoring:
     - name: TTS-STT
       url: ${TTS_STT_SERVICE_URL:http://localhost:8086}/api/v1/tts-stt/health
     - name: Mail
-      url: ${MAIL_SERVICE_URL:http://mail-service:8087}/
+      url: ${MAIL_SERVICE_URL:http://mail-service:8087}/health
     - name: AI Service
       url: ${AI_SERVICE_URL:http://localhost:8000}/health
   infra:

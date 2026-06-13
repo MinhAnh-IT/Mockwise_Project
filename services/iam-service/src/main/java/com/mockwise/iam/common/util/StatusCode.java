@@ -33,7 +33,14 @@ public enum StatusCode {
     // --- Token ---
     INVALID_TOKEN(4888, "Invalid token", 401),
     GEN_TOKEN_FAILED(4800, "Generate token failed", 500),
-    ALGORITHM_NOT_SUPPORTED(4801, "SHA-256 algorithm not found", 500);
+    ALGORITHM_NOT_SUPPORTED(4801, "SHA-256 algorithm not found", 500),
+
+    // --- OAuth / Social login ---
+    UNSUPPORTED_OAUTH_PROVIDER(4160, "Unsupported login provider: %s", 400),
+    OAUTH_EXCHANGE_FAILED(4161, "Failed to authenticate with the social provider", 401),
+    OAUTH_EMAIL_NOT_VERIFIED(4162, "Your %s email is not verified. Verify it with the provider and try again.", 401),
+    PASSWORD_LOGIN_UNAVAILABLE(4163, "This account uses social login. Please sign in with Google or GitHub.", 401),
+    PROFILE_ALREADY_COMPLETED(4164, "Profile has already been completed", 409);
 
     int code;
     String message;
