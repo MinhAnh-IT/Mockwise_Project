@@ -72,9 +72,12 @@ def _serialize_param(value, type_):
     return json.dumps(value, separators=(",", ":"))
 
 
-def build_stdin(meta: dict, input_data: dict) -> str:
-    """Mirror StdinBuilder: line 1 = functionMeta JSON; then one line/param."""
-    meta_line = json.dumps(
+# Record separator for the batch protocol — must match the Universal*Driver files.
+RS = "\x1e"
+
+
+def _meta_line(meta: dict) -> str:
+    return json.dumps(
         {
             "fn": meta["fn"],
             "params": [{"name": n, "type": t} for (n, t) in meta["params"]],
@@ -84,10 +87,36 @@ def build_stdin(meta: dict, input_data: dict) -> str:
         },
         separators=(",", ":"),
     )
-    lines = [meta_line]
-    for name, type_ in meta["params"]:
-        lines.append(_serialize_param(input_data[name], type_))
+
+
+def build_batch_stdin(meta: dict, inputs: list) -> str:
+    """Mirror StdinBuilder.buildBatch: line 1 = functionMeta JSON, line 2 = T
+    (case count), then T blocks of one line per param."""
+    lines = [_meta_line(meta), str(len(inputs))]
+    for input_data in inputs:
+        for name, type_ in meta["params"]:
+            lines.append(_serialize_param(input_data[name], type_))
     return "\n".join(lines) + "\n"
+
+
+def parse_framed(raw: str) -> list:
+    """Split RS-framed batch stdout into ordered (status, body) tuples.
+    status is "OK" or "ERR"; body is the serialized output (OK) or error (ERR)."""
+    out = []
+    for chunk in raw.split(RS):
+        if chunk == "":
+            continue  # leading empty segment before the first RS
+        nl = chunk.find("\n")
+        if nl < 0:
+            out.append((chunk.strip(), ""))
+        else:
+            out.append((chunk[:nl].strip(), chunk[nl + 1:]))
+    return out
+
+
+def build_stdin(meta: dict, input_data: dict) -> str:
+    """Single-case batch (T=1) — convenience for callers verifying one input."""
+    return build_batch_stdin(meta, [input_data])
 
 
 # ── OutputComparator port (judge codebuilder/OutputComparator.java) ────────
@@ -328,7 +357,10 @@ def build_problem(p: dict, rng) -> dict:
         seen.add(key)
 
         stdin_str = build_stdin(meta, input_data)
-        stdout = runner.run(stdin_str)
+        framed = parse_framed(runner.run(stdin_str))
+        if len(framed) != 1 or framed[0][0] != "OK":
+            raise VerifyError(f"{p['title']}: driver did not return OK for input={input_data}: {framed}")
+        stdout = framed[0][1]
         result = expected_from_stdout(stdout, p["return"])
 
         if not _shape_ok(meta, result):

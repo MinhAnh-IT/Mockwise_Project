@@ -334,13 +334,36 @@ inline string toJson(ListNode* head) {
 
 // === USER_CODE_INJECTED_HERE ===
 
+// Record-separator framing for the batch protocol. One Judge0 submission now
+// runs ALL cases of a job in a single process (compile once). The generated
+// dispatch prints '\x1e' + "OK\n" + <output> per case; main() frames thrown
+// std::exceptions as '\x1e' + "ERR\n" + what(). 0x1E never appears in our answer
+// space, so judge-service splits stdout on it. Each case is flushed so finished
+// cases survive a later hard crash (segfault) — the remainder is marked RE.
 int main() {
     // Line 1 is the functionMeta JSON; types and dispatch are baked into the
     // generated code below, so the meta line is consumed but otherwise ignored.
     std::string _metaLine;
     std::getline(std::cin, _metaLine);
 
-    // === DISPATCH_INJECTED_HERE ===
+    // Line 2 is the number of cases; the dispatch reads one block of param lines
+    // per iteration.
+    std::string _tLine;
+    std::getline(std::cin, _tLine);
+    int _T = 0;
+    try { _T = std::stoi(_judge::trim(_tLine)); } catch (...) { _T = 0; }
+
+    for (int _ci = 0; _ci < _T; _ci++) {
+        try {
+            // === DISPATCH_INJECTED_HERE ===
+        } catch (const std::exception& _e) {
+            std::cout << '\x1e' << "ERR\n" << _e.what() << "\n";
+            std::cout.flush();
+        } catch (...) {
+            std::cout << '\x1e' << "ERR\nunknown error\n";
+            std::cout.flush();
+        }
+    }
 
     return 0;
 }

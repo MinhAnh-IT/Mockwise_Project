@@ -348,7 +348,8 @@ class CodeBuilderTest {
         String dispatch = codeBuilder.generateCppDispatch(meta);
 
         assertThat(dispatch).contains("sol.noop(x);");
-        assertThat(dispatch).contains("\"null\"");
+        // Batch protocol frames the void case as an OK frame carrying "null".
+        assertThat(dispatch).contains("OK\\nnull\\n");
     }
 
     @Test

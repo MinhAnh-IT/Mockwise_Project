@@ -22,32 +22,31 @@ public class Judge0CallbackController {
     private final JudgeOrchestrator judgeOrchestrator;
 
     /**
-     * Receives execution results from Judge0.
+     * Receives the execution result of a job's single batched Judge0 submission.
      *
-     * <p>Judge0 POSTs to this endpoint once code execution finishes.
-     * The {@code taskId} path variable identifies which {@code JudgeTaskResult}
-     * this callback belongs to.
+     * <p>With compile-once batching there is exactly one Judge0 submission — and
+     * thus one callback — per job, routed by {@code jobId}.
      *
-     * @param taskId  UUID of the {@link com.interview.judge.entity.JudgeTaskResult}
+     * @param jobId   UUID of the {@link com.interview.judge.entity.JudgeJob}
      * @param payload Judge0 callback body (stdout/stderr are base64-encoded)
-     * @return 200 OK on success, 500 on processing error
+     * @return 200 OK on success, 404 if the job is unknown, 500 on processing error
      */
-    @RequestMapping(value = "/{taskId}", method = {RequestMethod.POST, RequestMethod.PUT})
+    @RequestMapping(value = "/job/{jobId}", method = {RequestMethod.POST, RequestMethod.PUT})
     public ResponseEntity<Void> callback(
-            @PathVariable UUID taskId,
+            @PathVariable UUID jobId,
             @RequestBody Judge0CallbackPayload payload) {
 
-        log.info("Judge0 callback received: taskId={}, judge0Status={}",
-                taskId, payload.getStatus() != null ? payload.getStatus().getId() : "null");
+        log.info("Judge0 callback received: jobId={}, judge0Status={}",
+                jobId, payload.getStatus() != null ? payload.getStatus().getId() : "null");
 
         try {
-            judgeOrchestrator.handleCallback(taskId, payload);
+            judgeOrchestrator.handleCallback(jobId, payload);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
-            log.error("Task not found in callback: taskId={}", taskId, e);
+            log.error("Job not found in callback: jobId={}", jobId, e);
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("Error handling Judge0 callback: taskId={}", taskId, e);
+            log.error("Error handling Judge0 callback: jobId={}", jobId, e);
             return ResponseEntity.internalServerError().build();
         }
     }

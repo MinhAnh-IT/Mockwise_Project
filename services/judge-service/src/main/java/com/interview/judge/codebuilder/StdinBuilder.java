@@ -49,4 +49,37 @@ public class StdinBuilder {
 
         return sb.toString();
     }
+
+    /**
+     * Builds the stdin for the <b>batch</b> protocol — one Judge0 submission that
+     * runs every test case of a job in a single process (compile once):
+     *
+     * <pre>
+     * Line 1: functionMeta JSON (single line)
+     * Line 2: T  (number of test cases)
+     * then, for each case, one line per param in declaration order
+     * </pre>
+     *
+     * @param functionMeta function metadata
+     * @param inputs       ordered list of per-case {paramName → value} maps
+     * @return complete batch stdin string
+     */
+    public String buildBatch(FunctionMeta functionMeta, java.util.List<Map<String, Object>> inputs)
+            throws JsonProcessingException {
+        StringBuilder sb = new StringBuilder();
+
+        // Line 1: functionMeta JSON; Line 2: case count.
+        sb.append(objectMapper.writeValueAsString(functionMeta)).append("\n");
+        sb.append(inputs.size()).append("\n");
+
+        // Then T blocks, one serialized line per param in order.
+        for (Map<String, Object> inputData : inputs) {
+            for (ParamMeta param : functionMeta.getParams()) {
+                Object value = inputData.get(param.getName());
+                sb.append(typeSerializer.serialize(value, param.getType())).append("\n");
+            }
+        }
+
+        return sb.toString();
+    }
 }

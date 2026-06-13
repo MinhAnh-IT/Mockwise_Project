@@ -27,7 +27,6 @@ public class Judge0Client {
     static final int LANG_CPP        = 54;  // C++ (GCC 9.2.0)
     static final int LANG_PYTHON     = 71;  // Python (3.8.1)
 
-    static final double CPU_TIME_LIMIT = 15.0;
     static final int MEMORY_LIMIT = 512000;
 
     final WebClient webClient;
@@ -41,6 +40,19 @@ public class Judge0Client {
     /** Retry attempts for transient Judge0 submit failures (queue full / 503, conn errors). */
     @Value("${judge0.submit-max-retries:6}")
     int submitMaxRetries;
+
+    // One submission now runs ALL of a job's cases in a single process (compile
+    // once), so these caps cover the WHOLE batch, not one case. MUST be ≤ the
+    // MAX_CPU_TIME_LIMIT / MAX_WALL_TIME_LIMIT in judge0.conf or Judge0 rejects
+    // the submission with HTTP 422 — keep them in sync when tuning the VPS.
+
+    /** Per-batch CPU-seconds cap. */
+    @Value("${judge0.cpu-time-limit:20}")
+    double cpuTimeLimit;
+
+    /** Per-batch wall-clock cap; explicit so we don't fall back to Judge0's 10s default. */
+    @Value("${judge0.wall-time-limit:30}")
+    double wallTimeLimit;
 
     public Judge0Client(WebClient.Builder webClientBuilder) {
         this.webClient = webClientBuilder
@@ -69,7 +81,8 @@ public class Judge0Client {
                 .languageId(languageId)
                 .stdin(encodedStdin)
                 .callbackUrl(callbackUrl)
-                .cpuTimeLimit(CPU_TIME_LIMIT)
+                .cpuTimeLimit(cpuTimeLimit)
+                .wallTimeLimit(wallTimeLimit)
                 .memoryLimit(MEMORY_LIMIT)
                 .build();
 
