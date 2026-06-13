@@ -5,6 +5,7 @@ import com.mockwise.iam.common.exception.BusinessException;
 import com.mockwise.iam.common.security.Bcrypt;
 import com.mockwise.iam.common.util.StatusCode;
 import org.springframework.dao.DataIntegrityViolationException;
+import com.mockwise.iam.dto.request.ProfileDraftRequest;
 import com.mockwise.iam.dto.request.RegisterRequest;
 import com.mockwise.iam.dto.response.RegisterResponse;
 import com.mockwise.iam.dto.response.UserProfileResponse;
@@ -53,6 +54,26 @@ public class UserService {
         UserProfileResponse profileResponse = profileService.createProfile(userResponse.userId(), request.profile());
 
         return registerMapper.toRegisterResponse(userResponse, profileResponse);
+    }
+
+    /**
+     * Create the user-profile for an account that doesn't have one yet — used by
+     * social-login users after their first sign-in (Google/GitHub can't supply
+     * track/level/city, so the SPA collects them and posts here). Idempotent
+     * guard: a one-shot completion, rejected if already done.
+     */
+    @Transactional
+    public void completeProfile(String userId, ProfileDraftRequest draft) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ResponseCode.NOT_FOUND, "User not found: " + userId));
+
+        if (user.isProfileCompleted()) {
+            throw new BusinessException(StatusCode.PROFILE_ALREADY_COMPLETED);
+        }
+
+        profileService.createProfile(userId, draft);
+        user.setProfileCompleted(true);
+        userRepository.save(user);
     }
 
     public User findById(String userId) {

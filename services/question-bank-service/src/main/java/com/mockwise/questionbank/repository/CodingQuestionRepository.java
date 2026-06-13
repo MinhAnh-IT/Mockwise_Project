@@ -96,4 +96,20 @@ public interface CodingQuestionRepository extends JpaRepository<CodingQuestion, 
             @Param("q")          String q,
             Pageable pageable
     );
+
+    /**
+     * Subset of {@code ids} that are still ACTIVE coding problems. Lets
+     * practice-service drop community/leaderboard rows whose denormalized
+     * {@code question_id} outlived a deleted or re-seeded problem (which would
+     * otherwise render a phantom entry linking to a 404 detail page).
+     */
+    @Query(
+        value = """
+                SELECT cq.id FROM coding_questions cq
+                JOIN questions q ON q.id = cq.id
+                WHERE q.status = 'ACTIVE' AND cq.id IN (:ids)
+                """,
+        nativeQuery = true
+    )
+    java.util.List<String> findActiveIdsIn(@Param("ids") java.util.Collection<String> ids);
 }

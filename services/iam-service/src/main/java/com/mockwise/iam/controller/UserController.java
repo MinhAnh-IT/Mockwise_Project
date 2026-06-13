@@ -1,6 +1,7 @@
 package com.mockwise.iam.controller;
 
 import com.core.apiresponse.response.ApiResponse;
+import com.mockwise.iam.dto.request.ProfileDraftRequest;
 import com.mockwise.iam.dto.request.RegisterRequest;
 import com.mockwise.iam.dto.response.RegisterResponse;
 import com.mockwise.iam.dto.response.UserResponse;
@@ -31,6 +32,18 @@ public class UserController {
             @RequestBody @Valid RegisterRequest body) {
         RegisterResponse result = userService.register(body);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(result));
+    }
+
+    /**
+     * Complete the profile for the currently-authenticated user (social-login
+     * first sign-in). Authed route — the gateway injects {@code X-User-Id}.
+     */
+    @PostMapping("/me/profile")
+    public ResponseEntity<ApiResponse<Void>> completeProfile(
+            @RequestHeader("X-User-Id") String userId,
+            @RequestBody @Valid ProfileDraftRequest body) {
+        userService.completeProfile(userId, body);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     @GetMapping("/{userId}")

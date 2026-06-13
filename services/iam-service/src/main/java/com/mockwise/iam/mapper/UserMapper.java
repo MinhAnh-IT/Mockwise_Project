@@ -15,6 +15,9 @@ public interface UserMapper {
     @Mapping(target = "userId", ignore = true)
     @Mapping(target = "role", ignore = true)
     @Mapping(target = "hashPass", ignore = true)
+    @Mapping(target = "authProvider", ignore = true)
+    @Mapping(target = "providerId", ignore = true)
+    @Mapping(target = "profileCompleted", ignore = true)
     User toUser(AccountRequest request);
 
     // For boolean fields starting with "is", MapStruct exposes the property name as "verified"

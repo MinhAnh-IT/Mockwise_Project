@@ -14,3 +14,13 @@ spring:
 app:
   jwt:
     JWT_HMAC_SECRET: VVfeBCgUiIHcFQHyFinaQByDSyReD9yGG123NZggX15BuCcrkAcGLYDnmMyi9Mm
+
+  # Social login — fill in to test OAuth locally. Redirect URI registered with
+  # each provider must be http://localhost:3000/auth/callback (the SPA origin).
+  oauth:
+    google:
+      client-id: ""
+      client-secret: ""
+    github:
+      client-id: ""
+      client-secret: ""

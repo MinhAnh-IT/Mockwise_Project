@@ -8,6 +8,7 @@ import Field from '@/components/form/Field';
 import Input from '@/components/form/Input';
 import PasswordInput from '@/components/form/PasswordInput';
 import { useAuth } from '@/auth/useAuth';
+import SocialLoginButtons from '@/components/auth/SocialLoginButtons';
 
 type LocationState = { from?: string } | null;
 
@@ -95,6 +96,8 @@ export default function LoginPage() {
         <Button type="submit" loading={submitting} fullWidth>
           Đăng nhập
         </Button>
+
+        <SocialLoginButtons returnTo={fallbackPath} />
       </form>
     </AuthLayout>
   );

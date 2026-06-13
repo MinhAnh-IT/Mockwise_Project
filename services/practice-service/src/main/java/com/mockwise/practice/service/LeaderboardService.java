@@ -1,6 +1,7 @@
 package com.mockwise.practice.service;
 
 import com.core.apiresponse.response.ApiResponse;
+import com.mockwise.practice.client.questionbank.QuestionBankClient;
 import com.mockwise.practice.client.userprofile.UserProfileClient;
 import com.mockwise.practice.client.userprofile.dto.ProfileBrief;
 import com.mockwise.practice.dto.response.CommunityResponse;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +44,7 @@ public class LeaderboardService {
 
     PracticeSubmissionRepository submissionRepo;
     UserProfileClient userProfile;
+    QuestionBankClient questionBank;
 
     @Transactional(readOnly = true)
     public LeaderboardResponse leaderboard(String userId, String window, int limit) {
@@ -84,13 +87,27 @@ public class LeaderboardService {
     public CommunityResponse community() {
         LocalDateTime weekAgo = LocalDateTime.now().minusDays(7);
 
-        List<CommunityResponse.Trending> trending = submissionRepo.trendingProblems(weekAgo).stream()
+        // Candidate rows are ranked but unbounded (the SQL has no LIMIT); both
+        // lists carry a denormalized question_id that can outlive a deleted /
+        // re-seeded problem. Drop the orphans BEFORE limiting so a stale id
+        // never claims a top-N slot with a dead "not found" link.
+        List<Object[]> trendingRows = submissionRepo.trendingProblems(weekAgo);
+        List<Object[]> hardestRows  = submissionRepo.hardestProblems(HARDEST_MIN_SUBMISSIONS);
+
+        Set<String> candidateIds = new LinkedHashSet<>();
+        trendingRows.forEach(r -> candidateIds.add((String) r[0]));
+        hardestRows.forEach(r -> candidateIds.add((String) r[0]));
+        Set<String> valid = activeQuestionIds(candidateIds);
+
+        List<CommunityResponse.Trending> trending = trendingRows.stream()
+                .filter(r -> valid.contains((String) r[0]))
                 .limit(TRENDING_LIMIT)
                 .map(r -> new CommunityResponse.Trending(
                         (String) r[0], (String) r[1], (String) r[2], num(r[3])))
                 .toList();
 
-        List<CommunityResponse.Hardest> hardest = submissionRepo.hardestProblems(HARDEST_MIN_SUBMISSIONS).stream()
+        List<CommunityResponse.Hardest> hardest = hardestRows.stream()
+                .filter(r -> valid.contains((String) r[0]))
                 .limit(HARDEST_LIMIT)
                 .map(r -> {
                     long t = num(r[3]);
@@ -102,6 +119,28 @@ public class LeaderboardService {
                 .toList();
 
         return new CommunityResponse(trending, hardest);
+    }
+
+    /**
+     * The subset of {@code ids} that are still ACTIVE coding problems in
+     * question-bank. Degrades <b>open</b> (returns all ids unfiltered) when
+     * question-bank is unreachable, so a transient outage never blanks the
+     * community panel — at worst a stale row briefly reappears.
+     */
+    private Set<String> activeQuestionIds(Collection<String> ids) {
+        if (ids.isEmpty()) {
+            return Set.of();
+        }
+        try {
+            ApiResponse<List<String>> resp = questionBank.existingIds(new ArrayList<>(ids));
+            if (resp != null && resp.isSuccess() && resp.getData() != null) {
+                return new HashSet<>(resp.getData());
+            }
+        } catch (Exception e) {
+            log.warn("Question-bank existence check failed; showing community lists unfiltered: {}",
+                    e.getMessage());
+        }
+        return new HashSet<>(ids);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

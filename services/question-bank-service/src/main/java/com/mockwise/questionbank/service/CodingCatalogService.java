@@ -85,6 +85,19 @@ public class CodingCatalogService {
         return codingMapper.toResponse(cq);
     }
 
+    /**
+     * Filters {@code ids} down to the ones that are still ACTIVE coding
+     * problems. Used by practice-service to suppress community/leaderboard rows
+     * referencing a deleted or re-seeded problem. Returns empty for empty input.
+     */
+    @Transactional(readOnly = true)
+    public List<String> existingActiveIds(List<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return codingRepository.findActiveIdsIn(ids);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private CodingProblemSummary toSummary(CodingQuestion cq) {

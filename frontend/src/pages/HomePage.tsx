@@ -3,6 +3,7 @@ import Header from '@/components/layout/Header';
 import CtaSection from '@/components/home/CtaSection';
 import FeaturesSection from '@/components/home/FeaturesSection';
 import HeroSection from '@/components/home/HeroSection';
+import PracticeBankSection from '@/components/home/PracticeBankSection';
 import PricingSection from '@/components/home/PricingSection';
 
 export default function HomePage() {
@@ -12,6 +13,7 @@ export default function HomePage() {
       <main className="pt-16">
         <HeroSection />
         <FeaturesSection />
+        <PracticeBankSection />
         <PricingSection />
         <CtaSection />
       </main>
