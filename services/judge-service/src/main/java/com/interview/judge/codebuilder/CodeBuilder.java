@@ -194,20 +194,22 @@ public class CodeBuilder {
         String returnType = normalizeCppType(meta.getReturnType());
         boolean inPlace = meta.isInPlace();
 
+        // Each case frames its output as '\x1e' + "OK\n" + <serialized> for the
+        // batch protocol, then flushes so a later hard crash can't swallow it.
         if (inPlace) {
             sb.append("    sol.").append(meta.getFn()).append("(").append(callArgs).append(");\n");
             if (!params.isEmpty()) {
-                sb.append("    std::cout << _judge::toJson(")
+                sb.append("    std::cout << '\\x1e' << \"OK\\n\" << _judge::toJson(")
                   .append(params.get(0).getName())
-                  .append(") << \"\\n\";\n");
+                  .append(") << \"\\n\"; std::cout.flush();\n");
             }
         } else if ("void".equals(returnType)) {
             sb.append("    sol.").append(meta.getFn()).append("(").append(callArgs).append(");\n");
-            sb.append("    std::cout << \"null\" << \"\\n\";\n");
+            sb.append("    std::cout << '\\x1e' << \"OK\\nnull\\n\"; std::cout.flush();\n");
         } else {
             sb.append("    auto _result = sol.").append(meta.getFn())
               .append("(").append(callArgs).append(");\n");
-            sb.append("    std::cout << _judge::toJson(_result) << \"\\n\";\n");
+            sb.append("    std::cout << '\\x1e' << \"OK\\n\" << _judge::toJson(_result) << \"\\n\"; std::cout.flush();\n");
         }
 
         return sb.toString();

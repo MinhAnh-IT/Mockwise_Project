@@ -56,6 +56,22 @@ public class JudgeJob {
     @Column(name = "function_meta", columnDefinition = "json", nullable = false)
     FunctionMeta functionMeta;
 
+    // ── Batch execution (one Judge0 submission per job) ──────────────────────
+    // Assembled source + batch stdin are retained so a transient Judge0 internal
+    // error can be retried by resubmitting the identical payload.
+
+    @Column(name = "full_source", columnDefinition = "LONGTEXT")
+    String fullSource;
+
+    @Column(name = "batch_stdin", columnDefinition = "LONGTEXT")
+    String batchStdin;
+
+    @Column(name = "judge0_token", length = 64)
+    String judge0Token;
+
+    @Column(name = "retry_count", nullable = false)
+    int retryCount;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     LocalDateTime createdAt = LocalDateTime.now();
 

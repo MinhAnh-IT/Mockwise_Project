@@ -75,8 +75,13 @@ class SubmissionE2ETest {
         return UUID.fromString(response.getBody().get("submissionId").toString());
     }
 
+    /**
+     * Simulates Judge0 POSTing the result of a job's single batched submission.
+     * {@code stdout} is the already RS-framed batch output (use {@link #frame});
+     * pass {@code null} for non-Accepted statuses (CE/TLE/RE) that produce none.
+     */
     private void simulateCallback(String callbackUrl, int judge0StatusId, String stdout) {
-        String taskId = callbackUrl.substring(callbackUrl.lastIndexOf('/') + 1);
+        String jobId = callbackUrl.substring(callbackUrl.lastIndexOf('/') + 1);
 
         Judge0CallbackPayload payload = Judge0CallbackPayload.builder()
                 .status(new Judge0CallbackPayload.StatusInfo(judge0StatusId, describeStatus(judge0StatusId)))
@@ -86,8 +91,17 @@ class SubmissionE2ETest {
                 .build();
 
         ResponseEntity<Void> r = restTemplate.postForEntity(
-                "http://localhost:" + port + "/api/v1/judge/callback/" + taskId, payload, Void.class);
+                "http://localhost:" + port + "/api/v1/judge/callback/job/" + jobId, payload, Void.class);
         assertThat(r.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    /** Builds RS-framed batch stdout: one "\x1eOK\n<body>\n" frame per case, in order. */
+    private static String frame(String... bodies) {
+        StringBuilder sb = new StringBuilder();
+        for (String body : bodies) {
+            sb.append('\u001e').append("OK\n").append(body).append("\n");
+        }
+        return sb.toString();
     }
 
     private Map<String, Object> pollUntilDone(UUID submissionId) {
@@ -154,9 +168,8 @@ class SubmissionE2ETest {
 
         UUID submissionId = submit(event);
 
-        await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 2);
-        simulateCallback(capturedCallbackUrls.get(0), 3, "[0,1]");
-        simulateCallback(capturedCallbackUrls.get(1), 3, "[1,2]");
+        await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("[0,1]", "[1,2]"));
 
         Map<String, Object> status = pollUntilDone(submissionId);
 
@@ -187,7 +200,7 @@ class SubmissionE2ETest {
         UUID submissionId = submit(event);
 
         await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
-        simulateCallback(capturedCallbackUrls.get(0), 3, "[0,0]");
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("[0,0]"));
 
         Map<String, Object> status = pollUntilDone(submissionId);
 
@@ -223,7 +236,7 @@ class SubmissionE2ETest {
                 .compileOutput(base64("Main.java:1: error: illegal start of expression"))
                 .build();
 
-        restTemplate.postForEntity("http://localhost:" + port + "/api/v1/judge/callback/" + taskId, payload, Void.class);
+        restTemplate.postForEntity("http://localhost:" + port + "/api/v1/judge/callback/job/" + taskId, payload, Void.class);
 
         Map<String, Object> status = pollUntilDone(submissionId);
 
@@ -284,9 +297,8 @@ class SubmissionE2ETest {
 
         UUID submissionId = submit(event);
 
-        await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 2);
-        simulateCallback(capturedCallbackUrls.get(0), 3, "[0,1]");  // AC
-        simulateCallback(capturedCallbackUrls.get(1), 3, "[0,1]");  // WA (wrong for case 2)
+        await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("[0,1]", "[0,1]"));  // case2 WA
 
         Map<String, Object> status = pollUntilDone(submissionId);
 
@@ -314,7 +326,7 @@ class SubmissionE2ETest {
         UUID submissionId = submit(event);
 
         await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
-        simulateCallback(capturedCallbackUrls.get(0), 3, "true");
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("true"));
 
         Map<String, Object> status = pollUntilDone(submissionId);
 
@@ -340,7 +352,7 @@ class SubmissionE2ETest {
         UUID submissionId = submit(event);
 
         await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
-        simulateCallback(capturedCallbackUrls.get(0), 3, "fl");
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("fl"));
 
         Map<String, Object> status = pollUntilDone(submissionId);
 
@@ -380,9 +392,8 @@ class SubmissionE2ETest {
                 .build();
 
         UUID submissionId = submit(event);
-        await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 2);
-        simulateCallback(capturedCallbackUrls.get(0), 3, "[5,4,3,2,1]");
-        simulateCallback(capturedCallbackUrls.get(1), 3, "[2,1]");
+        await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("[5,4,3,2,1]", "[2,1]"));
 
         Map<String, Object> status = pollUntilDone(submissionId);
         assertThat(status.get("verdict")).isEqualTo("AC");
@@ -408,7 +419,7 @@ class SubmissionE2ETest {
 
         UUID submissionId = submit(event);
         await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
-        simulateCallback(capturedCallbackUrls.get(0), 3, "[]");  // driver now prints "[]" for null ListNode
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("[]"));  // driver now prints "[]" for null ListNode
 
         Map<String, Object> status = pollUntilDone(submissionId);
         assertThat(status.get("verdict")).isEqualTo("AC");
@@ -432,7 +443,7 @@ class SubmissionE2ETest {
 
         UUID submissionId = submit(event);
         await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
-        simulateCallback(capturedCallbackUrls.get(0), 3, "[1,2,3]");  // not reversed
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("[1,2,3]"));  // not reversed
 
         Map<String, Object> status = pollUntilDone(submissionId);
         assertThat(status.get("verdict")).isEqualTo("WA");
@@ -462,9 +473,8 @@ class SubmissionE2ETest {
                 .build();
 
         UUID submissionId = submit(event);
-        await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 2);
-        simulateCallback(capturedCallbackUrls.get(0), 3, "3");
-        simulateCallback(capturedCallbackUrls.get(1), 3, "2");
+        await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("3", "2"));
 
         Map<String, Object> status = pollUntilDone(submissionId);
         assertThat(status.get("verdict")).isEqualTo("AC");
@@ -489,7 +499,7 @@ class SubmissionE2ETest {
 
         UUID submissionId = submit(event);
         await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
-        simulateCallback(capturedCallbackUrls.get(0), 3, "0");
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("0"));
 
         Map<String, Object> status = pollUntilDone(submissionId);
         assertThat(status.get("verdict")).isEqualTo("AC");
@@ -518,7 +528,7 @@ class SubmissionE2ETest {
 
         UUID submissionId = submit(event);
         await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
-        simulateCallback(capturedCallbackUrls.get(0), 3, "[1,2,3,6,9,8,7,4,5]");
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("[1,2,3,6,9,8,7,4,5]"));
 
         Map<String, Object> status = pollUntilDone(submissionId);
         assertThat(status.get("verdict")).isEqualTo("AC");
@@ -542,7 +552,7 @@ class SubmissionE2ETest {
 
         UUID submissionId = submit(event);
         await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
-        simulateCallback(capturedCallbackUrls.get(0), 3, "[1,2,3]");
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("[1,2,3]"));
 
         Map<String, Object> status = pollUntilDone(submissionId);
         assertThat(status.get("verdict")).isEqualTo("WA");
@@ -575,7 +585,7 @@ class SubmissionE2ETest {
 
         UUID submissionId = submit(event);
         await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
-        simulateCallback(capturedCallbackUrls.get(0), 3, "true");
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("true"));
 
         Map<String, Object> status = pollUntilDone(submissionId);
         assertThat(status.get("verdict")).isEqualTo("AC");
@@ -606,7 +616,7 @@ class SubmissionE2ETest {
 
         UUID submissionId = submit(event);
         await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
-        simulateCallback(capturedCallbackUrls.get(0), 3, "false");
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("false"));
 
         Map<String, Object> status = pollUntilDone(submissionId);
         assertThat(status.get("verdict")).isEqualTo("AC");
@@ -634,9 +644,8 @@ class SubmissionE2ETest {
                 .build();
 
         UUID submissionId = submit(event);
-        await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 2);
-        simulateCallback(capturedCallbackUrls.get(0), 3, "[0,0,1,1,2,2]");
-        simulateCallback(capturedCallbackUrls.get(1), 3, "[0,1,2]");
+        await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("[0,0,1,1,2,2]", "[0,1,2]"));
 
         Map<String, Object> status = pollUntilDone(submissionId);
         assertThat(status.get("verdict")).isEqualTo("AC");
@@ -661,7 +670,7 @@ class SubmissionE2ETest {
 
         UUID submissionId = submit(event);
         await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
-        simulateCallback(capturedCallbackUrls.get(0), 3, "[2,0,1]");  // unsorted
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("[2,0,1]"));  // unsorted
 
         Map<String, Object> status = pollUntilDone(submissionId);
         assertThat(status.get("verdict")).isEqualTo("WA");
@@ -690,7 +699,7 @@ class SubmissionE2ETest {
         UUID submissionId = submit(event);
         await().atMost(3, TimeUnit.SECONDS).until(() -> capturedCallbackUrls.size() == 1);
         // stdout [1,0] must match expected [0,1] when orderMatters=false
-        simulateCallback(capturedCallbackUrls.get(0), 3, "[1,0]");
+        simulateCallback(capturedCallbackUrls.get(0), 3, frame("[1,0]"));
 
         Map<String, Object> status = pollUntilDone(submissionId);
         assertThat(status.get("verdict")).isEqualTo("AC");

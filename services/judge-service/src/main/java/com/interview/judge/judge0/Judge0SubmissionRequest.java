@@ -26,6 +26,12 @@ public class Judge0SubmissionRequest {
     @JsonProperty("cpu_time_limit")
     double cpuTimeLimit;
 
+    // Wall-clock cap for the WHOLE batch (all cases share one process). Sent
+    // explicitly so we don't fall back to Judge0's 10s default, which a multi-
+    // case batch can exceed under load → spurious whole-batch TLE.
+    @JsonProperty("wall_time_limit")
+    double wallTimeLimit;
+
     @JsonProperty("memory_limit")
     int memoryLimit;
 }

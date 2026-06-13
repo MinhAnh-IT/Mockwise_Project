@@ -23,7 +23,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from engine import build_stdin, comparator_accepts
+from engine import build_batch_stdin, parse_framed, comparator_accepts
 
 REPO = Path(__file__).resolve().parents[4]
 DRV = REPO / "services/judge-service/src/main/resources/drivers"
@@ -98,15 +98,16 @@ def gen_cpp_dispatch(meta):
     args = ", ".join(name for name, _ in params)
     out.append("    Solution sol;")
     rt = _cpp_norm(meta["return"])
+    # Mirror CodeBuilder.generateCppDispatch: frame each case '\x1e'+"OK\n"+body, flush.
     if meta.get("inPlace"):
         out.append(f"    sol.{meta['fn']}({args});")
-        out.append(f'    std::cout << _judge::toJson({params[0][0]}) << "\\n";')
+        out.append(f'    std::cout << \'\\x1e\' << "OK\\n" << _judge::toJson({params[0][0]}) << "\\n"; std::cout.flush();')
     elif rt == "void":
         out.append(f"    sol.{meta['fn']}({args});")
-        out.append('    std::cout << "null" << "\\n";')
+        out.append('    std::cout << \'\\x1e\' << "OK\\nnull\\n"; std::cout.flush();')
     else:
         out.append(f"    auto _result = sol.{meta['fn']}({args});")
-        out.append('    std::cout << _judge::toJson(_result) << "\\n";')
+        out.append('    std::cout << \'\\x1e\' << "OK\\n" << _judge::toJson(_result) << "\\n"; std::cout.flush();')
     return "\n".join(out) + "\n"
 
 
@@ -210,14 +211,16 @@ def main():
                     continue
                 ok = 0
                 bad = None
-                for tc in cases:
-                    stdin = build_stdin(meta, tc["inputData"])
-                    out = runner.run(stdin)
+                # One batched submission runs every case in a single process.
+                stdin = build_batch_stdin(meta, [tc["inputData"] for tc in cases])
+                framed = parse_framed(runner.run(stdin))
+                for i, tc in enumerate(cases):
                     exp = tc["expectedOutput"]["result"]
-                    if comparator_accepts(out, exp, meta["orderMatters"]):
+                    status, body = framed[i] if i < len(framed) else ("MISSING", "")
+                    if status == "OK" and comparator_accepts(body, exp, meta["orderMatters"]):
                         ok += 1
                     else:
-                        bad = (tc["inputData"], exp, out)
+                        bad = (tc["inputData"], exp, f"[{status}] {body}")
                         break
                 if bad is None:
                     cells.append(f"{lang}:{ok}/{len(cases)}")

@@ -3,39 +3,57 @@ import java.util.regex.*;
 
 public class Main {
 
+    // Record-separator framing for the batch protocol. One Judge0 submission now
+    // runs ALL cases of a job in a single process (compile once), so each case's
+    // output is delimited with 0x1E (RS — never present in our answer space) and
+    // an OK/ERR status. System.out is flushed after every case so finished cases
+    // survive a later hard crash; the unflushed remainder is then marked RE.
+    static final char RS = '\u001e';
+
     public static void main(String[] args) throws Exception {
         Scanner sc = new Scanner(System.in);
 
         String metaJson = sc.nextLine().trim();
-
         String fn         = jsonGetString(metaJson, "fn");
         String returnType = jsonGetString(metaJson, "return");
         boolean inPlace   = "true".equals(jsonGetBoolean(metaJson, "inPlace"));
         List<String[]> params = jsonGetParams(metaJson); // [name, type]
 
-        Object[]   callArgs   = new Object[params.size()];
         Class<?>[] paramTypes = new Class<?>[params.size()];
-
         for (int i = 0; i < params.size(); i++) {
-            String type = params.get(i)[1];
-            String raw  = sc.nextLine().trim();
-            callArgs[i]   = parseValue(raw, type);
-            paramTypes[i] = getJavaType(type);
+            paramTypes[i] = getJavaType(params.get(i)[1]);
         }
+        java.lang.reflect.Method method = new Solution().getClass().getMethod(fn, paramTypes);
 
-        Solution sol = new Solution();
-        java.lang.reflect.Method method = sol.getClass().getMethod(fn, paramTypes);
-        Object result = method.invoke(sol, callArgs);
-
-        if (inPlace) {
-            System.out.println(toJson(callArgs[0]));
-        } else {
-            if (result == null && ("ListNode".equals(returnType) || "TreeNode".equals(returnType))) {
-                System.out.println("[]");
-            } else {
-                System.out.println(toJson(result));
+        // Line 2 = number of cases; then one line per param, per case.
+        int t = Integer.parseInt(sc.nextLine().trim());
+        for (int c = 0; c < t; c++) {
+            try {
+                System.out.print(RS + "OK\n" + runCase(method, params, returnType, inPlace, sc));
+            } catch (Throwable err) {
+                Throwable cause = (err instanceof java.lang.reflect.InvocationTargetException && err.getCause() != null)
+                        ? err.getCause() : err;
+                System.out.print(RS + "ERR\n" + cause + "\n");
             }
+            System.out.flush();
         }
+    }
+
+    /** Parses one case's params, invokes the solution, returns the serialized output + newline. */
+    static String runCase(java.lang.reflect.Method method, List<String[]> params,
+                          String returnType, boolean inPlace, Scanner sc) throws Exception {
+        Object[] callArgs = new Object[params.size()];
+        for (int i = 0; i < params.size(); i++) {
+            callArgs[i] = parseValue(sc.nextLine().trim(), params.get(i)[1]);
+        }
+        Object result = method.invoke(new Solution(), callArgs);
+        if (inPlace) {
+            return toJson(callArgs[0]) + "\n";
+        }
+        if (result == null && ("ListNode".equals(returnType) || "TreeNode".equals(returnType))) {
+            return "[]\n";
+        }
+        return toJson(result) + "\n";
     }
 
     // ── JSON MINI-PARSER ─────────────────────────────────────────────────

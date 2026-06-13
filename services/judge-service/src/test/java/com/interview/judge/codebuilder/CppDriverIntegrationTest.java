@@ -119,9 +119,10 @@ class CppDriverIntegrationTest {
                     compileOut + "\n--- generated source ---\n" + fullSource);
         }
 
-        // Run with stdin payload
+        // Run with stdin payload (batch protocol: meta, then T=1, then params)
         StringBuilder stdin = new StringBuilder();
         stdin.append(MAPPER.writeValueAsString(meta)).append("\n");
+        stdin.append("1\n");
         for (String line : paramLines) stdin.append(line).append("\n");
 
         Process run = new ProcessBuilder(bin.toString())
@@ -140,7 +141,17 @@ class CppDriverIntegrationTest {
         if (run.exitValue() != 0) {
             throw new AssertionError("binary failed (exit " + run.exitValue() + "):\nSTDERR:\n" + stderr);
         }
-        return stdout;
+        return unwrapBatch(stdout);
+    }
+
+    /** Unwraps the single RS-framed case ("OK\n<body>") so assertions stay unchanged. */
+    private static String unwrapBatch(String raw) {
+        for (String chunk : raw.split("\\x1e", -1)) {
+            if (chunk.isEmpty()) continue;
+            int nl = chunk.indexOf('\n');
+            return nl >= 0 ? chunk.substring(nl + 1) : "";
+        }
+        return raw;
     }
 
     private static FunctionMeta meta(String fn, String returnType, boolean inPlace, ParamMeta... ps) {

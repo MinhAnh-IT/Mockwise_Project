@@ -138,21 +138,17 @@ function _isNodeType(t) {
         norm === "linkedlist" || norm === "binarytree";
 }
 
-function _main() {
-    var fs = require("fs");
-    // Read entire stdin synchronously — Node.js 12.14 (Judge0 sandbox) supports fd 0.
-    var data = fs.readFileSync(0, "utf8");
-    var lines = data.split("\n");
+// Record-separator framing for the batch protocol. One Judge0 submission now
+// runs ALL cases of a job in a single process (compile once), so the driver
+// delimits each case's output with 0x1E (RS, never present in our answer space)
+// + OK/ERR. Writes go through fs.writeSync(1, …) so each finished case is
+// flushed synchronously and survives a later hard crash in a subsequent case.
+var _RS = "\x1e";
 
-    var meta = JSON.parse(lines[0]);
-    var fnName = meta.fn;
-    var returnType = meta["return"] || "";
-    var inPlace = !!meta.inPlace;
-    var paramsMeta = meta.params || [];
-
+function _runCase(fnName, returnType, inPlace, paramsMeta, lines, idx) {
     var args = [];
     for (var i = 0; i < paramsMeta.length; i++) {
-        var raw = (1 + i) < lines.length ? lines[1 + i] : "";
+        var raw = (idx + i) < lines.length ? lines[idx + i] : "";
         if (raw.length > 0 && raw.charAt(raw.length - 1) === "\r") {
             raw = raw.substring(0, raw.length - 1);
         }
@@ -188,17 +184,41 @@ function _main() {
         throw new Error("No function '" + fnName + "' (nor class Solution) defined");
     }
 
-    var out;
     if (inPlace) {
-        out = _toJsonTopLevel(args[0]);
-    } else if ((result === null || result === undefined) && _isNodeType(returnType)) {
-        // Empty linked list / empty tree → "[]" (matches Java/Python driver convention).
-        out = "[]";
-    } else {
-        out = _toJsonTopLevel(result);
+        return _toJsonTopLevel(args[0]);
     }
+    if ((result === null || result === undefined) && _isNodeType(returnType)) {
+        // Empty linked list / empty tree → "[]" (matches the other drivers).
+        return "[]";
+    }
+    return _toJsonTopLevel(result);
+}
 
-    process.stdout.write(out + "\n");
+function _main() {
+    var fs = require("fs");
+    // Read entire stdin synchronously — Node.js 12.14 (Judge0 sandbox) supports fd 0.
+    var data = fs.readFileSync(0, "utf8");
+    var lines = data.split("\n");
+
+    var meta = JSON.parse(lines[0]);
+    var fnName = meta.fn;
+    var returnType = meta["return"] || "";
+    var inPlace = !!meta.inPlace;
+    var paramsMeta = meta.params || [];
+    var nparams = paramsMeta.length;
+
+    // Line 2 = number of cases; then `nparams` lines per case.
+    var t = parseInt(String(lines[1]).trim(), 10);
+    var idx = 2;
+    for (var c = 0; c < t; c++) {
+        try {
+            var body = _runCase(fnName, returnType, inPlace, paramsMeta, lines, idx);
+            fs.writeSync(1, _RS + "OK\n" + body + "\n");
+        } catch (e) {
+            fs.writeSync(1, _RS + "ERR\n" + (e && e.message ? e.message : String(e)) + "\n");
+        }
+        idx += nparams;
+    }
 }
 
 _main();

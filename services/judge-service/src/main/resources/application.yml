@@ -41,6 +41,16 @@ spring:
 judge0:
   base-url: ${JUDGE0_BASE_URL:http://localhost:2358}
   auth-token: ${JUDGE0_AUTH_TOKEN:}
+  # How many times to resubmit a job whose Judge0 callback reports a transient
+  # internal error (status 13 Internal Error / 14 Exec Format Error) before
+  # giving up and marking the remaining cases RE.
+  exec-max-retries: ${JUDGE0_EXEC_MAX_RETRIES:2}
+  # Per-batch execution limits. One submission runs ALL of a job's cases in a
+  # single process, so these cover the whole batch (not one case). MUST stay
+  # ≤ MAX_CPU_TIME_LIMIT / MAX_WALL_TIME_LIMIT in judge0.conf on the VPS, else
+  # Judge0 rejects the submission with HTTP 422.
+  cpu-time-limit: ${JUDGE0_CPU_TIME_LIMIT:20}
+  wall-time-limit: ${JUDGE0_WALL_TIME_LIMIT:30}
 
 judge:
   # host.docker.internal → resolves to host machine from inside Docker containers

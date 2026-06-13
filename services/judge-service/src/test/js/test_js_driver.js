@@ -43,7 +43,8 @@ function _run(solutionCode, meta, paramLines) {
     }
     const fullSource = template.replace(MARKER, solutionCode);
 
-    let stdinPayload = JSON.stringify(meta) + "\n";
+    // Batch protocol: meta line, then T=1, then the single case's param lines.
+    let stdinPayload = JSON.stringify(meta) + "\n1\n";
     for (const line of paramLines) stdinPayload += line + "\n";
 
     const proc = spawnSync(process.execPath, ["-e", fullSource], {
@@ -51,7 +52,17 @@ function _run(solutionCode, meta, paramLines) {
         encoding: "utf-8",
         timeout: 10_000,
     });
-    return { code: proc.status, stdout: proc.stdout, stderr: proc.stderr };
+    // Unwrap the single RS-framed case so existing assertions stay unchanged.
+    return { code: proc.status, stdout: _unwrap(proc.stdout), stderr: proc.stderr };
+}
+
+/** Extract the body of the first RS-framed case: "\x1eOK\n<body>". */
+function _unwrap(raw) {
+    const chunks = String(raw == null ? "" : raw).split("\x1e").filter((c) => c !== "");
+    if (chunks.length === 0) return raw;
+    const chunk = chunks[0];
+    const nl = chunk.indexOf("\n");
+    return nl >= 0 ? chunk.slice(nl + 1) : "";
 }
 
 function _ok(t, code, meta, params, expectedStdout) {
@@ -788,15 +799,15 @@ test("free function entry point (LeetCode JS style) works", (t) => {
     _ok(t, code, meta, ["[1,2]", "3"], "[2,3]");
 });
 
-test("edge: neither free function nor Solution class → non-zero exit", (t) => {
+test("edge: neither free function nor Solution class → ERR frame", (t) => {
     const code = "var unrelated = 1;";
     const meta = {
         fn: "twoSum", return: "int[]", inPlace: false,
         params: [{ name: "nums", type: "int[]" }, { name: "target", type: "int" }],
     };
-    const { code: rc, stderr } = _run(code, meta, ["[1,2]", "3"]);
-    assert.notEqual(rc, 0);
-    assert.match(stderr, /twoSum/);
+    // Batch isolation: per-case error surfaces in the ERR frame body (stdout).
+    const { stdout } = _run(code, meta, ["[1,2]", "3"]);
+    assert.match(stdout, /twoSum/);
 });
 
 test("edge: method not on Solution → clear error", (t) => {
@@ -805,9 +816,8 @@ test("edge: method not on Solution → clear error", (t) => {
         fn: "twoSum", return: "int[]", inPlace: false,
         params: [{ name: "nums", type: "int[]" }],
     };
-    const { code: rc, stderr } = _run(code, meta, ["[1,2]"]);
-    assert.notEqual(rc, 0);
-    assert.match(stderr, /twoSum/);
+    const { stdout } = _run(code, meta, ["[1,2]"]);
+    assert.match(stdout, /twoSum/);
 });
 
 test("edge: top-level string preserves leading/trailing spaces", (t) => {

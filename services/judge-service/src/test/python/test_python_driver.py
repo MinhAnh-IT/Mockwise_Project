@@ -34,7 +34,8 @@ def _run(solution_code: str, meta: dict, param_lines):
         raise AssertionError(f"Marker {MARKER!r} missing from driver — test setup bug")
     full_source = template.replace(MARKER, solution_code)
 
-    stdin_payload = json.dumps(meta) + "\n"
+    # Batch protocol: meta line, then T=1, then the single case's param lines.
+    stdin_payload = json.dumps(meta) + "\n1\n"
     for line in param_lines:
         stdin_payload += line + "\n"
 
@@ -45,7 +46,18 @@ def _run(solution_code: str, meta: dict, param_lines):
         text=True,
         timeout=10,
     )
-    return proc.returncode, proc.stdout, proc.stderr
+    # Unwrap the single RS-framed case so existing assertions stay unchanged.
+    return proc.returncode, _unwrap(proc.stdout), proc.stderr
+
+
+def _unwrap(raw: str) -> str:
+    """Extract the body of the first (and only) RS-framed case: '\\x1eOK\\n<body>'."""
+    chunks = [c for c in raw.split("\x1e") if c != ""]
+    if not chunks:
+        return raw
+    chunk = chunks[0]
+    nl = chunk.find("\n")
+    return chunk[nl + 1:] if nl >= 0 else ""
 
 
 def _ok(testcase: unittest.TestCase, code: str, meta: dict, params, expected_stdout: str):
@@ -441,17 +453,17 @@ class EdgeCaseTests(unittest.TestCase):
         code = "def twoSum(nums, target): return []\n"
         meta = {"fn": "twoSum", "return": "int[]", "inPlace": False,
                 "params": [{"name": "nums", "type": "int[]"}, {"name": "target", "type": "int"}]}
+        # Batch isolation: the per-case error is reported in the ERR frame body
+        # (stdout) and the process still exits 0.
         rc, out, err = _run(code, meta, ["[1,2]", "3"])
-        self.assertNotEqual(rc, 0)
-        self.assertIn("Solution", err)
+        self.assertIn("Solution", out)
 
     def test_method_not_on_solution(self):
         code = "class Solution:\n    def other(self): pass\n"
         meta = {"fn": "twoSum", "return": "int[]", "inPlace": False,
                 "params": [{"name": "nums", "type": "int[]"}]}
         rc, out, err = _run(code, meta, ["[1,2]"])
-        self.assertNotEqual(rc, 0)
-        self.assertIn("twoSum", err)
+        self.assertIn("twoSum", out)
 
 
 if __name__ == "__main__":

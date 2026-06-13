@@ -140,19 +140,21 @@ def _to_json_top_level(val):
     return json.dumps(val, separators=(",", ":"))
 
 
-def _main():
-    data = sys.stdin.read()
-    lines = data.split("\n")
+# Record-separator framing for the batch protocol. One Judge0 submission now
+# runs ALL test cases of a job in a single process (compile once), so the driver
+# must delimit each case's output. Each case emits:
+#     \x1e OK \n <serialized output>\n     — success
+#     \x1e ERR \n <error message>\n        — the Solution call raised
+# 0x1E (RS) never appears in our JSON/answer space, so judge-service splits the
+# stdout on it. Per-case stdout is flushed so already-finished cases survive a
+# later hard crash (segfault/OOM) — the unflushed remainder is then marked RE.
+_RS = "\x1e"
 
-    meta = json.loads(lines[0])
-    fn_name = meta["fn"]
-    return_type = meta.get("return", "")
-    in_place = bool(meta.get("inPlace", False))
-    params_meta = meta.get("params", [])
 
+def _run_case(fn_name, return_type, in_place, params_meta, lines, idx):
     args = []
     for i, p in enumerate(params_meta):
-        raw = lines[1 + i] if 1 + i < len(lines) else ""
+        raw = lines[idx + i] if idx + i < len(lines) else ""
         raw = raw.rstrip("\r")
         # Mirror Java driver: trim() per line, except for raw string params
         # where leading/trailing spaces are theoretically meaningful.
@@ -165,15 +167,36 @@ def _main():
     result = method(*args)
 
     if in_place:
-        out = _to_json_top_level(args[0])
-    elif result is None and _is_node_type(return_type):
+        return _to_json_top_level(args[0])
+    if result is None and _is_node_type(return_type):
         # Empty linked list / empty tree → "[]" (matches Java driver convention).
         # Covers both the deserialized-empty-input case and explicit `return None`.
-        out = "[]"
-    else:
-        out = _to_json_top_level(result)
+        return "[]"
+    return _to_json_top_level(result)
 
-    sys.stdout.write(out + "\n")
+
+def _main():
+    data = sys.stdin.read()
+    lines = data.split("\n")
+
+    meta = json.loads(lines[0])
+    fn_name = meta["fn"]
+    return_type = meta.get("return", "")
+    in_place = bool(meta.get("inPlace", False))
+    params_meta = meta.get("params", [])
+    nparams = len(params_meta)
+
+    # Line 2 = number of test cases; then `nparams` lines per case.
+    t = int(lines[1].strip())
+    idx = 2
+    for _ in range(t):
+        try:
+            body = _run_case(fn_name, return_type, in_place, params_meta, lines, idx)
+            sys.stdout.write(_RS + "OK\n" + body + "\n")
+        except Exception as e:  # noqa: BLE001 — per-case isolation, one bad case ≠ whole batch
+            sys.stdout.write(_RS + "ERR\n" + str(e) + "\n")
+        sys.stdout.flush()
+        idx += nparams
 
 
 def _is_node_type(t):
