@@ -50,6 +50,17 @@ public class InternalCodingProblemController {
     }
 
     /**
+     * Of the supplied {@code ids}, returns those that are still ACTIVE coding
+     * problems. Lets practice-service drop community/leaderboard rows whose
+     * denormalized {@code question_id} outlived a deleted or re-seeded problem.
+     * Declared before {@code /{id}} so the literal path takes precedence.
+     */
+    @GetMapping("/existing")
+    public ResponseEntity<ApiResponse<List<String>>> existing(@RequestParam List<String> ids) {
+        return ResponseEntity.ok(ApiResponse.success(catalogService.existingActiveIds(ids)));
+    }
+
+    /**
      * Full detail of one ACTIVE coding problem, including hidden test cases.
      * practice-service strips hidden cases before serving a user and uses the
      * full set only to build a Submit run against the judge.

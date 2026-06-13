@@ -43,4 +43,11 @@ public interface QuestionBankClient {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     ApiResponse<QbCodingDetail> getProblem(@PathVariable("id") String id);
+
+    /** Subset of {@code ids} that are still ACTIVE coding problems. */
+    @GetMapping(
+            value = "/internal/coding-problems/existing",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    ApiResponse<List<String>> existingIds(@RequestParam("ids") List<String> ids);
 }
