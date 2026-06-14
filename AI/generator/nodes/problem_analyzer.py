@@ -193,7 +193,12 @@ def problem_analyzer_node(state: GeneratorState) -> dict:
         # produces two solutions that agree on every input.
         reference_feedback = state.get("reference_feedback")
         prompt = build_problem_analysis_prompt(req, leetcode_problem, reference_feedback)
-        result: ProblemAnalysisOutput = call_structured(prompt, ProblemAnalysisOutput)
+        # Output now carries 4 starter codes + TWO full solutions (reference +
+        # brute force) + a VN description, so the default 8192 cap can truncate
+        # on harder problems and fail structured parsing — give it headroom.
+        result: ProblemAnalysisOutput = call_structured(
+            prompt, ProblemAnalysisOutput, max_tokens=16384
+        )
 
         # ── Step 3: override LLM output with authoritative sources ────────────
         if req.mode == "leetcode" and leetcode_problem:
