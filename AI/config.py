@@ -13,6 +13,17 @@ EMBEDDING_DIM: int = int(os.getenv("EMBEDDING_DIM", "768"))
 # ─── Evaluation graph ─────────────────────────────────────────────────────────
 MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "2"))
 GENERATOR_MAX_RETRIES: int = int(os.getenv("GENERATOR_MAX_RETRIES", "1"))
+# When true, the generator runs the analyzer's reference solution through the
+# real judge Python driver to derive each testcase's expectedOutput (instead of
+# trusting the LLM's hand-computed value). See generator/nodes/expected_verifier.
+VERIFY_EXPECTED_OUTPUTS: bool = os.getenv("VERIFY_EXPECTED_OUTPUTS", "true").lower() == "true"
+# Wall-clock cap for executing the (LLM-written) reference solution over the whole
+# testcase batch. A runaway/loop reference is abandoned and the LLM's expected
+# outputs are kept, rather than hanging the request worker.
+EXPECTED_VERIFY_TIMEOUT_SECONDS: int = int(os.getenv("EXPECTED_VERIFY_TIMEOUT_SECONDS", "15"))
+# How many times to regenerate the reference/brute-force solutions when they
+# disagree (or one fails) on some input — the expected-output repair loop.
+REFERENCE_MAX_RETRIES: int = int(os.getenv("REFERENCE_MAX_RETRIES", "2"))
 EVALUATOR_VERSION: str = os.getenv("EVALUATOR_VERSION", "evaluator-v1.0")
 # Kept for backwards compatibility — older code reads MODEL_VERSION.
 MODEL_VERSION: str = os.getenv("MODEL_VERSION", EVALUATOR_VERSION)

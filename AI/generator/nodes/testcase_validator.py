@@ -161,6 +161,9 @@ def testcase_validator_node(state: GeneratorState) -> dict:
     retry_count: int = state.get("retry_count", 0)
     generation_start_ms: int = state.get("generation_start_ms", int(time.time() * 1000))
     leetcode_problem: dict | None = state.get("leetcode_problem")
+    # Non-fatal note from expected_verifier (e.g. reference solution could not
+    # solve some case) — surfaced to the admin in the response `warning`.
+    verifier_warning: str | None = state.get("verifier_warning")
 
     max_retries = config.GENERATOR_MAX_RETRIES
 
@@ -309,11 +312,12 @@ def testcase_validator_node(state: GeneratorState) -> dict:
             }
 
         # Retry exhausted — return best-effort partial result with warning
+        exhausted = f"max_retries_exceeded ({max_retries}). Some issues remain: {'; '.join(violations)}"
         return {
             "needs_retry": False,
             "final_output": _build_final_response(
                 req, analysis, raw_testcases, generation_start_ms,
-                warning=f"max_retries_exceeded ({max_retries}). Some issues remain: {'; '.join(violations)}",
+                warning="; ".join(w for w in (exhausted, verifier_warning) if w),
                 leetcode_problem=leetcode_problem,
             ),
         }
@@ -323,6 +327,7 @@ def testcase_validator_node(state: GeneratorState) -> dict:
         "needs_retry": False,
         "final_output": _build_final_response(
             req, analysis, raw_testcases, generation_start_ms,
+            warning=verifier_warning,
             leetcode_problem=leetcode_problem,
         ),
     }

@@ -6,6 +6,7 @@ from models.generator_inputs import GenerateTestcasesRequest
 def build_problem_analysis_prompt(
     req: GenerateTestcasesRequest,
     leetcode_problem: Optional[dict] = None,
+    reference_feedback: Optional[str] = None,
 ) -> str:
     """Build the problem-analysis prompt.
 
@@ -13,7 +14,25 @@ def build_problem_analysis_prompt(
         req: validated request from the user.
         leetcode_problem: real LeetCode problem data fetched via GraphQL
                           (only present when mode=leetcode; None for custom).
+        reference_feedback: on a repair-loop pass, why the previous
+                            reference/brute-force pair was rejected — the model
+                            must produce two solutions that agree on every input.
     """
+    feedback_block = ""
+    if reference_feedback:
+        feedback_block = f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠ REGENERATION REQUIRED — previous solutions were INCORRECT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{reference_feedback}
+
+Your previous `reference_solution` and `brute_force_solution` did NOT agree on
+every input (so at least one was wrong). Re-derive BOTH carefully — two
+genuinely independent, correct approaches that produce identical output for ALL
+valid inputs, including large and edge cases. Double-check carry/overflow,
+off-by-one, empty/min/max inputs.
+""".strip()
+
     if req.mode == "leetcode" and leetcode_problem:
         lp = leetcode_problem
         examples_block = "\n\n".join(
@@ -101,6 +120,8 @@ Additional hints (may be empty):
 You are a SENIOR SOFTWARE ENGINEER with deep expertise in algorithms, data structures,
 and coding interview problems. Your task is to analyze a coding problem and produce
 complete technical metadata for it.
+
+{feedback_block}
 
 {problem_block}
 
@@ -489,6 +510,81 @@ STARTER_CODE  (object with FOUR fields: python, java, cpp, javascript)
   VERBATIM (only normalize whitespace and ensure the body is a placeholder). The
   LeetCode-supplied starter already includes the correct ListNode/TreeNode
   prologue when applicable — keep it as-is.
+
+REFERENCE_SOLUTION  (a COMPLETE, CORRECT, WORKING Python solution — NOT a stub)
+
+  This is the single most important field for testcase correctness. The pipeline
+  EXECUTES this solution through the real judge driver against every generated
+  input to compute the authoritative `expectedOutput`. The LLM is NOT trusted to
+  compute outputs by hand (it drops digits in long arithmetic and miscounts long
+  arrays); running real code eliminates that whole class of bug.
+
+  Hard requirements:
+    1. Provide the FULL algorithm — the real, optimal solution, NOT `pass`/`// TODO`.
+       It must produce correct output for ALL valid inputs, including large ones.
+    2. Shape: `class Solution` with a method named EXACTLY `fn`, parameters named
+       and ordered EXACTLY as `params[].name`. The driver does
+       `getattr(Solution(), fn)(*args)`.
+    3. Do NOT redefine `ListNode` or `TreeNode` — the driver already provides them
+       (and builds/serialises them from the flat JSON arrays). Just use `.val` /
+       `.next` / `.left` / `.right` and return a node (or list/scalar) directly.
+    4. Standalone, deterministic, no I/O, no `input()`/`print()`, no randomness,
+       no network. Standard library only (no third-party imports).
+    5. Type-hints optional and harmless (the driver defers annotation evaluation);
+       you do NOT need to import `Optional`/`List`.
+    6. If `in_place=true`, mutate `params[0]` in place (the driver reads it back);
+       a `return` is ignored in that mode.
+
+  Example (fn=addTwoNumbers, params=[l1:ListNode, l2:ListNode], return=ListNode):
+
+      class Solution:
+          def addTwoNumbers(self, l1, l2):
+              s1, s2 = [], []
+              while l1: s1.append(l1.val); l1 = l1.next
+              while l2: s2.append(l2.val); l2 = l2.next
+              head, carry = None, 0
+              while s1 or s2 or carry:
+                  t = carry + (s1.pop() if s1 else 0) + (s2.pop() if s2 else 0)
+                  carry = t // 10
+                  node = ListNode(t % 10); node.next = head; head = node
+              return head
+
+BRUTE_FORCE_SOLUTION  (a SECOND, INDEPENDENT, OBVIOUSLY-CORRECT Python solution)
+
+  The pipeline runs BOTH `reference_solution` and this one on every test input
+  and only trusts an output where the two AGREE. This cross-check is what proves
+  correctness — so this solution must be correct by a DIFFERENT approach than the
+  reference (do not just copy it).
+
+  Hard requirements:
+    1. Same shape as reference_solution: `class Solution` with the SAME method
+       name `fn` and the SAME parameter names/order.
+    2. Favour the SIMPLEST, most obviously-correct method even if slow
+       (brute force / exhaustive / direct simulation). Correctness > speed: it is
+       fine if it is O(n²)/O(2^n) and would TLE in the judge — it is only used
+       offline to verify outputs, and per-case timeouts skip it on huge inputs.
+    3. It must AGREE with `reference_solution` on every valid input. If you are
+       unsure they agree, fix the reference (the two disagreeing means one is
+       wrong and generation will be rejected).
+    4. Same environment rules as reference_solution (no I/O, no imports beyond
+       the standard library, do not redefine ListNode/TreeNode).
+
+  Example (fn=addTwoNumbers): a different approach than the stack reference —
+  convert each list to an int, add, rebuild the result list:
+
+      class Solution:
+          def addTwoNumbers(self, l1, l2):
+              def to_int(n):
+                  x = 0
+                  while n:
+                      x = x * 10 + n.val; n = n.next
+                  return x
+              total = to_int(l1) + to_int(l2)
+              digits = [int(c) for c in str(total)]
+              head = None
+              for d in reversed(digits):
+                  node = ListNode(d); node.next = head; head = node
+              return head
 
 CONSTRAINTS  (one entry per constraint; prose in VIETNAMESE)
   - List all input constraints: value ranges, array sizes, character sets, etc.
