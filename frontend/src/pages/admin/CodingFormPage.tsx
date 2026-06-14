@@ -527,11 +527,12 @@ export default function CodingFormPage() {
     }
     setErrors({});
 
-    // Per-case UUID so judge results map back. MUST be a real UUID — the judge
-    // deserialises TestCaseDto.id as java.util.UUID (a non-UUID id 400s).
-    // Reuse the row's existing id when it's already a UUID (edit mode).
+    // Per-case UUID so judge results map back. ALWAYS mint a fresh UUID — the
+    // judge deserialises TestCaseDto.id as java.util.UUID, and the row's id is
+    // NOT guaranteed to be one (AI-generated cases carry ids like "tc-1", which
+    // 400s /judge/submit). The id is throwaway here, so a fresh UUID is fine.
     const allCases: ValidationCase[] = parsed.map((p) => ({
-      id: p.r.id ?? uuid(),
+      id: uuid(),
       inputData: p.inputData as Record<string, unknown>,
       expectedOutput: p.expectedOutput as Record<string, unknown>,
       is_hidden: p.r.is_hidden,
