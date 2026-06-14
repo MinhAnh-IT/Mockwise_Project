@@ -197,6 +197,8 @@ export type BehavioralFilters = {
   difficulty?: Difficulty;
   status?: QuestionStatus;
   tags?: string[];
+  /** Free-text keyword — case-insensitive match on the question text. */
+  q?: string;
 };
 
 export type CoreFilters = {
@@ -205,12 +207,16 @@ export type CoreFilters = {
   difficulty?: Difficulty;
   status?: QuestionStatus;
   tags?: string[];
+  /** Free-text keyword — case-insensitive match on the question text. */
+  q?: string;
 };
 
 export type CodingFilters = {
   difficulty?: Difficulty;
   status?: QuestionStatus;
   tags?: string[];
+  /** Free-text keyword — case-insensitive match on title / description. */
+  q?: string;
 };
 
 // ── AI generate-testcases contract ─────────────────────────────────────────

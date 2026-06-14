@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import {
   deleteQuestion,
@@ -19,6 +19,7 @@ import {
   EmptyState,
   EnumSelect,
   ErrorState,
+  Input,
   Pill,
   Select,
   Spinner,
@@ -78,6 +79,9 @@ export default function AdminQuestionsPage() {
       (location.state as { kind?: QuestionKind } | null)?.kind ?? 'behavioral',
   );
   const [filters, setFilters] = useState<AnyFilters>(EMPTY_FILTERS);
+  // Local keyword input — committed into `filters.q` on submit so typing
+  // doesn't refetch on every keystroke.
+  const [search, setSearch] = useState('');
   const [items, setItems] = useState<AnyQuestion[]>([]);
   const [totalCount, setTotalCount] = useState<number | null>(null);
   const [page, setPage] = useState(0);
@@ -169,13 +173,17 @@ export default function AdminQuestionsPage() {
     if (k === kind) return;
     setKind(k);
     setFilters(EMPTY_FILTERS);
+    setSearch('');
     setItems([]);
     setTotalCount(null);
     setPage(0);
   };
 
-  const applyFilters = () => setReloadKey((k) => k + 1);
+  // Commit the keyword into filters (changing `filters` re-runs the fetch).
+  const applyFilters = () =>
+    setFilters((f) => ({ ...f, q: search.trim() || undefined }));
   const clearFilters = () => {
+    setSearch('');
     setFilters(EMPTY_FILTERS);
     setReloadKey((k) => k + 1);
   };
@@ -266,6 +274,42 @@ export default function AdminQuestionsPage() {
 
       {/* Filters */}
       <div className="mb-6 grid grid-cols-1 gap-3 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Keyword search — spans the row; commits on Enter or "Áp dụng lọc". */}
+        <div className="sm:col-span-2 lg:col-span-4">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  applyFilters();
+                }
+              }}
+              placeholder={
+                kind === 'coding'
+                  ? 'Tìm theo tiêu đề hoặc mô tả…'
+                  : 'Tìm theo nội dung câu hỏi…'
+              }
+              className="!pl-9 !pr-9"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  if (filters.q)
+                    setFilters((f) => ({ ...f, q: undefined }));
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-on-surface-variant transition hover:text-on-surface"
+                aria-label="Xoá từ khoá"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
         {kind === 'behavioral' && (
           <EnumSelect<Competency>
             value={filters.competency}

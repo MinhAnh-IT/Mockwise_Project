@@ -130,12 +130,13 @@ public class QuestionService {
     @Transactional(readOnly = true)
     public ApiListResponse<BehavioralQuestionResponse> getBehavioral(
             String competency, Difficulty difficulty, QuestionStatus status,
-            List<String> tags, Pageable pageable) {
+            List<String> tags, String q, Pageable pageable) {
         Page<BehavioralQuestion> page = behavioralRepository.findAllWithFilters(
                 competency,
                 difficulty == null ? null : difficulty.name(),
                 status == null ? null : status.name(),
                 toPostgresArray(tags),
+                normalizeSearch(q),
                 pageable);
         return ApiListResponse.of(
                 page.getContent().stream().map(behavioralMapper::toResponse).toList(),
@@ -145,13 +146,14 @@ public class QuestionService {
     @Transactional(readOnly = true)
     public ApiListResponse<CoreQuestionResponse> getCore(
             String domain, String targetRole, Difficulty difficulty,
-            QuestionStatus status, List<String> tags, Pageable pageable) {
+            QuestionStatus status, List<String> tags, String q, Pageable pageable) {
         Page<CoreQuestion> page = coreRepository.findAllWithFilters(
                 domain,
                 targetRole,
                 difficulty == null ? null : difficulty.name(),
                 status == null ? null : status.name(),
                 toPostgresArray(tags),
+                normalizeSearch(q),
                 pageable);
         return ApiListResponse.of(
                 page.getContent().stream().map(coreMapper::toResponse).toList(),
@@ -160,15 +162,21 @@ public class QuestionService {
 
     @Transactional(readOnly = true)
     public ApiListResponse<CodingQuestionResponse> getCoding(
-            Difficulty difficulty, QuestionStatus status, List<String> tags, Pageable pageable) {
+            Difficulty difficulty, QuestionStatus status, List<String> tags, String q, Pageable pageable) {
         Page<CodingQuestion> page = codingRepository.findAllWithFilters(
                 difficulty == null ? null : difficulty.name(),
                 status == null ? null : status.name(),
                 toPostgresArray(tags),
+                normalizeSearch(q),
                 pageable);
         return ApiListResponse.of(
                 page.getContent().stream().map(codingMapper::toResponse).toList(),
                 (int) page.getTotalElements());
+    }
+
+    /** Blank/whitespace keyword → null (no filter); otherwise trimmed. */
+    private static String normalizeSearch(String q) {
+        return q == null || q.isBlank() ? null : q.trim();
     }
 
     // ── Update ───────────────────────────────────────────────────────────────

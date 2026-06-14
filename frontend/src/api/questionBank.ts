@@ -55,6 +55,7 @@ export function listBehavioral(
     difficulty: filters.difficulty,
     status: filters.status,
     tags: tagsParam(filters.tags),
+    q: filters.q?.trim() || undefined,
     page,
     size,
   };
@@ -72,6 +73,7 @@ export function listCore(
     difficulty: filters.difficulty,
     status: filters.status,
     tags: tagsParam(filters.tags),
+    q: filters.q?.trim() || undefined,
     page,
     size,
   };
@@ -87,6 +89,7 @@ export function listCoding(
     difficulty: filters.difficulty,
     status: filters.status,
     tags: tagsParam(filters.tags),
+    q: filters.q?.trim() || undefined,
     page,
     size,
   };

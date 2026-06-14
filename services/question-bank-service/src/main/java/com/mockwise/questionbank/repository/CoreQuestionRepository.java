@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface CoreQuestionRepository extends JpaRepository<CoreQuestion, String> {
 
     @Query(
@@ -18,6 +20,7 @@ public interface CoreQuestionRepository extends JpaRepository<CoreQuestion, Stri
                   AND (:difficulty IS NULL OR q.difficulty = :difficulty)
                   AND (:status     IS NULL OR q.status     = :status)
                   AND (:tags       IS NULL OR q.tags && CAST(:tags AS text[]))
+                  AND (:q          IS NULL OR cq.text ILIKE '%' || :q || '%')
                 ORDER BY q.created_at DESC
                 """,
         countQuery = """
@@ -28,6 +31,7 @@ public interface CoreQuestionRepository extends JpaRepository<CoreQuestion, Stri
                   AND (:difficulty IS NULL OR q.difficulty = :difficulty)
                   AND (:status     IS NULL OR q.status     = :status)
                   AND (:tags       IS NULL OR q.tags && CAST(:tags AS text[]))
+                  AND (:q          IS NULL OR cq.text ILIKE '%' || :q || '%')
                 """,
         nativeQuery = true
     )
@@ -37,6 +41,7 @@ public interface CoreQuestionRepository extends JpaRepository<CoreQuestion, Stri
             @Param("difficulty")  String difficulty,
             @Param("status")      String status,
             @Param("tags")        String tags,
+            @Param("q")           String q,
             Pageable pageable
     );
 
@@ -62,7 +67,7 @@ public interface CoreQuestionRepository extends JpaRepository<CoreQuestion, Stri
                 """,
         nativeQuery = true
     )
-    java.util.List<CoreQuestion> findCandidates(
+    List<CoreQuestion> findCandidates(
             @Param("domain")        String domain,
             @Param("targetRole")    String targetRole,
             @Param("difficulty")    String difficulty,

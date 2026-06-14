@@ -17,6 +17,7 @@ public interface BehavioralQuestionRepository extends JpaRepository<BehavioralQu
                   AND (:difficulty  IS NULL OR q.difficulty  = :difficulty)
                   AND (:status      IS NULL OR q.status      = :status)
                   AND (:tags        IS NULL OR q.tags && CAST(:tags AS text[]))
+                  AND (:q           IS NULL OR bq.text ILIKE '%' || :q || '%')
                 ORDER BY q.created_at DESC
                 """,
         countQuery = """
@@ -26,6 +27,7 @@ public interface BehavioralQuestionRepository extends JpaRepository<BehavioralQu
                   AND (:difficulty  IS NULL OR q.difficulty  = :difficulty)
                   AND (:status      IS NULL OR q.status      = :status)
                   AND (:tags        IS NULL OR q.tags && CAST(:tags AS text[]))
+                  AND (:q           IS NULL OR bq.text ILIKE '%' || :q || '%')
                 """,
         nativeQuery = true
     )
@@ -34,6 +36,7 @@ public interface BehavioralQuestionRepository extends JpaRepository<BehavioralQu
             @Param("difficulty") String difficulty,
             @Param("status")     String status,
             @Param("tags")       String tags,
+            @Param("q")          String q,
             Pageable pageable
     );
 
