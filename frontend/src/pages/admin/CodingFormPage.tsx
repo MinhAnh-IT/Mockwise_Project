@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import { ArrowLeft, FlaskConical, Plus, Sparkles, Trash2, X } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import {
   createCoding,
@@ -35,6 +35,10 @@ import {
   type ParamMeta,
   type StarterCode,
 } from '@/types/questionBank';
+import ValidationWorkspace, {
+  type ValidationCase,
+} from '@/components/practice/coding/ValidationWorkspace';
+import type { CodingProblemView } from '@/types/coding';
 
 type ScKey = keyof StarterCode; // 'java' | 'python' | 'cpp' | 'javascript'
 type Sc = Record<ScKey, string>;
@@ -71,6 +75,10 @@ const newKey = () =>
     : Math.random().toString(36).slice(2);
 
 const pretty = (v: unknown) => JSON.stringify(v ?? {}, null, 2);
+
+// Autosaved draft of the create form, so a refresh / accidental nav doesn't
+// lose typed-in work. Create mode only; cleared on a successful create.
+const DRAFT_KEY = 'mockwise:coding-form-draft:v1';
 
 function emptyRow(): TcRow {
   return {
@@ -115,6 +123,13 @@ export default function CodingFormPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  // In-memory snapshot for the "Kiểm tra" workspace — never persisted.
+  const [validate, setValidate] = useState<{
+    problem: CodingProblemView;
+    allCases: ValidationCase[];
+  } | null>(null);
+  // True once an autosaved draft was restored — enables the "discard" action.
+  const [restoredDraft, setRestoredDraft] = useState(false);
 
   function fillFromRequest(q: CodingQuestionRequest) {
     setDifficulty(q.difficulty);
@@ -196,6 +211,135 @@ export default function CodingFormPage() {
       cancelled = true;
     };
   }, [id, mode, location.state]);
+
+  // ── Draft autosave (create mode) ───────────────────────────────────────────
+  // Restore once on mount, then persist on every change. Declared BEFORE the
+  // autosave effect so the restore reads the real draft before any save runs.
+  const draftRestored = useRef(false);
+  useEffect(() => {
+    if (mode !== 'create' || draftRestored.current) return;
+    draftRestored.current = true;
+    let raw: string | null = null;
+    try {
+      raw = window.localStorage.getItem(DRAFT_KEY);
+    } catch {
+      return; // storage disabled / private mode — non-fatal
+    }
+    if (!raw) return;
+    try {
+      const d = JSON.parse(raw) as Partial<CodingQuestionRequest> & {
+        scTab?: ScKey;
+        rows?: TcRow[];
+      };
+      // Reuse the request→form filler, then restore the editor-only bits it
+      // doesn't carry (active starter tab + raw row text/keys).
+      fillFromRequest({
+        difficulty: (d.difficulty ?? '') as Difficulty,
+        tags: d.tags ?? [],
+        title: d.title ?? '',
+        description: d.description ?? '',
+        constraints: d.constraints,
+        optimalTimeComplexity: d.optimalTimeComplexity ?? '',
+        optimalSpaceComplexity: d.optimalSpaceComplexity ?? '',
+        functionMeta: d.functionMeta ?? {
+          fn: '',
+          params: [],
+          return: '',
+          orderMatters: true,
+          inPlace: false,
+        },
+        starterCode: d.starterCode,
+        testCases: [],
+      });
+      if (d.scTab) setScTab(d.scTab);
+      if (Array.isArray(d.rows) && d.rows.length) {
+        setRows(d.rows.map((r) => ({ ...r, _k: r._k || newKey() })));
+      }
+      setRestoredDraft(true);
+      setToast({ kind: 'success', text: 'Đã khôi phục bản nháp chưa lưu.' });
+    } catch {
+      /* corrupt draft — ignore */
+    }
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode !== 'create') return;
+    const draft = {
+      difficulty,
+      tags,
+      title,
+      description,
+      constraints: constraints || undefined,
+      optimalTimeComplexity,
+      optimalSpaceComplexity,
+      functionMeta: {
+        fn,
+        params,
+        return: retType,
+        orderMatters,
+        inPlace,
+      },
+      starterCode: starter,
+      scTab,
+      rows,
+    };
+    try {
+      window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      /* quota exceeded / disabled — non-fatal */
+    }
+  }, [
+    mode,
+    difficulty,
+    tags,
+    title,
+    description,
+    constraints,
+    optimalTimeComplexity,
+    optimalSpaceComplexity,
+    fn,
+    params,
+    retType,
+    orderMatters,
+    inPlace,
+    starter,
+    scTab,
+    rows,
+  ]);
+
+  function clearDraft() {
+    try {
+      window.localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* non-fatal */
+    }
+  }
+
+  function resetForm() {
+    setDifficulty('');
+    setTitle('');
+    setDescription('');
+    setConstraints('');
+    setOptimalTimeComplexity('');
+    setOptimalSpaceComplexity('');
+    setTags([]);
+    setFn('');
+    setParams([]);
+    setRetType('');
+    setOrderMatters(true);
+    setInPlace(false);
+    setStarter(EMPTY_SC);
+    setScTab('python');
+    setRows([emptyRow()]);
+    setErrors({});
+  }
+
+  function discardDraft() {
+    clearDraft();
+    resetForm();
+    setRestoredDraft(false);
+    setToast({ kind: 'success', text: 'Đã xoá bản nháp, làm mới biểu mẫu.' });
+  }
 
   function buildBody(): { body?: CodingQuestionRequest; errors: Errors } {
     const e: Errors = {};
@@ -288,7 +432,10 @@ export default function CodingFormPage() {
     setSubmitting(true);
     try {
       if (mode === 'edit' && id) await updateCoding(id, body);
-      else await createCoding(body);
+      else {
+        await createCoding(body);
+        clearDraft(); // saved successfully — drop the autosaved draft
+      }
       navigate('/admin/questions', {
         state: {
           flash:
@@ -307,6 +454,112 @@ export default function CodingFormPage() {
       });
       setSubmitting(false);
     }
+  }
+
+  /**
+   * Build an in-memory problem for the "Kiểm tra" workspace. Lenient on
+   * purpose — only the function signature + valid test-case JSON are needed to
+   * Run; description / complexity may still be blank (defaulted for display).
+   * Returns null and surfaces field errors when the essentials are missing.
+   */
+  function buildValidation(): {
+    problem: CodingProblemView;
+    allCases: ValidationCase[];
+  } | null {
+    const e: Errors = {};
+    if (!fn.trim()) e.fn = 'Nhập tên hàm.';
+    if (!retType.trim()) e.return = 'Nhập kiểu trả về.';
+
+    let tcInvalid = false;
+    const parsed = rows.map((r) => {
+      let inputData: Record<string, unknown> | null = null;
+      let expectedOutput: Record<string, unknown> | null = null;
+      let rowErr: string | undefined;
+      try {
+        inputData = JSON.parse(r.inputText) as Record<string, unknown>;
+      } catch {
+        rowErr = 'Input không phải JSON hợp lệ.';
+      }
+      if (!rowErr) {
+        try {
+          expectedOutput = JSON.parse(r.outputText) as Record<string, unknown>;
+        } catch {
+          rowErr = 'Expected output không phải JSON hợp lệ.';
+        }
+      }
+      if (rowErr) tcInvalid = true;
+      return { r, inputData, expectedOutput, rowErr };
+    });
+    if (rows.length === 0) {
+      e.testCases = 'Cần ít nhất một test case.';
+    } else if (tcInvalid) {
+      e.testCases = 'Có test case với JSON không hợp lệ — kiểm tra lại.';
+      setRows((prev) =>
+        prev.map((row) => {
+          const p = parsed.find((x) => x.r._k === row._k);
+          return { ...row, error: p?.rowErr };
+        }),
+      );
+    }
+
+    if (Object.keys(e).length > 0) {
+      setErrors(e);
+      setToast({
+        kind: 'error',
+        text: 'Cần tên hàm, kiểu trả về và test case JSON hợp lệ để kiểm tra.',
+      });
+      return null;
+    }
+    setErrors({});
+
+    // Synthetic, guaranteed-unique ids so judge results map back per case.
+    const allCases: ValidationCase[] = parsed.map((p, i) => ({
+      id: `vc-${i}`,
+      inputData: p.inputData as Record<string, unknown>,
+      expectedOutput: p.expectedOutput as Record<string, unknown>,
+      is_hidden: p.r.is_hidden,
+      note: p.r.noteText.trim() || null,
+    }));
+
+    const problem: CodingProblemView = {
+      sessionQuestionId: 'validate',
+      sequence: 1,
+      title: title.trim() || '(chưa đặt tiêu đề)',
+      description: description.trim() || '_(chưa có mô tả)_',
+      constraints: constraints.trim() || null,
+      optimalTimeComplexity: optimalTimeComplexity.trim() || null,
+      optimalSpaceComplexity: optimalSpaceComplexity.trim() || null,
+      functionMeta: {
+        fn: fn.trim(),
+        params: params
+          .filter((p) => p.name.trim() || p.type.trim())
+          .map((p) => ({ name: p.name.trim(), type: p.type.trim() })),
+        returnType: retType.trim(),
+        orderMatters,
+        inPlace,
+      },
+      starterCode: {
+        java: starter.java,
+        python: starter.python,
+        cpp: starter.cpp,
+        javascript: starter.javascript,
+      },
+      // Left pane mirrors the candidate view: visible (non-hidden) cases only.
+      sampleTestCases: allCases
+        .filter((c) => !c.is_hidden)
+        .map((c) => ({
+          id: c.id,
+          inputData: c.inputData,
+          expectedOutput: c.expectedOutput,
+          note: c.note,
+        })),
+    };
+    return { problem, allCases };
+  }
+
+  function openValidate() {
+    const v = buildValidation();
+    if (v) setValidate(v);
   }
 
   function applyGenerated(req: CodingQuestionRequest, warning?: string | null) {
@@ -335,6 +588,16 @@ export default function CodingFormPage() {
               Sinh bằng AI
             </Button>
           )}
+          {mode === 'create' && restoredDraft && (
+            <Button variant="ghost" onClick={discardDraft}>
+              <Trash2 className="h-4 w-4" />
+              Xoá nháp
+            </Button>
+          )}
+          <Button variant="outline" onClick={openValidate}>
+            <FlaskConical className="h-4 w-4" />
+            Kiểm tra
+          </Button>
           <Button
             variant="outline"
             onClick={() => navigate('/admin/questions')}
@@ -706,11 +969,23 @@ export default function CodingFormPage() {
             >
               Huỷ
             </Button>
+            <Button type="button" variant="outline" onClick={openValidate}>
+              <FlaskConical className="h-4 w-4" />
+              Kiểm tra
+            </Button>
             <Button type="submit" loading={submitting}>
               {mode === 'edit' ? 'Lưu thay đổi' : 'Tạo câu hỏi'}
             </Button>
           </div>
         </form>
+      )}
+
+      {validate && (
+        <ValidationWorkspace
+          problem={validate.problem}
+          allCases={validate.allCases}
+          onExit={() => setValidate(null)}
+        />
       )}
 
       {aiOpen && (

@@ -328,6 +328,12 @@ public class JudgeOrchestrator {
 
         log.info("Job finalized: jobId={}, verdict={}", freshJob.getId(), verdict);
 
+        // Ephemeral (validation) jobs have no downstream consumer — they're polled
+        // once via /status and then purged — so don't emit a verdict event.
+        if (freshJob.isEphemeral()) {
+            log.debug("Ephemeral job {} — skipping verdict publish", freshJob.getId());
+            return;
+        }
         judgeResultProducer.publish(judgeMapper.toJudgeResultEvent(freshJob, results));
     }
 

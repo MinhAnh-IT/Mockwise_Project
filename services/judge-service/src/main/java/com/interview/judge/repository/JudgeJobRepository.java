@@ -47,36 +47,51 @@ public interface JudgeJobRepository extends JpaRepository<JudgeJob, UUID> {
 
     // ── Admin monitoring aggregates ──────────────────────────────────────────
     // Read-only rollups over judge_jobs for the admin Judge-monitoring dashboard.
+    // All EXCLUDE ephemeral (validation) jobs — those aren't real candidate
+    // traffic and would skew the dashboard.
 
     /** Live backlog: jobs not yet finalized, regardless of when they were created. */
-    long countByStatusIn(Collection<JobStatus> statuses);
+    @Query("SELECT COUNT(j) FROM JudgeJob j WHERE j.status IN :statuses AND j.ephemeral = false")
+    long countByStatusIn(@Param("statuses") Collection<JobStatus> statuses);
 
     /** Job count grouped by lifecycle status within a window. Rows: [JobStatus, Long]. */
-    @Query("SELECT j.status, COUNT(j) FROM JudgeJob j WHERE j.createdAt >= :since GROUP BY j.status")
+    @Query("SELECT j.status, COUNT(j) FROM JudgeJob j WHERE j.createdAt >= :since AND j.ephemeral = false GROUP BY j.status")
     List<Object[]> countByStatusSince(@Param("since") LocalDateTime since);
 
     /** Job count grouped by verdict within a window (verdict may be null). Rows: [String, Long]. */
-    @Query("SELECT j.verdict, COUNT(j) FROM JudgeJob j WHERE j.createdAt >= :since GROUP BY j.verdict")
+    @Query("SELECT j.verdict, COUNT(j) FROM JudgeJob j WHERE j.createdAt >= :since AND j.ephemeral = false GROUP BY j.verdict")
     List<Object[]> countByVerdictSince(@Param("since") LocalDateTime since);
 
     /** (createdAt, finishedAt) pairs for finished jobs in a window — latency computed in Java. */
     @Query("SELECT j.createdAt, j.finishedAt FROM JudgeJob j " +
-            "WHERE j.finishedAt IS NOT NULL AND j.createdAt >= :since")
+            "WHERE j.finishedAt IS NOT NULL AND j.createdAt >= :since AND j.ephemeral = false")
     List<Object[]> finishedTimestampsSince(@Param("since") LocalDateTime since);
 
     /** Jobs that needed at least one Judge0 resubmit (transient-error retries) in a window. */
-    @Query("SELECT COUNT(j) FROM JudgeJob j WHERE j.createdAt >= :since AND j.retryCount > 0")
+    @Query("SELECT COUNT(j) FROM JudgeJob j WHERE j.createdAt >= :since AND j.retryCount > 0 AND j.ephemeral = false")
     long countRetriedSince(@Param("since") LocalDateTime since);
 
-    @Query("SELECT COALESCE(MAX(j.retryCount), 0) FROM JudgeJob j WHERE j.createdAt >= :since")
+    @Query("SELECT COALESCE(MAX(j.retryCount), 0) FROM JudgeJob j WHERE j.createdAt >= :since AND j.ephemeral = false")
     int maxRetryCountSince(@Param("since") LocalDateTime since);
 
     /** Paged job search with optional status / verdict filters, newest first. */
     @Query("SELECT j FROM JudgeJob j " +
-            "WHERE (:status IS NULL OR j.status = :status) " +
+            "WHERE j.ephemeral = false " +
+            "AND (:status IS NULL OR j.status = :status) " +
             "AND (:verdict IS NULL OR j.verdict = :verdict) " +
             "ORDER BY j.createdAt DESC")
     Page<JudgeJob> search(@Param("status") JobStatus status,
                           @Param("verdict") String verdict,
                           Pageable pageable);
+
+    // ── Ephemeral purge ───────────────────────────────────────────────────────
+
+    /** Ids of throwaway jobs older than {@code cutoff} — fetched so their task
+     *  rows can be deleted first (no ON DELETE CASCADE on the FK). */
+    @Query("SELECT j.id FROM JudgeJob j WHERE j.ephemeral = true AND j.createdAt < :cutoff")
+    List<UUID> findEphemeralIdsOlderThan(@Param("cutoff") LocalDateTime cutoff);
+
+    @Modifying
+    @Query("DELETE FROM JudgeJob j WHERE j.id IN :ids")
+    int deleteByIdIn(@Param("ids") Collection<UUID> ids);
 }
