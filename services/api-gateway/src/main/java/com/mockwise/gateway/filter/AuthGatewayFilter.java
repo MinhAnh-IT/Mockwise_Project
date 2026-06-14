@@ -1,5 +1,6 @@
 package com.mockwise.gateway.filter;
 
+import com.mockwise.gateway.audit.AuditPublisher;
 import com.mockwise.gateway.filter.model.IntrospectData;
 import com.mockwise.gateway.filter.model.IntrospectResponse;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ import java.util.Map;
 public class AuthGatewayFilter implements GlobalFilter, Ordered {
 
     private final WebClient webClient;
+    private final AuditPublisher auditPublisher;
 
     @Value("${app.iam.url}")
     private String iamUrl;
@@ -85,6 +87,8 @@ public class AuthGatewayFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        long startNanos = System.nanoTime();
+
         // Strip user-context headers from incoming request to prevent header injection
         ServerHttpRequest sanitized = exchange.getRequest().mutate()
                 .headers(h -> {
@@ -140,7 +144,24 @@ public class AuthGatewayFilter implements GlobalFilter, Ordered {
                             .header("X-User-Email", data.getUsername())
                             .build();
 
-                    return chain.filter(sanitizedExchange.mutate().request(mutated).build());
+                    ServerWebExchange authedExchange = sanitizedExchange.mutate().request(mutated).build();
+
+                    // Coarse audit for mutating admin calls — recorded after the response
+                    // completes so the status code is final. Fire-and-forget; never blocks.
+                    if (auditPublisher.shouldAudit(mutated.getMethod(), isAdminPath(path))) {
+                        String actorId = data.getUserId();
+                        String actorEmail = data.getUsername();
+                        String actorRole = data.getRole();
+                        return chain.filter(authedExchange).doFinally(sig -> {
+                            Integer status = authedExchange.getResponse().getStatusCode() != null
+                                    ? authedExchange.getResponse().getStatusCode().value() : null;
+                            long latencyMs = (System.nanoTime() - startNanos) / 1_000_000;
+                            auditPublisher.publish(authedExchange.getRequest(), actorId, actorEmail,
+                                    actorRole, status, latencyMs);
+                        });
+                    }
+
+                    return chain.filter(authedExchange);
                 })
                 .onErrorResume(e -> {
                     log.error("Auth introspect error: {}", e.getMessage());

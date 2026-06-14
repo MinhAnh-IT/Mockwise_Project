@@ -36,6 +36,8 @@ import AdminProfilesPage from '@/pages/admin/AdminProfilesPage';
 import AdminCatalogPage from '@/pages/admin/AdminCatalogPage';
 import AdminInterviewsPage from '@/pages/admin/AdminInterviewsPage';
 import AdminMonitoringPage from '@/pages/admin/AdminMonitoringPage';
+import AdminJudgePage from '@/pages/admin/AdminJudgePage';
+import AdminAuditPage from '@/pages/admin/AdminAuditPage';
 
 export default function App() {
   return (
@@ -288,6 +290,22 @@ export default function App() {
             element={
               <AdminRoute>
                 <AdminMonitoringPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/judge"
+            element={
+              <AdminRoute>
+                <AdminJudgePage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/audit"
+            element={
+              <AdminRoute>
+                <AdminAuditPage />
               </AdminRoute>
             }
           />

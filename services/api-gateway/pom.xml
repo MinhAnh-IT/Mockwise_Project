@@ -27,6 +27,13 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Kafka producer — fire-and-forget audit events to the audit-log topic.
+             Send is async (non-blocking) so it never stalls the reactive filter chain. -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
         <!--
             api-response-spring is inherited from the parent pom.
             Exclude spring-boot-starter-web to avoid servlet/reactive conflict:
