@@ -36,6 +36,14 @@ public class JudgeJob {
     @Column(name = "origin")
     String origin;
 
+    /**
+     * Throwaway run (admin "Kiểm tra đề" validation). Ephemeral jobs skip the
+     * verdict-topic publish and are purged shortly after by {@code
+     * EphemeralJobPurger}; they are also hidden from admin monitoring.
+     */
+    @Column(name = "ephemeral", nullable = false)
+    boolean ephemeral = false;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     JobStatus status = JobStatus.PENDING;

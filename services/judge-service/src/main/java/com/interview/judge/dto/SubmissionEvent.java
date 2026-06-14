@@ -22,6 +22,12 @@ public class SubmissionEvent {
      * verdicts that belong to it.
      */
     String origin;
+    /**
+     * Throwaway run: the result is polled once and discarded (admin "Kiểm tra
+     * đề" validation). Ephemeral jobs skip the verdict-topic publish and are
+     * purged shortly after. Defaults to {@code false} (a normal, persisted job).
+     */
+    boolean ephemeral;
     String language;
     String code;
     FunctionMeta functionMeta;

@@ -68,11 +68,24 @@ type JudgeStatusResponse = {
 export function runCode(
   problem: CodingProblemView,
   input: RunCodeInput,
+  /**
+   * Test cases to run against. Defaults to the problem's visible sample
+   * cases (the candidate flow). The admin "Kiểm tra" flow passes the full
+   * suite here — hidden cases included — to validate a question end-to-end.
+   */
+  cases: SampleTestCase[] = problem.sampleTestCases,
+  /**
+   * Mark this as a throwaway run (admin validation): judge-service skips the
+   * verdict publish and purges the job rows shortly after. Defaults to false
+   * for the candidate Run flow.
+   */
+  ephemeral = false,
 ): Promise<RunSubmitOutput> {
   const fm = problem.functionMeta;
   const submission = {
     language: input.language,
     code: input.code,
+    ephemeral,
     functionMeta: {
       fn: fm.fn,
       params: fm.params,
@@ -80,7 +93,7 @@ export function runCode(
       orderMatters: fm.orderMatters,
       inPlace: fm.inPlace,
     },
-    testCases: problem.sampleTestCases.map((tc) => ({
+    testCases: cases.map((tc) => ({
       id: tc.id,
       inputData: tc.inputData,
       expectedOutput: tc.expectedOutput,
@@ -96,9 +109,11 @@ export function runCode(
 export function getRunResult(
   runId: string,
   problem: CodingProblemView,
+  /** Same suite passed to {@link runCode}; used to map each case's expected. */
+  cases: SampleTestCase[] = problem.sampleTestCases,
 ): Promise<RunResultView> {
   return request<JudgeStatusResponse>(`${JUDGE}/status/${runId}`).then((j) =>
-    mapJudgeStatus(j, problem.sampleTestCases),
+    mapJudgeStatus(j, cases),
   );
 }
 
