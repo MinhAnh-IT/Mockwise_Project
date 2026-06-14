@@ -336,6 +336,8 @@ raw_input
     │   Sau đó LLM sinh ra:
     │   - functionMeta (fn, params[].name, params[].type, return_type, order_matters, in_place)
     │   - starter_code: { python, java, cpp, javascript }  ← 4 ngôn ngữ
+    │   - reference_solution + brute_force_solution: 2 lời giải Python ĐỘC LẬP
+    │     (để expected_verifier chạy thật & đối chiếu consensus)
     │   - optimal_time_complexity, optimal_space_complexity (hoặc dùng input nếu custom có)
     │   - time_limit_minutes
     │   - constraints & edge_case_hints (nội bộ cho bước tiếp theo)
@@ -349,6 +351,21 @@ raw_input
     │   ├─ 2–3 Edge cases    (visible, empty/single/negative/overflow...)
     │   ├─ N   Normal cases  (visible, random valid inputs)
     │   └─ num_hidden Hidden cases (is_hidden=true, large/complex inputs)
+    │
+[expected_verifier]  ──(unverifiable + còn budget)──► quay lại [problem_analyzer]
+    │   DUAL-SOLUTION CONSENSUS: chạy CẢ HAI lời giải (reference_solution tối ưu
+    │   + brute_force_solution độc lập) do analyzer sinh, qua ĐÚNG judge Python
+    │   driver trên từng inputData (subprocess + timeout/ca).
+    │     • 2 lời giải KHỚP nhau (consensus) → đáp án ĐÚNG chứng minh được →
+    │       GHI ĐÈ expectedOutput (sửa lỗi LLM tính nhẩm).
+    │     • chỉ 1 lời giải ra kết quả (brute timeout trên input lớn) → SOLO →
+    │       tạm tin theo reference, có gắn cờ trong warning.
+    │     • 2 lời giải LỆCH / cùng lỗi → UNKNOWN → KHÔNG đoán bừa → repair loop:
+    │       quay lại analyzer regenerate cả 2 lời giải (REFERENCE_MAX_RETRIES).
+    │   Hết budget mà vẫn unresolved → ship nhưng giữ nguyên expected của LLM cho
+    │   case đó + warning ⚠ "REVIEW MANUALLY" (không nuốt lỗi). LLM KHÔNG làm
+    │   trọng tài (lớp lỗi số học là đúng chỗ LLM hay sai). 4 driver
+    │   byte-compatible → Python = canonical. Tắt: VERIFY_EXPECTED_OUTPUTS=false.
     │
 [testcase_validator]
     │   Kiểm tra output:
@@ -722,6 +739,9 @@ Admin UI
 | `MODEL_NAME` | `gemini-3-flash-preview` | Model gọi cả analyzer + generator |
 | `THINKING_LEVEL` | `low` | `minimal` / `low` / `medium` / `high` (Gemini 3) — auto-map sang `thinking_budget` nếu dùng Gemini 2.x |
 | `GENERATOR_MAX_RETRIES` | `1` | Số lần retry tối đa của `testcase_validator` |
+| `VERIFY_EXPECTED_OUTPUTS` | `true` | Bật bước `expected_verifier` (chạy reference solution qua judge driver để tính `expectedOutput`). Đặt `false` để quay lại tin output LLM tự tính |
+| `EXPECTED_VERIFY_TIMEOUT_SECONDS` | `15` | Giới hạn wall-clock mỗi lần chạy 1 lời giải trên 1 testcase |
+| `REFERENCE_MAX_RETRIES` | `2` | Số lần regenerate 2 lời giải khi chúng lệch nhau (repair loop) |
 | `MAX_RETRIES` | `2` | Retry cho evaluator agent (`/evaluate`) |
 | `MODEL_VERSION` | `evaluator-v1.0` | Ghi vào `meta.modelVersion` của response |
 | `SERVICE_API_KEY` | — | Nếu set, `/generate-testcases` & `/evaluate` yêu cầu `X-API-Key` header |

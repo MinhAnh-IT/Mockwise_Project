@@ -85,8 +85,24 @@ class ProblemAnalysisOutput(BaseModel):
     order_matters: bool
     in_place: bool
     starter_code: _StarterCode
+    reference_solution: str
+    brute_force_solution: str
     constraints: List[str]
     edge_case_hints: List[str]
+
+    @field_validator("reference_solution", "brute_force_solution")
+    @classmethod
+    def _check_solution(cls, v: str) -> str:
+        # Two REAL, working Python solutions are REQUIRED: expected_verifier runs
+        # both through the judge driver and only trusts an output where they
+        # AGREE (consensus). An empty/placeholder solution disables verification
+        # and lets the LLM's (frequently wrong) hand-computed outputs through —
+        # the exact failure we are guarding against.
+        if not v or not v.strip():
+            raise ValueError("solution must be a complete, working Python Solution (not empty).")
+        if "class Solution" not in v:
+            raise ValueError("solution must define `class Solution` with the target method implemented.")
+        return v
 
     @field_validator("return_type")
     @classmethod
@@ -172,7 +188,11 @@ def problem_analyzer_node(state: GeneratorState) -> dict:
 
     # ── Step 2: LLM analysis ──────────────────────────────────────────────────
     try:
-        prompt = build_problem_analysis_prompt(req, leetcode_problem)
+        # On a repair-loop pass, expected_verifier left feedback about why the
+        # previous reference/brute pair was rejected — feed it back so the model
+        # produces two solutions that agree on every input.
+        reference_feedback = state.get("reference_feedback")
+        prompt = build_problem_analysis_prompt(req, leetcode_problem, reference_feedback)
         result: ProblemAnalysisOutput = call_structured(prompt, ProblemAnalysisOutput)
 
         # ── Step 3: override LLM output with authoritative sources ────────────
@@ -202,6 +222,7 @@ def problem_analyzer_node(state: GeneratorState) -> dict:
             "leetcode_problem": leetcode_problem,
             "problem_analysis": result.model_dump(),
             "generation_error": None,
+            "reference_feedback": None,   # consumed — clear for the next pass
         }
 
     except Exception as exc:
