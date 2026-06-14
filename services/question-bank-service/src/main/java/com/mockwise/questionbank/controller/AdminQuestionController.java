@@ -123,10 +123,11 @@ public class AdminQuestionController {
             @RequestParam(required = false) Difficulty difficulty,
             @RequestParam(required = false) QuestionStatus status,
             @RequestParam(required = false) List<String> tags,
+            @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         PageRequest pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(questionService.getBehavioral(competency, difficulty, status, tags, pageable));
+        return ResponseEntity.ok(questionService.getBehavioral(competency, difficulty, status, tags, q, pageable));
     }
 
     @GetMapping("/core")
@@ -136,10 +137,11 @@ public class AdminQuestionController {
             @RequestParam(required = false) Difficulty difficulty,
             @RequestParam(required = false) QuestionStatus status,
             @RequestParam(required = false) List<String> tags,
+            @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         PageRequest pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(questionService.getCore(domain, targetRole, difficulty, status, tags, pageable));
+        return ResponseEntity.ok(questionService.getCore(domain, targetRole, difficulty, status, tags, q, pageable));
     }
 
     @GetMapping("/coding")
@@ -147,10 +149,11 @@ public class AdminQuestionController {
             @RequestParam(required = false) Difficulty difficulty,
             @RequestParam(required = false) QuestionStatus status,
             @RequestParam(required = false) List<String> tags,
+            @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         PageRequest pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(questionService.getCoding(difficulty, status, tags, pageable));
+        return ResponseEntity.ok(questionService.getCoding(difficulty, status, tags, q, pageable));
     }
 
     // ── For-judge (contains test cases — admin only) ──────────────────────────
