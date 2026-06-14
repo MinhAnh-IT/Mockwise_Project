@@ -12,6 +12,7 @@ import com.mockwise.iam.dto.request.*;
 import com.mockwise.iam.dto.response.LoginResponse;
 import com.mockwise.iam.dto.response.TokenIntrospectResponse;
 import com.mockwise.iam.entity.User;
+import com.mockwise.iam.audit.AuditPublisher;
 import com.mockwise.iam.mapper.UserMapper;
 import com.mockwise.iam.message.enums.EmailType;
 import com.mockwise.iam.message.event.EmailEvent;
@@ -48,6 +49,7 @@ public class AuthService {
     TokenBlacklistService tokenBlacklistService;
     EmailEventPublisher emailEventPublisher;
     OtpService otpService;
+    AuditPublisher auditPublisher;
 
     public LoginResponse login(AccountRequest request, HttpServletResponse response) {
         User user = userRepository.findByEmail(request.email().trim().toLowerCase())
@@ -61,6 +63,8 @@ public class AuthService {
         }
 
         if (!bcrypt.matches(request.password(), user.getHashPass())) {
+            auditPublisher.publishAuth("LOGIN_FAILED", "FAILURE", user.getUserId(), user.getEmail(),
+                    user.getRole().name(), "invalid_password");
             throw new BusinessException(StatusCode.INVALID_PASSWORD_OR_EMAIL);
         }
 
@@ -88,6 +92,13 @@ public class AuthService {
         refreshTokenService.saveWithLimit(refreshToken, jwtProperties.getMaxRefreshSessions());
         setRefreshTokenToCookie(refreshToken, response);
 
+        // Stamp last-login (direct queryable field) + record the audit event. Shared
+        // by password and social login, so both paths are covered in one place.
+        user.setLastLoginAt(Instant.now());
+        userRepository.save(user);
+        auditPublisher.publishAuth("LOGIN", "SUCCESS", user.getUserId(), user.getEmail(),
+                user.getRole().name(), null);
+
         return accessToken;
     }
 
@@ -104,6 +115,11 @@ public class AuthService {
                 if (seconds > 0) {
                     tokenBlacklistService.blacklist(jti, seconds);
                 }
+
+                // Best-effort logout audit — resolve the actor from the token.
+                String userId = tokenService.extractUserId(accessToken);
+                userRepository.findById(userId).ifPresent(u -> auditPublisher.publishAuth(
+                        "LOGOUT", "SUCCESS", u.getUserId(), u.getEmail(), u.getRole().name(), null));
             }
         } catch (Exception e) {
             log.warn("Failed to blacklist access token during logout: {}", e.getMessage());

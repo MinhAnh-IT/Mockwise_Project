@@ -19,12 +19,14 @@ import {
   CheckCircle2,
   ClipboardCheck,
   ClipboardList,
+  Gavel,
   Layers,
   LayoutDashboard,
   Library,
   Loader2,
   LogOut,
   Menu,
+  ScrollText,
   Users,
   X,
   type LucideIcon,
@@ -59,6 +61,8 @@ const ADMIN_NAV: AdminNavItem[] = [
   { to: '/admin/profiles', label: 'Người dùng', icon: Users },
   { to: '/admin/catalog', label: 'Vị trí & Cấp độ', icon: Layers },
   { to: '/admin/monitoring', label: 'Giám sát hệ thống', icon: Activity },
+  { to: '/admin/judge', label: 'Giám sát Judge', icon: Gavel },
+  { to: '/admin/audit', label: 'Nhật ký kiểm toán', icon: ScrollText },
 ];
 
 function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {

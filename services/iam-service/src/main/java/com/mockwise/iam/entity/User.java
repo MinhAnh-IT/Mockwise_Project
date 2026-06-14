@@ -7,6 +7,8 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.time.Instant;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -76,4 +78,12 @@ public class User {
     @Column(nullable = false)
     @Builder.Default
     boolean blocked = false;
+
+    /**
+     * Timestamp of the most recent successful sign-in (password or social),
+     * stamped in {@code AuthService.issueSession}. Surfaced in the admin user
+     * list; full login history lives in the audit log. Null until first login.
+     */
+    @Column(name = "last_login_at")
+    Instant lastLoginAt;
 }

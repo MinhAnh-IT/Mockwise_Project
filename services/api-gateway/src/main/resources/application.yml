@@ -7,6 +7,10 @@ spring:
     # Prevents conflict if spring-webmvc ends up on the classpath transitively.
     web-application-type: reactive
 
+  # Producer for the audit-log topic (AuditPublisher). Send is fire-and-forget.
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+
   cloud:
     gateway:
       # Global CORS configuration
