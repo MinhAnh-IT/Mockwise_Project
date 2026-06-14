@@ -74,6 +74,21 @@ const newKey = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
 
+/**
+ * A real RFC-4122 UUID — used for the validation test-case ids the judge
+ * expects (judge `TestCaseDto.id` is a UUID, so a non-UUID like `vc-0` makes
+ * `/judge/submit` 400). Falls back to a manual v4 when crypto.randomUUID is
+ * unavailable (non-secure context).
+ */
+const uuid = (): string =>
+  typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+
 const pretty = (v: unknown) => JSON.stringify(v ?? {}, null, 2);
 
 // Autosaved draft of the create form, so a refresh / accidental nav doesn't
@@ -512,9 +527,11 @@ export default function CodingFormPage() {
     }
     setErrors({});
 
-    // Synthetic, guaranteed-unique ids so judge results map back per case.
-    const allCases: ValidationCase[] = parsed.map((p, i) => ({
-      id: `vc-${i}`,
+    // Per-case UUID so judge results map back. MUST be a real UUID — the judge
+    // deserialises TestCaseDto.id as java.util.UUID (a non-UUID id 400s).
+    // Reuse the row's existing id when it's already a UUID (edit mode).
+    const allCases: ValidationCase[] = parsed.map((p) => ({
+      id: p.r.id ?? uuid(),
       inputData: p.inputData as Record<string, unknown>,
       expectedOutput: p.expectedOutput as Record<string, unknown>,
       is_hidden: p.r.is_hidden,
