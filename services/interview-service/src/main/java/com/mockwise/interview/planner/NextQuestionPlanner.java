@@ -82,6 +82,18 @@ public class NextQuestionPlanner {
         return handleCaseCClose(inputs);
     }
 
+    /**
+     * Fallback for when {@link #plan} returned {@link PlannerDecision.AskFollowUp}
+     * but the orchestrator could not actually produce a follow-up question
+     * (e.g. the AI generator is unavailable or returned an empty question).
+     * Closes the current topic as PARTIAL and advances to the next topic — or
+     * ends the session if coverage / budget is exhausted — so a live interview
+     * never stalls waiting for a follow-up that will not arrive.
+     */
+    public PlannerOutcome closeTopicAndAdvance(PlannerInputs inputs) {
+        return moveToNextOrEnd(inputs, TopicStatus.PARTIAL, /*difficultyOffset*/ 0);
+    }
+
     // ── Case A: very poor answer ─────────────────────────────────────────────
     private PlannerOutcome handleCaseA(PlannerInputs inputs) {
         AssessmentVerdict v = inputs.verdict();

@@ -904,13 +904,33 @@ public class AnswerService {
 
         // Resolve the decision — might pin a new question or end the session.
         switch (outcome.decision()) {
-            case PlannerDecision.AskFollowUp f -> handleFollowUp(session, sq, f, verdict, (int) pinnedSoFar + 1);
+            case PlannerDecision.AskFollowUp f -> {
+                if (!handleFollowUp(session, sq, f, verdict, (int) pinnedSoFar + 1)) {
+                    // No follow-up could be produced (AI unavailable / empty).
+                    // Don't strand the candidate on a frozen screen — close this
+                    // topic and advance to the next one, or end the session.
+                    PlannerOutcome fb = planner.closeTopicAndAdvance(inputs);
+                    sideEffectApplier.apply(fb.sideEffects(), session, currentState);
+                    switch (fb.decision()) {
+                        case PlannerDecision.MoveToNextTopic m -> handleMoveNext(session, m, (int) pinnedSoFar + 1);
+                        case PlannerDecision.EndSession e -> handleEndSession(session, e.reason());
+                        // closeTopicAndAdvance never re-asks a follow-up; end defensively.
+                        case PlannerDecision.AskFollowUp ignored ->
+                                handleEndSession(session, PlannerDecision.EndSession.EndReason.COVERAGE_COMPLETE);
+                    }
+                }
+            }
             case PlannerDecision.MoveToNextTopic m -> handleMoveNext(session, m, (int) pinnedSoFar + 1);
             case PlannerDecision.EndSession e -> handleEndSession(session, e.reason());
         }
     }
 
-    private void handleFollowUp(
+    /**
+     * @return {@code true} if a follow-up question was pinned (pre-authored or
+     *         AI-generated), {@code false} if AI generation failed — the caller
+     *         then advances to the next topic so the interview never stalls.
+     */
+    private boolean handleFollowUp(
             InterviewSession session, SessionQuestion parent,
             PlannerDecision.AskFollowUp follow, AssessmentVerdict verdict, int sequence) {
 
@@ -920,7 +940,7 @@ public class AnswerService {
         if (fromBank.isPresent()) {
             log.info("Pinned PRE_AUTHORED follow-up for session {} parent {}",
                     session.getId(), parent.getId());
-            return;
+            return true;
         }
 
         // Tier 2: AI-generated. Need parent context — pull from snapshot.
@@ -936,15 +956,22 @@ public class AnswerService {
         Answer parentAnswer = answerRepo.findBySessionQuestionId(parent.getId()).orElse(null);
         String parentTranscript = extractTranscript(parentAnswer);
 
-        questionPicker.pickFollowUpFromAi(
-                session.getId(), parent, follow.weakTarget(), verdict.strongTargets(),
-                follow.difficulty(),
-                parentText, parentTranscript,
-                (String) snap.get("competency"), (String) snap.get("domain"),
-                extractStringList(snap.get("expectedSignals")),
-                extractStringList(snap.get("keyConcepts")),
-                language, sequence);
+        try {
+            questionPicker.pickFollowUpFromAi(
+                    session.getId(), parent, follow.weakTarget(), verdict.strongTargets(),
+                    follow.difficulty(),
+                    parentText, parentTranscript,
+                    (String) snap.get("competency"), (String) snap.get("domain"),
+                    extractStringList(snap.get("expectedSignals")),
+                    extractStringList(snap.get("keyConcepts")),
+                    language, sequence);
+        } catch (Exception e) {
+            log.warn("AI follow-up generation failed for session {} parent {}: {} — "
+                    + "will advance to next topic", session.getId(), parent.getId(), e.getMessage());
+            return false;
+        }
         log.info("Pinned AI_GENERATED follow-up for session {} parent {}", session.getId(), parent.getId());
+        return true;
     }
 
     private void handleMoveNext(InterviewSession session, PlannerDecision.MoveToNextTopic m, int sequence) {
