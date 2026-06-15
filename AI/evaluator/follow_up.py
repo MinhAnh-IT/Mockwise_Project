@@ -11,20 +11,25 @@ import time
 import config
 from llm import call_structured
 from evaluator.prompts.follow_up import build_follow_up_prompt
-from models.follow_up import FollowUpRequest, FollowUpResponse
+from models.follow_up import FollowUpRequest, FollowUpLLMOutput, FollowUpResponse
 
 
 def generate_follow_up(req: FollowUpRequest) -> FollowUpResponse:
     started_ms = int(time.time() * 1000)
     prompt = build_follow_up_prompt(req)
-    result: FollowUpResponse = call_structured(prompt, FollowUpResponse)
+    # Ask the model for content fields only — server-stamped meta (source,
+    # model_meta) is added below and kept out of the Gemini schema.
+    llm: FollowUpLLMOutput = call_structured(prompt, FollowUpLLMOutput)
 
-    # Stamp meta — the model is told to leave model_meta empty and source=AI_GENERATED.
     duration_ms = max(0, int(time.time() * 1000) - started_ms)
-    result.source = "AI_GENERATED"
-    result.model_meta = {
-        "model": config.MODEL_NAME,
-        "duration_ms": duration_ms,
-        "evaluator_version": config.EVALUATOR_VERSION,
-    }
-    return result
+    return FollowUpResponse(
+        question_text=llm.question_text,
+        expected_points=llm.expected_points,
+        rationale=llm.rationale,
+        source="AI_GENERATED",
+        model_meta={
+            "model": config.MODEL_NAME,
+            "duration_ms": duration_ms,
+            "evaluator_version": config.EVALUATOR_VERSION,
+        },
+    )

@@ -851,7 +851,18 @@ public class AnswerService {
             sessionFinalizer.maybeRequestOverallReview(session.getId());
             return;
         }
-        runPlannerForAnswer(session, sq, verdict);
+        // Run the planner as a best-effort step. The answer's score is already
+        // persisted above; a planner/follow-up failure (e.g. ai-service 500 on
+        // /follow-up/generate) must NOT roll back that score nor poison the
+        // Kafka record — otherwise the answer is stranded in EVALUATING and the
+        // session can never be finalised (final_score stays null forever).
+        try {
+            runPlannerForAnswer(session, sq, verdict);
+        } catch (Exception e) {
+            log.error("Planner failed for answer {} (session {}) — score already "
+                    + "persisted; skipping follow-up/next-question this tick",
+                    answerId, session.getId(), e);
+        }
 
         // Planner may have flipped the session to COMPLETED via EndSession.
         // If so (or if a sibling answer's path already did), kick off the

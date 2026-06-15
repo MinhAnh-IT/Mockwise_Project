@@ -55,7 +55,17 @@ class FollowUpRequest(CamelModel):
     language: Literal["vi", "en"] = "vi"
 
 
-class FollowUpResponse(CamelModel):
+class FollowUpLLMOutput(CamelModel):
+    """The content fields the LLM actually produces.
+
+    Kept separate from FollowUpResponse so the structured-output schema sent to
+    Gemini contains ONLY fixed-shape fields. A bare `dict` field (model_meta)
+    makes Instructor emit `additionalProperties` in the schema, which the Gemini
+    Developer API rejects ("additionalProperties is only supported in Gemini
+    Enterprise Agent Platform mode") → the call 500s. `source` and `model_meta`
+    are stamped server-side after the call anyway, so they never need to be part
+    of what the model is asked to generate.
+    """
     question_text: str = Field(..., description="The follow-up question to ask")
     expected_points: List[str] = Field(
         ..., description="What a satisfactory answer must cover (≤ 5 items)"
@@ -63,5 +73,8 @@ class FollowUpResponse(CamelModel):
     rationale: str = Field(
         ..., description="Why this follow-up addresses the weak_target — for audit/debug"
     )
+
+
+class FollowUpResponse(FollowUpLLMOutput):
     source: Literal["AI_GENERATED"] = "AI_GENERATED"
     model_meta: dict = Field(default_factory=dict)
