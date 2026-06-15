@@ -66,12 +66,19 @@ class FollowUpLLMOutput(CamelModel):
     are stamped server-side after the call anyway, so they never need to be part
     of what the model is asked to generate.
     """
-    question_text: str = Field(..., description="The follow-up question to ask")
+    # min_length guards against Gemini occasionally returning a 200 with an
+    # empty question_text (rare, but it freezes the live interview because the
+    # orchestrator can't pin a usable next question). An empty value now fails
+    # Pydantic validation, which makes Instructor re-prompt and retry instead of
+    # handing back a blank.
+    question_text: str = Field(
+        ..., min_length=1, description="The follow-up question to ask"
+    )
     expected_points: List[str] = Field(
-        ..., description="What a satisfactory answer must cover (≤ 5 items)"
+        ..., min_length=1, description="What a satisfactory answer must cover (≤ 5 items)"
     )
     rationale: str = Field(
-        ..., description="Why this follow-up addresses the weak_target — for audit/debug"
+        ..., min_length=1, description="Why this follow-up addresses the weak_target — for audit/debug"
     )
 
 
