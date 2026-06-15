@@ -41,6 +41,17 @@ public class EventDedupService {
     ProcessedEventRepository processedEventRepo;
 
     /**
+     * Read-only fast-skip for redelivered events that already completed.
+     * Does NOT insert — call {@link #markProcessed} only AFTER the business
+     * write has committed, so a failed/rolled-back handler stays retryable
+     * (an up-front insert would mark a never-finished event as done forever).
+     */
+    @Transactional(readOnly = true)
+    public boolean isProcessed(String eventId) {
+        return eventId != null && !eventId.isBlank() && processedEventRepo.existsById(eventId);
+    }
+
+    /**
      * @return {@code true} if this is the first time we see {@code eventId}
      *         (caller should proceed to handle), {@code false} if it was
      *         already processed (caller should ack and return).

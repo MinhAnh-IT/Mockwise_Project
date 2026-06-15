@@ -49,7 +49,7 @@ public class EvaluationConsumer {
                 ack.acknowledge();
                 return;
             }
-            if (!dedup.markProcessed(event.eventId(), event.eventType())) {
+            if (dedup.isProcessed(event.eventId())) {
                 log.debug("evaluation-completed {} already processed — skipping", event.eventId());
                 ack.acknowledge();
                 return;
@@ -59,6 +59,9 @@ public class EvaluationConsumer {
             answerService.applyEvaluationCompleted(
                     UUID.fromString(event.answerId()),
                     event.result());
+            // Record AFTER the business write commits — a rolled-back handler
+            // must stay retryable rather than be marked done forever.
+            dedup.markProcessed(event.eventId(), event.eventType());
             ack.acknowledge();
         } catch (Exception ex) {
             log.error("Failed to handle evaluation-completed at offset={}: {}", offset, ex.getMessage(), ex);
@@ -82,7 +85,7 @@ public class EvaluationConsumer {
                 ack.acknowledge();
                 return;
             }
-            if (!dedup.markProcessed(event.eventId(), event.eventType())) {
+            if (dedup.isProcessed(event.eventId())) {
                 ack.acknowledge();
                 return;
             }
@@ -92,6 +95,8 @@ public class EvaluationConsumer {
                     UUID.fromString(event.answerId()),
                     event.error(),
                     event.detail());
+            // Record AFTER the business write commits (see completed branch).
+            dedup.markProcessed(event.eventId(), event.eventType());
             ack.acknowledge();
         } catch (Exception ex) {
             log.error("Failed to handle evaluation-failed at offset={}: {}", offset, ex.getMessage(), ex);
