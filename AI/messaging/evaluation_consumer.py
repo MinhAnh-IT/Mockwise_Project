@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 from typing import Optional
 
 from aiokafka import AIOKafkaConsumer
@@ -41,8 +42,15 @@ async def _handle_event(event: EvaluationRequestedEvent) -> None:
     # The graph is sync code. Run it in the default executor so the event
     # loop (and the producer) keep running.
     loop = asyncio.get_running_loop()
+    _t0 = time.monotonic()
     try:
         result_dict = await loop.run_in_executor(None, evaluate, event.payload)
+        logger.info(
+            "TIMING ai_evaluate answerId=%s interviewType=%s evaluateMs=%d",
+            event.answerId,
+            event.payload.get("interview_type", ""),
+            int((time.monotonic() - _t0) * 1000),
+        )
     except Exception as exc:
         logger.exception("Evaluator raised for answer=%s", event.answerId)
         await evaluation_producer.publish_failed(

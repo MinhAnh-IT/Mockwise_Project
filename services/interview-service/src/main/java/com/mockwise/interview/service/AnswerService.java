@@ -840,6 +840,19 @@ public class AnswerService {
         answerRepo.save(answer);
         logTransition(answerId, prev, AnswerStatus.SCORED, "evaluation-completed", Map.of());
 
+        // End-to-end wall-clock for the video/behavioral path: from the moment
+        // the candidate hit submit (answer row created) to the moment the score
+        // lands. Spans STT + AI evaluation + all Kafka/outbox hops. Grep
+        // "TIMING e2e" on the VPS alongside the "TIMING stt"/"TIMING ai_*" lines
+        // to attribute where the wait is spent.
+        if (answer.getSubmittedAt() != null) {
+            log.info("TIMING e2e answerId={} type={} submitToScoredMs={}",
+                    answerId, sq.getQuestionType(),
+                    java.time.Duration.between(
+                            answer.getSubmittedAt().toInstant(),
+                            OffsetDateTime.now().toInstant()).toMillis());
+        }
+
         // Run the planner — this is the "smart" tick.
         if (sq.getTopicKind() == null || sq.getTopicValue() == null) {
             // Coding answers may not be tied to a topic in the matrix yet;

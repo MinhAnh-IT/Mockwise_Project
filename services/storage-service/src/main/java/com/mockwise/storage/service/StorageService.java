@@ -280,10 +280,17 @@ public class StorageService {
                 .mapToObj(n -> partKey(obj.getObjectKey(), n))
                 .toList();
 
+        // ── Stage timing for the post-stop upload-finalise step. The byte
+        // transfer happens during recording (streaming parts); what the user
+        // waits on after hitting "stop" is this compose + stat + part cleanup.
+        // Grep "TIMING upload_complete" on the VPS. ───────────────────────────
+        long t0 = System.nanoTime();
         minioGateway.composeObject(obj.getBucket(), obj.getObjectKey(), partKeys);
+        long tCompose = System.nanoTime();
 
         StatObjectResponse stat = minioGateway.stat(obj.getBucket(), obj.getObjectKey())
                 .orElseThrow(() -> new BusinessException(StatusCode.STORAGE_UPLOAD_NOT_FOUND_IN_BUCKET));
+        long tStat = System.nanoTime();
 
         obj.setSizeBytes(stat.size());
         obj.setStatus(StorageStatus.READY);
@@ -296,7 +303,14 @@ public class StorageService {
         for (String k : partKeys) {
             minioGateway.removeObject(obj.getBucket(), k);
         }
+        long tCleanup = System.nanoTime();
 
+        log.info("TIMING upload_complete objectId={} parts={} sizeBytes={} composeMs={} statMs={} cleanupMs={} totalMs={}",
+                objectId, partCount, stat.size(),
+                (tCompose - t0) / 1_000_000L,
+                (tStat - tCompose) / 1_000_000L,
+                (tCleanup - tStat) / 1_000_000L,
+                (tCleanup - t0) / 1_000_000L);
         log.info("Completed streaming video upload id={} parts={} size={}",
                 objectId, partCount, stat.size());
         return StorageObjectResponse.from(obj);

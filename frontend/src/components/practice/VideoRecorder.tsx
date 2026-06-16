@@ -206,10 +206,19 @@ export default function VideoRecorder({ question, maxSeconds, sessionId, busy, o
     // Parts were streamed during recording. If they compose OK, hand the
     // parent the ready objectId so it skips the post-submit upload; any
     // failure → null → parent falls back to uploadVideoPresigned(blob).
+    // [TIMING] Wall-clock the user waits on after hitting stop: flush of the
+    // last part + the compose round-trip. Open DevTools console while testing.
+    const _t0 = performance.now();
     uploader
       .finish()
-      .then((objectId) => onSubmit(blob, base, objectId))
-      .catch(() => onSubmit(blob, base, null));
+      .then((objectId) => {
+        console.info(`[TIMING] upload_finish ${Math.round(performance.now() - _t0)}ms blobBytes=${blob.size}`);
+        onSubmit(blob, base, objectId);
+      })
+      .catch(() => {
+        console.info(`[TIMING] upload_finish_failed ${Math.round(performance.now() - _t0)}ms blobBytes=${blob.size}`);
+        onSubmit(blob, base, null);
+      });
   }, [onSubmit]);
 
   const stopRecording = useCallback(() => {

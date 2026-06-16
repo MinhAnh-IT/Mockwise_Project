@@ -118,16 +118,40 @@ public class SttOrchestrator {
             throw new BusinessException(StatusCode.STT_OBJECT_NOT_AVAILABLE);
         }
 
+        // ── Stage timing (grep "TIMING stt" on the VPS to reconstruct the
+        // per-step latency breakdown of the STT pipeline) ────────────────────
+        long kafkaLagMs = event.getOccurredAt() == null ? -1
+                : java.time.Duration.between(event.getOccurredAt().toInstant(),
+                        java.time.Instant.now()).toMillis();
+        long t0 = System.nanoTime();
+
         PresignedDownload presigned = storageClient.requestDownloadUrl(
                 "INTERVIEW_VIDEO", objectKey, storageClientProps.downloadTtlSeconds());
+        long tPresign = System.nanoTime();
 
         Path videoTmp = null;
         Path audioTmp = null;
         try {
             videoTmp = downloadToTmp(presigned.getUrl(), "video");
+            long tDownload = System.nanoTime();
+            long videoBytes = sizeOf(videoTmp);
+
             audioTmp = ffmpegService.extractAudio(videoTmp);
+            long tFfmpeg = System.nanoTime();
 
             ScribeResult result = scribeClient.transcribe(audioTmp, event.getLanguageHint());
+            long tScribe = System.nanoTime();
+
+            log.info("TIMING stt answerId={} kafkaLagMs={} presignMs={} downloadMs={} ffmpegMs={} scribeMs={} sttTotalMs={} videoBytes={} audioBytes={}",
+                    event.getAnswerId(),
+                    kafkaLagMs,
+                    msBetween(t0, tPresign),
+                    msBetween(tPresign, tDownload),
+                    msBetween(tDownload, tFfmpeg),
+                    msBetween(tFfmpeg, tScribe),
+                    msBetween(t0, tScribe),
+                    videoBytes,
+                    sizeOf(audioTmp));
 
             Transcript transcript = Transcript.builder()
                     .sttJobId(job.getId())
@@ -239,6 +263,19 @@ public class SttOrchestrator {
                 .reduce((a, b) -> b)
                 .map(d -> (int) Math.round(d * 1000))
                 .orElse(null);
+    }
+
+    private static long msBetween(long startNanos, long endNanos) {
+        return (endNanos - startNanos) / 1_000_000L;
+    }
+
+    private static long sizeOf(Path p) {
+        if (p == null) return -1;
+        try {
+            return Files.size(p);
+        } catch (Exception ex) {
+            return -1;
+        }
     }
 
     private void silentlyDelete(Path p) {
