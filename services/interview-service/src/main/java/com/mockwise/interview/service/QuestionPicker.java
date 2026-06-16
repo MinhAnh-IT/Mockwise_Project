@@ -385,7 +385,10 @@ public class QuestionPicker {
                         .toList(),
                 difficulty.name(),
                 language != null ? language : "vi");
+        long _t0 = System.nanoTime();
         AiFollowUpResponse res = aiServiceAdapter.generateFollowUp(req);
+        log.info("TIMING followup_rest sessionId={} parent={} followUpRestMs={}",
+                sessionId, parent.getId(), (System.nanoTime() - _t0) / 1_000_000L);
 
         return sessionQuestionRepo.save(SessionQuestion.builder()
                 .sessionId(sessionId)

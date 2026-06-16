@@ -19,7 +19,9 @@ def generate_follow_up(req: FollowUpRequest) -> FollowUpResponse:
     prompt = build_follow_up_prompt(req)
     # Ask the model for content fields only — server-stamped meta (source,
     # model_meta) is added below and kept out of the Gemini schema.
-    llm: FollowUpLLMOutput = call_structured(prompt, FollowUpLLMOutput)
+    # max_tokens is generous: thinking tokens share this budget, and a starved
+    # budget is the most likely cause of an empty/truncated structured output.
+    llm: FollowUpLLMOutput = call_structured(prompt, FollowUpLLMOutput, max_tokens=16384)
 
     duration_ms = max(0, int(time.time() * 1000) - started_ms)
     return FollowUpResponse(

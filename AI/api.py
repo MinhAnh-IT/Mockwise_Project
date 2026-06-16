@@ -325,8 +325,15 @@ def follow_up_generate(req: FollowUpRequest, _: None = Security(_require_api_key
     weakness. Synchronous because the user is waiting.
     """
     from evaluator.follow_up import generate_follow_up
+    _t0 = time.monotonic()
     try:
-        return generate_follow_up(req)
+        result = generate_follow_up(req)
+        logger.info(
+            "TIMING ai_follow_up sessionId=%s followUpMs=%d",
+            getattr(req, "session_id", ""),
+            int((time.monotonic() - _t0) * 1000),
+        )
+        return result
     except Exception as exc:
         logger.exception("follow_up_generate failed")
         raise HTTPException(status_code=500, detail=str(exc))
