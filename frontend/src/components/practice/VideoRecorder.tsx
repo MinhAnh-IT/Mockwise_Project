@@ -71,6 +71,15 @@ const MIME_CANDIDATES = [
   'video/webm',
 ];
 
+// Bitrate caps for the recorder. A behavioral/core answer is a talking head —
+// it carries almost no motion, so an explicit low cap keeps quality fine while
+// cutting the file size ~6× vs. the browser's uncapped default (which produced
+// ~7 Mbps / 40–80 MB clips that took 80–125 s to upload). Smaller bytes shrink
+// upload, the STT-side download, and the ffmpeg extract all at once.
+//   1.2 Mbps video + 96 kbps audio → ~10 MB/min.
+const VIDEO_BITS_PER_SECOND = 1_200_000;
+const AUDIO_BITS_PER_SECOND = 96_000;
+
 type RecorderMime = { recorder: string; base: string };
 
 function pickMimeType(): RecorderMime {
@@ -124,7 +133,13 @@ export default function VideoRecorder({ question, maxSeconds, sessionId, busy, o
     setPermissionError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+        // Cap the frame rate too — a talking head needs no more than 24 fps,
+        // and fewer frames means fewer bits to encode and upload.
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 24, max: 30 },
+        },
         audio: true,
       });
       streamRef.current = stream;
@@ -270,7 +285,11 @@ export default function VideoRecorder({ question, maxSeconds, sessionId, busy, o
     } catch {
       uploaderRef.current = null;
     }
-    const rec = new MediaRecorder(stream, { mimeType: mime.recorder });
+    const rec = new MediaRecorder(stream, {
+      mimeType: mime.recorder,
+      videoBitsPerSecond: VIDEO_BITS_PER_SECOND,
+      audioBitsPerSecond: AUDIO_BITS_PER_SECOND,
+    });
     rec.ondataavailable = (e) => {
       if (e.data && e.data.size > 0) {
         chunksRef.current.push(e.data);
