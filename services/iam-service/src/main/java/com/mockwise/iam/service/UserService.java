@@ -59,7 +59,7 @@ public class UserService {
     /**
      * Create the user-profile for an account that doesn't have one yet — used by
      * social-login users after their first sign-in (Google/GitHub can't supply
-     * track/level/city, so the SPA collects them and posts here). Idempotent
+     * track/level, so the SPA collects them and posts here). Idempotent
      * guard: a one-shot completion, rejected if already done.
      */
     @Transactional

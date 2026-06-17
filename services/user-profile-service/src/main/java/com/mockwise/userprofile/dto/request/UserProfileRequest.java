@@ -19,9 +19,6 @@ public record UserProfileRequest(
         @NotBlank(message = "Level ID must not be blank")
         String levelId,
 
-        @NotBlank(message = "City must not be blank")
-        String city,
-
         @NotNull(message = "Experience is required")
         @Min(value = 0, message = "Experience must be >= 0")
         Integer experience,

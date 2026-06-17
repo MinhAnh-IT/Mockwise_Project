@@ -141,8 +141,8 @@ public class UserProfileService {
                 base.userId(),
                 base.fullName(),
                 base.position(),
-                base.city(),
                 base.experience(),
+                base.createdAt(),
                 url,
                 null,
                 base.techStack(),
@@ -232,7 +232,8 @@ public class UserProfileService {
             String email = userInfo.email() != null ? userInfo.email() : "";
             boolean isVerified = Boolean.TRUE.equals(userInfo.isVerified());
             boolean blocked = Boolean.TRUE.equals(userInfo.blocked());
-            enrichedProfiles.add(userProfileMapper.toAdminResponse(profile, email, isVerified, blocked));
+            enrichedProfiles.add(userProfileMapper.toAdminResponse(
+                    profile, email, isVerified, blocked, userInfo.lastLoginAt()));
         }
 
         return new PageImpl<>(enrichedProfiles, pageable, profiles.getTotalElements());

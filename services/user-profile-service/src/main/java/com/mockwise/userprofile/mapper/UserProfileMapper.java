@@ -8,6 +8,8 @@ import com.mockwise.userprofile.dto.response.UserProfileResponse;
 import com.mockwise.userprofile.entity.UserProfile;
 import org.mapstruct.*;
 
+import java.time.Instant;
+
 @Mapper(componentModel = "spring", uses = {PositionMapper.class})
 public interface UserProfileMapper {
 
@@ -29,8 +31,8 @@ public interface UserProfileMapper {
     @Mapping(source = "profile.userId", target = "userId")
     @Mapping(source = "profile.fullName", target = "fullName")
     @Mapping(source = "profile.position", target = "position")
-    @Mapping(source = "profile.city", target = "city")
     @Mapping(source = "profile.experience", target = "experience")
+    @Mapping(source = "profile.createdAt", target = "createdAt")
     @Mapping(source = "profile.techStack", target = "techStack")
     @Mapping(source = "profile.preferredLanguage", target = "preferredLanguage")
     @Mapping(source = "profile.yearsInCurrentRole", target = "yearsInCurrentRole")
@@ -38,8 +40,9 @@ public interface UserProfileMapper {
     @Mapping(source = "email", target = "email")
     @Mapping(source = "isVerified", target = "isVerified")
     @Mapping(source = "blocked", target = "blocked")
+    @Mapping(source = "lastLoginAt", target = "lastLoginAt")
     AdminUserProfileResponse toAdminResponse(
-            UserProfileResponse profile, String email, Boolean isVerified, Boolean blocked);
+            UserProfileResponse profile, String email, Boolean isVerified, Boolean blocked, Instant lastLoginAt);
 
     default ProfileStatsResponse toStatsResponse(long totalProfiles) {
         ProfileStatsResponse stats = new ProfileStatsResponse();

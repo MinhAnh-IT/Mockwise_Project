@@ -43,7 +43,6 @@ export default function EditProfilePage() {
   const navigate = useNavigate();
 
   const [fullName, setFullName] = useState(profile?.fullName ?? '');
-  const [city, setCity] = useState(profile?.city ?? '');
   const [experience, setExperience] = useState(String(profile?.experience ?? 0));
   const [trackId, setTrackId] = useState(profile?.position.trackId ?? '');
   const [levelId, setLevelId] = useState(profile?.position.levelId ?? '');
@@ -104,7 +103,6 @@ export default function EditProfilePage() {
     if (!profile) return {};
     const diff: UserProfileUpdateRequest = {};
     if (fullName.trim() !== profile.fullName) diff.fullName = fullName.trim();
-    if (city.trim() !== profile.city) diff.city = city.trim();
     if (Number(experience) !== profile.experience) diff.experience = Number(experience);
     const trackChanged = trackId !== profile.position.trackId;
     const levelChanged = levelId !== profile.position.levelId;
@@ -143,7 +141,6 @@ export default function EditProfilePage() {
   }, [
     profile,
     fullName,
-    city,
     experience,
     trackId,
     levelId,
@@ -278,16 +275,6 @@ export default function EditProfilePage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="Thành phố" htmlFor="city" required>
-                <Input
-                  id="city"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="Hồ Chí Minh"
-                  required
-                />
-              </Field>
-
               <Field label="Số năm kinh nghiệm" htmlFor="experience" required>
                 <Input
                   id="experience"

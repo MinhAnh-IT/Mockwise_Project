@@ -37,7 +37,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [city, setCity] = useState('');
   const [experience, setExperience] = useState('0');
   const [trackId, setTrackId] = useState('');
   const [levelId, setLevelId] = useState('');
@@ -114,7 +113,6 @@ export default function RegisterPage() {
           fullName: fullName.trim(),
           trackId,
           levelId,
-          city: city.trim(),
           experience: expNum,
           preferredLanguage,
           ...(yicrNum !== undefined ? { yearsInCurrentRole: yicrNum } : {}),
@@ -241,16 +239,6 @@ export default function RegisterPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Thành phố" htmlFor="city" required>
-              <Input
-                id="city"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Hồ Chí Minh"
-                required
-              />
-            </Field>
-
             <Field label="Số năm kinh nghiệm" htmlFor="experience" required>
               <Input
                 id="experience"
