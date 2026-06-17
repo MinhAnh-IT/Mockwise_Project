@@ -78,6 +78,27 @@ export type StartSessionInput = {
   timeBudgetMinutesOverride?: number;
 };
 
+/**
+ * Mirror of the BE {@code SessionPreviewOutput}. Resolves the blueprint a real
+ * session WOULD use for this user (by profile track+level) without creating a
+ * session — powers the practice intro screen.
+ *
+ * - {@code timeBudgetMinutes}: the whole-session clock (a hard max, not an
+ *   "expected" duration — there's no per-question limit).
+ * - {@code minQuestions}/{@code maxQuestions}: a range. BEHAVIORAL/CORE are
+ *   adaptive (follow-ups stack on top of the base topics), so min < max and
+ *   {@code adaptive} is true. CODING is fixed, so min === max.
+ */
+export type SessionPreviewOutput = {
+  interviewType: InterviewType;
+  targetRole: string;
+  level: string;
+  minQuestions: number;
+  maxQuestions: number;
+  timeBudgetMinutes: number;
+  adaptive: boolean;
+};
+
 export type StartSessionOutput = {
   sessionId: string;
   targetRole: string;

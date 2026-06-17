@@ -574,14 +574,6 @@ function AnswerDetail({
         )}
       </CardRow>
 
-      {answer.type === 'VIDEO' && answer.transcript && (
-        <Card icon={<Quote className="w-4 h-4" />} title="Nội dung câu trả lời (đã dùng để chấm)">
-          <p className="text-sm text-on-surface-variant leading-relaxed whitespace-pre-line">
-            {answer.transcript}
-          </p>
-        </Card>
-      )}
-
       {answer.feedback && (
         <Card
           icon={<MessageSquare className="w-4 h-4" />}
