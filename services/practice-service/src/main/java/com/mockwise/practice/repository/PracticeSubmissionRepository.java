@@ -161,5 +161,5 @@ public interface PracticeSubmissionRepository extends JpaRepository<PracticeSubm
             WHERE user_id = :userId AND mode = 'SUBMIT' AND verdict = 'AC'
             ORDER BY d DESC
             """, nativeQuery = true)
-    List<java.time.LocalDate> findAcceptedSubmitDates(@Param("userId") String userId);
+    List<java.sql.Date> findAcceptedSubmitDates(@Param("userId") String userId);
 }

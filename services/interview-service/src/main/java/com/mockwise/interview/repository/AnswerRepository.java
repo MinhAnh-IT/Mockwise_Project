@@ -34,4 +34,14 @@ public interface AnswerRepository extends JpaRepository<Answer, UUID> {
      * request.
      */
     long countBySessionIdAndStatusIn(UUID sessionId, Collection<AnswerStatus> statuses);
+
+    /**
+     * Counts answers in a session whose status is NOT in {@code statuses}.
+     * Used by {@link com.mockwise.interview.service.SessionFinalizerService}
+     * to detect "no answer is still mid-flight" — the gate for staging the
+     * overall-review request. Unlike comparing against the pinned-question
+     * count, this ignores questions that were pinned but never answered (user
+     * ended early / time up), which would otherwise hold the gate open forever.
+     */
+    long countBySessionIdAndStatusNotIn(UUID sessionId, Collection<AnswerStatus> statuses);
 }

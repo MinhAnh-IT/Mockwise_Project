@@ -71,7 +71,11 @@ public class PracticeStatsService {
         Map<String, Long> solvedByLanguage = solvedByLanguage(userId);
         Map<String, Long> solvedByTag = solvedByTag(userId);
 
-        List<LocalDate> acceptedDays = submissionRepo.findAcceptedSubmitDates(userId);
+        // Native query returns java.sql.Date (MySQL DATE); convert to LocalDate
+        // here since Spring has no java.sql.Date -> LocalDate collection converter.
+        List<LocalDate> acceptedDays = submissionRepo.findAcceptedSubmitDates(userId).stream()
+                .map(java.sql.Date::toLocalDate)
+                .toList();
         int currentStreak = currentStreak(acceptedDays);
         int longestStreak = longestStreak(acceptedDays);
 

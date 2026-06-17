@@ -7,6 +7,7 @@ import com.mockwise.storage.repository.StorageObjectRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Limit;
@@ -38,9 +39,15 @@ public class PendingUploadReaper {
     StorageObjectRepository repository;
     MinioStorageGateway minioGateway;
 
+    // @NonFinal opts these two out of the class-wide makeFinal = true so
+    // @RequiredArgsConstructor leaves them out of the constructor signature;
+    // Spring populates them via @Value injection instead (a final field would
+    // be pulled into the constructor and Spring would look for an int bean).
+    @NonFinal
     @Value("${storage.reaper.pending-grace-minutes:120}")
     int graceMinutes;
 
+    @NonFinal
     @Value("${storage.reaper.batch-size:200}")
     int batchSize;
 

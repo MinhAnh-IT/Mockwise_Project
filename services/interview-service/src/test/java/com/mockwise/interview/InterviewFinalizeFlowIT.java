@@ -254,6 +254,69 @@ class InterviewFinalizeFlowIT {
     }
 
     @Test
+    void earlyFinish_withQuestionPinnedButUnanswered_stillStagesOverallReview() {
+        // Regression for fix/interview-followup-eval-stuck: a user who ends the
+        // interview while a question is on screen leaves it pinned-but-unanswered
+        // (no Answer row). The old gate compared pinned-question count to
+        // terminal-answer count, so that dangling question held the gate open
+        // forever — the session sat COMPLETED and the report never reached SCORED.
+        when(userProfileAdapter.getProfile(USER_ID)).thenReturn(profile("Backend", "Mid", 3));
+        when(questionBankAdapter.markAskedSoft(anyString()))
+                .thenAnswer(inv -> Optional.of(new MarkAskedResponse(
+                        inv.getArgument(0), 1L, OffsetDateTime.now())));
+        when(questionBankAdapter.getSnapshotSoft(anyString()))
+                .thenAnswer(inv -> Optional.of(snapshotFor(inv.getArgument(0))));
+        AtomicCounter counter = new AtomicCounter();
+        when(questionBankAdapter.filter(any())).thenAnswer(inv -> filterResponse(List.of(
+                candidate("q-early-" + counter.next(), QuestionType.BEHAVIORAL,
+                        Difficulty.EASY, "Question " + counter.value(),
+                        "OWNERSHIP", null, true, 0L))));
+
+        StartSessionOutput started = sessionService.start(USER_ID,
+                new StartSessionInput(InterviewType.BEHAVIORAL, null));
+        UUID sessionId = started.sessionId();
+
+        // Answer + score ONLY the first pinned question. The planner then pins a
+        // second question, which we deliberately leave unanswered to mimic the
+        // user clicking "Kết thúc sớm" while it's on screen.
+        UUID firstSqId = sessionQuestionRepo.findBySessionIdOrderBySequenceAsc(sessionId)
+                .get(0).getId();
+        Answer answer = answerRepo.save(Answer.builder()
+                .sessionId(sessionId)
+                .sessionQuestionId(firstSqId)
+                .type(AnswerType.VIDEO)
+                .status(AnswerStatus.EVALUATING)
+                .submittedAt(OffsetDateTime.now())
+                .build());
+        answerService.applyEvaluationCompleted(answer.getId(), strongBehavioralPayload(sessionId));
+
+        // Precondition: at least one pinned question has no answer row.
+        long pinned = sessionQuestionRepo.countBySessionId(sessionId);
+        long answered = answerRepo.findBySessionId(sessionId).size();
+        assertThat(pinned)
+                .as("planner should have pinned a follow-up/next question we leave unanswered")
+                .isGreaterThan(answered);
+        assertThat(sessionRepo.findById(sessionId).orElseThrow().getStatus())
+                .isEqualTo(SessionStatus.IN_PROGRESS);
+
+        // User ends early.
+        sessionService.finish(sessionId, USER_ID);
+
+        // Gate must fire despite the dangling unanswered question.
+        var session = sessionRepo.findById(sessionId).orElseThrow();
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.COMPLETED);
+        assertThat(session.getMetadata()).containsKey("sessionEvalRequestedAt");
+        OutboxEvent req = findOutbox(sessionId, KafkaTopics.SESSION_EVALUATION_REQUESTED);
+        assertThat(req)
+                .as("overall-review request must be staged on early finish")
+                .isNotNull();
+        // The unanswered question rides along as a MISSING placeholder so the
+        // reviewer can mark its topic NOT_TESTED.
+        assertThat(req.getPayload().get("answers")).asList()
+                .anyMatch(a -> "MISSING".equals(((Map<?, ?>) a).get("answerStatus")));
+    }
+
+    @Test
     void overallReview_isIdempotent_secondDeliveryNoOps() {
         // Build a quick COMPLETED + already-SCORED session, then apply overall
         // review again to make sure the second call is a no-op (no double

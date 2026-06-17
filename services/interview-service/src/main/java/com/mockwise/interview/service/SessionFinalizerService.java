@@ -72,7 +72,7 @@ public class SessionFinalizerService {
         // overall-review gate below fire.
         if (s.getInterviewType() == InterviewType.CODING
                 && s.getStatus() == SessionStatus.IN_PROGRESS
-                && allAnswersTerminal(sessionId)) {
+                && allPinnedAnswersTerminal(sessionId)) {
             s.setStatus(SessionStatus.COMPLETED);
             s.setFinishedAt(OffsetDateTime.now());
             sessionRepo.save(s);
@@ -86,7 +86,7 @@ public class SessionFinalizerService {
         if (meta.get(META_REQUESTED_AT) != null) {
             return;
         }
-        if (!allAnswersTerminal(sessionId)) {
+        if (!noAnswerInFlight(sessionId)) {
             return;
         }
 
@@ -104,7 +104,41 @@ public class SessionFinalizerService {
                 s.getId(), payload.get("answerCount"));
     }
 
-    private boolean allAnswersTerminal(UUID sessionId) {
+    /**
+     * The overall-review gate: true once no answer is still mid-flight.
+     *
+     * <p>Earlier this compared the pinned-question count to the terminal-answer
+     * count ({@code pinned == terminal}). That stranded any session a user
+     * ended early (or that ran out the clock) with a question on screen: the
+     * current question is pinned but has no {@link Answer} row yet, so it never
+     * became terminal and the gate never fired — the session sat COMPLETED
+     * forever and the report page polled for a SCORED that never came.
+     *
+     * <p>A pinned-but-unanswered question will never produce an answer once the
+     * session leaves IN_PROGRESS, so it must not hold the gate open.
+     * {@link #buildPayload} already emits a {@code MISSING} placeholder for it,
+     * so the overall reviewer still sees the topic as NOT_TESTED. Gate purely on
+     * answers still in a non-terminal state (SUBMITTED/PROCESSING/READY/
+     * EVALUATING): once every <em>submitted</em> answer is SCORED/FAILED, fire.
+     */
+    private boolean noAnswerInFlight(UUID sessionId) {
+        long inFlight = answerRepo.countBySessionIdAndStatusNotIn(sessionId,
+                List.of(AnswerStatus.SCORED, AnswerStatus.FAILED));
+        return inFlight == 0;
+    }
+
+    /**
+     * True once every pinned question has a terminal answer — i.e. all pinned
+     * problems have actually been answered and scored/failed.
+     *
+     * <p>Only used to auto-complete a CODING session: there's no adaptive
+     * planner to flip it COMPLETED, so the "interview is over" signal is "every
+     * problem the candidate was given is done." Here a pinned-but-unanswered
+     * problem <em>must</em> hold this false — otherwise the session would
+     * complete the moment the first problem scores, skipping the rest. (The
+     * COMPLETED → overall-review step then uses {@link #noAnswerInFlight}.)
+     */
+    private boolean allPinnedAnswersTerminal(UUID sessionId) {
         long pinned = sessionQuestionRepo.countBySessionId(sessionId);
         long terminal = answerRepo.countBySessionIdAndStatusIn(sessionId,
                 List.of(AnswerStatus.SCORED, AnswerStatus.FAILED));
