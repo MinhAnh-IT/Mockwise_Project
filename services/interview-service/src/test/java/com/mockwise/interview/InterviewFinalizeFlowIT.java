@@ -384,7 +384,7 @@ class InterviewFinalizeFlowIT {
         return new UserProfileResponse(
                 USER_ID, "Finalize Tester",
                 new PositionResponse("pos", "track-id", trackName, "level-id", levelName),
-                "Hanoi", experience, null, null,
+                experience, null, null,
                 List.of("java", "spring"), "vi", experience, List.of("fintech"));
     }
 

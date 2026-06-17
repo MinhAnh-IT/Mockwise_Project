@@ -240,7 +240,6 @@ class InterviewFlowIT {
                 USER_ID,
                 "IT Tester",
                 new PositionResponse("pos", "track-id", trackName, "level-id", levelName),
-                "Hanoi",
                 experience,
                 null, null,
                 List.of("java", "spring", "postgresql"),
