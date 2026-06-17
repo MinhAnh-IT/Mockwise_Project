@@ -5,7 +5,9 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,10 +23,17 @@ public class UserProfile {
     String fullName;
 
     @Column(nullable = false)
-    String city;
-
-    @Column(nullable = false)
     Integer experience;
+
+    /**
+     * When this profile was created. For local registrations this is effectively
+     * the account-creation date (profile + account are created in the same flow);
+     * for social-login users it is when they completed the profile form. Surfaced
+     * in the admin profile list. Null for rows created before this column existed.
+     */
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    Instant createdAt;
 
     /**
      * Latest avatar object key in storage-service. Null = no avatar uploaded yet

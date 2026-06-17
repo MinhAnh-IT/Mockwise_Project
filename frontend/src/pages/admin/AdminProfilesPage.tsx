@@ -39,6 +39,23 @@ const EMPTY_FILTERS: AdminProfileFilters = {};
 
 const fmtInt = (n: number) => new Intl.NumberFormat('vi-VN').format(n);
 
+const DATE_FMT = new Intl.DateTimeFormat('vi-VN', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+});
+const DATETIME_FMT = new Intl.DateTimeFormat('vi-VN', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+const fmtDate = (iso: string | null | undefined) =>
+  iso ? DATE_FMT.format(new Date(iso)) : '—';
+const fmtDateTime = (iso: string | null | undefined) =>
+  iso ? DATETIME_FMT.format(new Date(iso)) : 'Chưa đăng nhập';
+
 export default function AdminProfilesPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -277,7 +294,10 @@ export default function AdminProfilesPage() {
                 <th className="px-4 py-3 font-semibold">Người dùng</th>
                 <th className="px-4 py-3 font-semibold">Vị trí</th>
                 <th className="hidden px-4 py-3 font-semibold md:table-cell">
-                  Thành phố
+                  Ngày tạo
+                </th>
+                <th className="hidden px-4 py-3 font-semibold lg:table-cell">
+                  Đăng nhập gần nhất
                 </th>
                 <th className="hidden px-4 py-3 text-right font-semibold sm:table-cell">
                   Kinh nghiệm
@@ -324,7 +344,10 @@ export default function AdminProfilesPage() {
                     </div>
                   </td>
                   <td className="hidden px-4 py-3 text-on-surface-variant md:table-cell">
-                    {p.city || '—'}
+                    {fmtDate(p.createdAt)}
+                  </td>
+                  <td className="hidden px-4 py-3 text-on-surface-variant lg:table-cell">
+                    {fmtDateTime(p.lastLoginAt)}
                   </td>
                   <td className="hidden px-4 py-3 text-right text-on-surface-variant sm:table-cell">
                     {p.experience} năm

@@ -16,7 +16,6 @@ export type UserProfile = {
   userId: string;
   fullName: string;
   position: Position;
-  city: string;
   experience: number;
   /**
    * Same-origin path served by storage-service (`/api/v1/storage/avatars/me`).
@@ -45,7 +44,6 @@ export type UserProfileUpdateRequest = {
   fullName?: string;
   trackId?: string;
   levelId?: string;
-  city?: string;
   experience?: number;
   avatarObjectKey?: string;
   techStack?: string[];
@@ -80,9 +78,12 @@ export type AdminUserProfile = {
   isVerified: boolean | null;
   /** Admin ban flag (from IAM). A blocked user cannot sign in. */
   blocked: boolean | null;
+  /** Most recent successful sign-in (ISO-8601, from IAM). Null until first login. */
+  lastLoginAt?: string | null;
   position: Position;
-  city: string;
   experience: number;
+  /** Profile creation timestamp (ISO-8601). Null for rows created before the column existed. */
+  createdAt?: string | null;
   techStack?: string[];
   preferredLanguage?: Language;
   yearsInCurrentRole?: number | null;

@@ -22,7 +22,6 @@ public record UserProfileResponse(
         String userId,
         String fullName,
         PositionResponse position,
-        String city,
         Integer experience,
         String avatarUrl,
         OffsetDateTime avatarUrlExpiresAt,

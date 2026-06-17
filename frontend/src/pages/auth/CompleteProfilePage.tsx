@@ -25,7 +25,7 @@ function splitTokens(raw: string): string[] {
 
 /**
  * First-time profile completion for social-login accounts. Google/GitHub give
- * us email + name but none of the required track/level/city, so a fresh OAuth
+ * us email + name but none of the required track/level, so a fresh OAuth
  * user is routed here before entering the app. If the profile already exists
  * (e.g. the user navigates here directly), bounce to /profile.
  */
@@ -34,7 +34,6 @@ export default function CompleteProfilePage() {
   const { profile, refreshProfile } = useAuth();
 
   const [fullName, setFullName] = useState('');
-  const [city, setCity] = useState('');
   const [experience, setExperience] = useState('0');
   const [trackId, setTrackId] = useState('');
   const [levelId, setLevelId] = useState('');
@@ -107,7 +106,6 @@ export default function CompleteProfilePage() {
         fullName: fullName.trim(),
         trackId,
         levelId,
-        city: city.trim(),
         experience: expNum,
         preferredLanguage,
         ...(yicrNum !== undefined ? { yearsInCurrentRole: yicrNum } : {}),
@@ -181,16 +179,6 @@ export default function CompleteProfilePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Thành phố" htmlFor="city" required>
-              <Input
-                id="city"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Hồ Chí Minh"
-                required
-              />
-            </Field>
-
             <Field label="Số năm kinh nghiệm" htmlFor="experience" required>
               <Input
                 id="experience"

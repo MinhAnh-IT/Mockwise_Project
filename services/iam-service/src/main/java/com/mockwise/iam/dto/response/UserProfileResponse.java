@@ -8,7 +8,6 @@ public record UserProfileResponse(
         String userId,
         String fullName,
         PositionResponse position,
-        String city,
         Integer experience,
         List<String> techStack,
         Language preferredLanguage,

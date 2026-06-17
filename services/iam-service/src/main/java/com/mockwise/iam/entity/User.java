@@ -47,7 +47,7 @@ public class User {
     String providerId;
 
     /**
-     * Whether the user has filled in the required profile (track/level/city/...).
+     * Whether the user has filled in the required profile (track/level/...).
      * Local registrations create the profile up-front so they are complete; a
      * fresh OAuth account starts {@code false} until it completes the profile form.
      * Existing rows default to {@code true} via the column definition.
