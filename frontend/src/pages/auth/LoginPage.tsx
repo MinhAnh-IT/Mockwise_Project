@@ -16,7 +16,7 @@ export default function LoginPage() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const fallbackPath = (location.state as LocationState)?.from ?? '/profile';
+  const returnTo = (location.state as LocationState)?.from;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,8 +28,10 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await signIn(email.trim(), password);
-      navigate(fallbackPath, { replace: true });
+      const role = await signIn(email.trim(), password);
+      // Admins land on the admin console; regular users on the home page.
+      // A `from` (returnTo) set by a guarded route always takes precedence.
+      navigate(returnTo ?? (role === 'ADMIN' ? '/admin' : '/'), { replace: true });
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
         navigate(`/verify-account?email=${encodeURIComponent(email.trim())}`);
@@ -97,7 +99,7 @@ export default function LoginPage() {
           Đăng nhập
         </Button>
 
-        <SocialLoginButtons returnTo={fallbackPath} />
+        <SocialLoginButtons returnTo={returnTo} />
       </form>
     </AuthLayout>
   );

@@ -50,9 +50,9 @@ export default function CompleteProfilePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Already has a profile → nothing to complete.
+  // Already has a profile → nothing to complete; send to the home page.
   useEffect(() => {
-    if (profile) navigate('/profile', { replace: true });
+    if (profile) navigate('/', { replace: true });
   }, [profile, navigate]);
 
   useEffect(() => {
@@ -113,7 +113,7 @@ export default function CompleteProfilePage() {
         ...(industries.length ? { industries } : {}),
       });
       await refreshProfile();
-      navigate('/profile', { replace: true });
+      navigate('/', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Không thể lưu hồ sơ. Vui lòng thử lại.');
     } finally {

@@ -26,7 +26,8 @@ export type AuthContextValue = {
   profile: UserProfile | null;
   /** Decoded from the JWT `role` claim. Null until the first token resolves. */
   role: UserRole | null;
-  signIn: (email: string, password: string) => Promise<void>;
+  /** Resolves with the signed-in user's role so callers can route by role. */
+  signIn: (email: string, password: string) => Promise<UserRole | null>;
   /**
    * Adopt a session minted by the social-login exchange. When the account still
    * needs to complete its profile (`profileCompleted=false`) we skip loading the
@@ -157,11 +158,12 @@ export function AuthProvider({ children }: Props) {
   }, [refresh, loadProfile, applyToken]);
 
   const signIn = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string): Promise<UserRole | null> => {
       const { accessToken } = await authApi.signIn({ email, password });
       applyToken(accessToken);
       await loadProfile();
       setStatus('authenticated');
+      return decodeJwtRole(accessToken);
     },
     [loadProfile, applyToken],
   );

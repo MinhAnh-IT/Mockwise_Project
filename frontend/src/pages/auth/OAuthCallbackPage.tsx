@@ -5,6 +5,7 @@ import { oauthRedirectUri, verifyOAuthCallback } from '@/auth/oauth';
 import { useAuth } from '@/auth/useAuth';
 import AuthLayout from '@/components/auth/AuthLayout';
 import FormError from '@/components/auth/FormError';
+import { decodeJwtRole } from '@/lib/jwt';
 
 /**
  * Landing page for the provider redirect (/auth/callback). Validates the CSRF
@@ -47,9 +48,14 @@ export default function OAuthCallbackPage() {
           oauthRedirectUri(),
         );
         await signInWithOAuth(accessToken, profileCompleted);
-        navigate(profileCompleted ? returnTo ?? '/profile' : '/complete-profile', {
-          replace: true,
-        });
+        if (!profileCompleted) {
+          navigate('/complete-profile', { replace: true });
+        } else {
+          // Admins land on the admin console; regular users on the home page.
+          // A `returnTo` carried through the OAuth state always wins.
+          const role = decodeJwtRole(accessToken);
+          navigate(returnTo ?? (role === 'ADMIN' ? '/admin' : '/'), { replace: true });
+        }
       } catch (err) {
         setError(
           err instanceof Error ? err.message : 'Không thể hoàn tất đăng nhập. Vui lòng thử lại.',
