@@ -59,7 +59,12 @@ public record AnswerView(
         // source + the judge's per-case roster so the report can show the
         // code and which test cases passed. Null for VIDEO answers and
         // while the session is still in progress.
-        Coding coding
+        Coding coding,
+        // VIDEO answers only, revealed once SCORED: the transcript that
+        // actually scored this answer — the real-time one on the Lever 2 fast
+        // path, else the batch one. Surfaced so the report shows the same text
+        // the AI graded (realtime-stt-plan.md §8.1 #4), never a divergent one.
+        String transcript
 ) {
 
     /**
@@ -112,6 +117,9 @@ public record AnswerView(
         Coding coding = (revealResults && a.getType() == AnswerType.CODE)
                 ? codingOf(a)
                 : null;
+        String transcript = (revealResults && a.getType() == AnswerType.VIDEO)
+                ? scoredTranscript(a)
+                : null;
         return new AnswerView(
                 a.getId(),
                 a.getSessionId(),
@@ -129,7 +137,19 @@ public record AnswerView(
                 a.getScoredAt(),
                 revealResults ? a.getStorageObjectId() : null,
                 /* mediaUrl */ null,
-                coding);
+                coding,
+                transcript);
+    }
+
+    /** The transcript that scored a VIDEO answer: real-time (fast path) first, else batch. */
+    private static String scoredTranscript(Answer a) {
+        if (a.getRealtimeTranscript() != null && !a.getRealtimeTranscript().isBlank()) {
+            return a.getRealtimeTranscript();
+        }
+        if (a.getAuthoritativeTranscript() != null && !a.getAuthoritativeTranscript().isBlank()) {
+            return a.getAuthoritativeTranscript();
+        }
+        return null;
     }
 
     /**
@@ -151,7 +171,7 @@ public record AnswerView(
                 answerId, sessionId, sessionQuestionId, type, status,
                 score, maxScore, feedback, verdict, evaluationDetail,
                 errorCode, errorMessage, submittedAt, scoredAt,
-                storageObjectId, url, coding);
+                storageObjectId, url, coding, transcript);
     }
 
     /**

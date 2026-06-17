@@ -58,6 +58,9 @@ public enum StatusCode {
     // ── Live coding ──────────────────────────────────────────────────────────
     QUESTION_NOT_CODING(4099, "Question is not a LIVE_CODING question", 409),
 
+    // ── Realtime STT (Lever 2) ───────────────────────────────────────────────
+    REALTIME_STT_DISABLED(4101, "Realtime STT is disabled", 409),
+
     // ── Validation ───────────────────────────────────────────────────────────
     VALIDATION_ERROR(4001, "Validation failed: %s", 400);
 

@@ -4,6 +4,7 @@ import com.core.apiresponse.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mockwise.interview.client.storage.StorageAdapter;
 import com.mockwise.interview.common.security.CustomUserDetails;
+import com.mockwise.interview.dto.request.AttachVideoInput;
 import com.mockwise.interview.dto.request.SubmitAnswerInput;
 import com.mockwise.interview.dto.response.AnswerView;
 import com.mockwise.interview.dto.response.CodingProblemView;
@@ -54,6 +55,22 @@ public class AnswerController {
             @Valid @RequestBody SubmitAnswerInput input) {
         SubmitAnswerOutput output = answerService.submit(sid, sqid, input, user.getUserId());
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.success(output));
+    }
+
+    /**
+     * Attaches the background-uploaded video to a Lever 2 fast-path answer
+     * (realtime-stt-plan.md §6.2.3). Called after the clip composes; returns
+     * 204. Idempotent + intentionally usable after the session clock is up /
+     * the session is COMPLETED, so a late upload is never dropped.
+     */
+    @PostMapping("/{sid}/answers/{aid}/attach-video")
+    public ResponseEntity<Void> attachVideo(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @PathVariable UUID sid,
+            @PathVariable UUID aid,
+            @Valid @RequestBody AttachVideoInput input) {
+        answerService.attachVideo(sid, aid, input.storageObjectId(), user.getUserId());
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{sid}/questions/{sqid}/coding")

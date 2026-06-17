@@ -218,6 +218,30 @@ public class MinioStorageGateway {
         }
     }
 
+    /**
+     * Lists every object key under a prefix (recursive). Used by the
+     * pending-upload reaper to find an abandoned upload's leftover bytes —
+     * the composed object at {@code objectKey} plus any {@code objectKey.part.N}
+     * streamed parts. Best-effort: returns what it can, logs on failure.
+     */
+    public java.util.List<String> listObjectKeys(String bucket, String prefix) {
+        java.util.List<String> keys = new java.util.ArrayList<>();
+        try {
+            Iterable<io.minio.Result<io.minio.messages.Item>> results = minioClient.listObjects(
+                    io.minio.ListObjectsArgs.builder()
+                            .bucket(bucket)
+                            .prefix(prefix)
+                            .recursive(true)
+                            .build());
+            for (io.minio.Result<io.minio.messages.Item> r : results) {
+                keys.add(r.get().objectName());
+            }
+        } catch (Exception e) {
+            log.warn("List failed for {}/{}: {}", bucket, prefix, e.getMessage());
+        }
+        return keys;
+    }
+
     /** Best-effort delete; logs but does not throw if the object is already gone. */
     public void removeObject(String bucket, String objectKey) {
         try {

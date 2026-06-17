@@ -1,6 +1,7 @@
 package com.mockwise.interview.client.ttsstt;
 
 import com.core.apiresponse.response.ApiResponse;
+import com.mockwise.interview.client.ttsstt.dto.RealtimeSttTokenResponse;
 import com.mockwise.interview.client.ttsstt.dto.TranscriptResponse;
 import com.mockwise.interview.common.exception.BusinessException;
 import com.mockwise.interview.common.exception.StatusCode;
@@ -18,6 +19,10 @@ public class TtsSttAdapter {
 
     public TranscriptResponse getTranscript(String transcriptId) {
         return unwrap(client.getTranscript(transcriptId));
+    }
+
+    public RealtimeSttTokenResponse mintRealtimeToken() {
+        return unwrap(client.mintRealtimeToken());
     }
 
     private static <T> T unwrap(ApiResponse<T> response) {

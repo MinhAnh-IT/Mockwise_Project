@@ -2,6 +2,30 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Camera, Mic, MicOff, Pause, Square, VideoOff, Volume2 } from 'lucide-react';
 import type { PinnedQuestionView } from '@/types/interview';
 import { createStreamingVideoUpload, type StreamingVideoUpload } from '@/api/storage';
+import { getRealtimeSttToken } from '@/api/interviews';
+import {
+  createRealtimeTranscriber,
+  isRealtimeSttEnabled,
+  MIN_TRANSCRIPT_WORDS,
+  wordCount,
+  type RealtimeTranscriber,
+} from '@/lib/realtimeTranscriber';
+
+/**
+ * What the recorder hands the parent on stop. Lever 2 splits the two concerns
+ * the old `onSubmit(blob, mime, objectId)` conflated:
+ *  - {@code transcript} (when non-null) lets the parent submit + score
+ *    immediately, off the real-time transcript built while recording.
+ *  - {@code uploadResult} resolves later (NOT awaited by the recorder) to the
+ *    composed storage objectId — the parent attaches it in the background, or
+ *    falls back to uploading {@code blob} when it resolves null.
+ */
+export type RecorderSubmission = {
+  blob: Blob;
+  mimeType: string;
+  transcript: { text: string; language: string; durationMs: number } | null;
+  uploadResult: Promise<string | null>;
+};
 
 type Phase =
   | 'requesting'
@@ -31,13 +55,18 @@ type Props = {
    */
   busy: boolean;
   /**
-   * Fired exactly once per recording (manual stop or auto-stop).
-   * {@code uploadedObjectId} is the storage object id when the parts
-   * streamed during recording composed successfully — the parent then
-   * skips the post-submit upload. {@code null} means streaming was
-   * unavailable/failed; the parent must upload {@code blob} itself.
+   * Candidate's spoken language ("vi" / "en") for the real-time transcriber.
+   * Defaults to "vi". Only affects recognition quality — the AI feedback
+   * language is still decided server-side from the profile.
    */
-  onSubmit: (blob: Blob, mimeType: string, uploadedObjectId: string | null) => void;
+  language?: string;
+  /**
+   * Fired exactly once per recording (manual stop or auto-stop). See
+   * {@link RecorderSubmission}: carries the in-memory blob, the (maybe-null)
+   * real-time transcript for the fast path, and a promise for the background
+   * upload's composed objectId.
+   */
+  onSubmit: (submission: RecorderSubmission) => void;
 };
 
 /**
@@ -94,7 +123,7 @@ function pickMimeType(): RecorderMime {
   return { recorder: 'video/webm', base: 'video/webm' };
 }
 
-export default function VideoRecorder({ question, maxSeconds, sessionId, busy, onSubmit }: Props) {
+export default function VideoRecorder({ question, maxSeconds, sessionId, busy, language = 'vi', onSubmit }: Props) {
   const [phase, setPhase] = useState<Phase>('requesting');
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [audioBlocked, setAudioBlocked] = useState(false);
@@ -110,6 +139,10 @@ export default function VideoRecorder({ question, maxSeconds, sessionId, busy, o
   // Streaming upload for the current recording (null when unavailable —
   // finalise() then falls back to a single post-stop upload).
   const uploaderRef = useRef<StreamingVideoUpload | null>(null);
+  // Real-time transcriber for the current recording (null when the feature is
+  // off or the browser lacks Web Speech — finalise() then submits transcript:null
+  // and the parent runs the legacy upload-then-batch-STT flow).
+  const transcriberRef = useRef<RealtimeTranscriber | null>(null);
   const mimeTypeRef = useRef<RecorderMime>({ recorder: 'video/webm', base: 'video/webm' });
   const timerRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -186,6 +219,10 @@ export default function VideoRecorder({ question, maxSeconds, sessionId, busy, o
       finalisedRef.current = true;
       if (timerRef.current !== null) window.clearInterval(timerRef.current);
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      // Drop any in-flight transcriber so it doesn't keep the mic / leak a
+      // recognition session after the user has left.
+      transcriberRef.current?.abort();
+      transcriberRef.current = null;
       audioCtxRef.current?.close().catch(() => {});
       const a = audioRef.current;
       if (a) {
@@ -212,29 +249,55 @@ export default function VideoRecorder({ question, maxSeconds, sessionId, busy, o
     const base = mimeTypeRef.current.base;
     const blob = new Blob(chunksRef.current, { type: base });
     chunksRef.current = [];
+
+    // Kick off the upload finish WITHOUT awaiting it — Lever 2 takes the upload
+    // off the critical path. It resolves to the composed objectId, or null if
+    // streaming was unavailable/failed (parent then uploads `blob`). On the
+    // fast path the parent submits the transcript now and attaches this later.
     const uploader = uploaderRef.current;
     uploaderRef.current = null;
-    if (!uploader) {
-      onSubmit(blob, base, null);
-      return;
+    let uploadResult: Promise<string | null>;
+    if (uploader) {
+      // [TIMING] upload_finish is now OFF the critical path — kept to keep
+      // measuring the background transfer. Open DevTools console while testing.
+      const _t0 = performance.now();
+      uploadResult = uploader
+        .finish()
+        .then((objectId): string | null => {
+          console.info(`[TIMING] upload_finish ${Math.round(performance.now() - _t0)}ms blobBytes=${blob.size}`);
+          return objectId;
+        })
+        .catch((): string | null => {
+          console.info(`[TIMING] upload_finish_failed ${Math.round(performance.now() - _t0)}ms blobBytes=${blob.size}`);
+          return null;
+        });
+    } else {
+      uploadResult = Promise.resolve(null);
     }
-    // Parts were streamed during recording. If they compose OK, hand the
-    // parent the ready objectId so it skips the post-submit upload; any
-    // failure → null → parent falls back to uploadVideoPresigned(blob).
-    // [TIMING] Wall-clock the user waits on after hitting stop: flush of the
-    // last part + the compose round-trip. Open DevTools console while testing.
-    const _t0 = performance.now();
-    uploader
-      .finish()
-      .then((objectId) => {
-        console.info(`[TIMING] upload_finish ${Math.round(performance.now() - _t0)}ms blobBytes=${blob.size}`);
-        onSubmit(blob, base, objectId);
-      })
-      .catch(() => {
-        console.info(`[TIMING] upload_finish_failed ${Math.round(performance.now() - _t0)}ms blobBytes=${blob.size}`);
-        onSubmit(blob, base, null);
-      });
-  }, [onSubmit]);
+
+    // Resolve the real-time transcript, then hand everything to the parent. The
+    // brief await is the transcriber's flush window for the last `final`
+    // segment — still orders of magnitude faster than the upload. A too-short
+    // transcript (flaky mic / lost network, §8.1 #1) → null → legacy flow.
+    const transcriber = transcriberRef.current;
+    transcriberRef.current = null;
+    const handOff = (transcript: RecorderSubmission['transcript']) =>
+      onSubmit({ blob, mimeType: base, transcript, uploadResult });
+
+    if (transcriber) {
+      transcriber
+        .stop()
+        .then((rt) => {
+          const words = wordCount(rt.text);
+          const useIt = words >= MIN_TRANSCRIPT_WORDS;
+          console.info(`[TIMING] realtime_transcript words=${words} use=${useIt}`);
+          handOff(useIt ? { text: rt.text, language, durationMs: rt.durationMs } : null);
+        })
+        .catch(() => handOff(null));
+    } else {
+      handOff(null);
+    }
+  }, [onSubmit, language]);
 
   const stopRecording = useCallback(() => {
     if (timerRef.current !== null) {
@@ -285,6 +348,17 @@ export default function VideoRecorder({ question, maxSeconds, sessionId, busy, o
     } catch {
       uploaderRef.current = null;
     }
+    // Start the real-time transcriber (Lever 2, ElevenLabs Scribe v2). It taps
+    // the SAME recording stream (one mic, no second capture) and streams PCM to
+    // ElevenLabs over a WS authed by a single-use token. Disabled flag /
+    // incapable browser → null → legacy upload-then-batch-STT flow.
+    try {
+      transcriberRef.current = isRealtimeSttEnabled()
+        ? createRealtimeTranscriber({ language, stream, getToken: getRealtimeSttToken })
+        : null;
+    } catch {
+      transcriberRef.current = null;
+    }
     const rec = new MediaRecorder(stream, {
       mimeType: mime.recorder,
       videoBitsPerSecond: VIDEO_BITS_PER_SECOND,
@@ -321,7 +395,7 @@ export default function VideoRecorder({ question, maxSeconds, sessionId, busy, o
         return next;
       });
     }, 1000);
-  }, [finalise, maxSeconds, stopRecording, sessionId]);
+  }, [finalise, maxSeconds, stopRecording, sessionId, language]);
 
   // ── Bind stream to <video> once both are available ───────────────────────
   // The <video> tag is gated by `phase !== 'requesting'`, so it doesn't
@@ -357,6 +431,10 @@ export default function VideoRecorder({ question, maxSeconds, sessionId, busy, o
         /* noop */
       }
     }
+    // Discard the previous question's transcriber too — its onstop would never
+    // be consumed (finalise early-returns on the discard path).
+    transcriberRef.current?.abort();
+    transcriberRef.current = null;
     setAudioBlocked(false);
     setAudioReplaying(false);
     setElapsed(0);

@@ -49,7 +49,9 @@ import com.mockwise.interview.dto.response.SubmitAnswerOutput;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -98,6 +100,31 @@ public class AnswerService {
     SessionService sessionService;
     ObjectMapper objectMapper;
 
+    // Lever 2 kill-switch (realtime-stt-plan.md §9). OFF → the real-time
+    // transcript on a VIDEO submit is ignored and every answer runs the legacy
+    // upload-then-batch-STT flow. @NonFinal so Lombok's @RequiredArgsConstructor
+    // doesn't pull it into the constructor — Spring sets it via @Value field
+    // injection (the @Value + @RequiredArgsConstructor gotcha).
+    @NonFinal
+    @Value("${interview.realtime-stt.enabled:true}")
+    boolean realtimeSttEnabled;
+
+    // ── Realtime STT token (Lever 2 fast path) ───────────────────────────────
+
+    /**
+     * Mints a single-use ElevenLabs realtime Scribe token for the browser
+     * (realtime-stt-plan.md §5 Provider C). Gated by the same kill-switch as the
+     * fast-path submit: when OFF we refuse so the FE falls back to the legacy
+     * upload-then-batch-STT flow even if its own flag is mistakenly on. The
+     * userId is required so only an authenticated caller can spend tokens.
+     */
+    public com.mockwise.interview.client.ttsstt.dto.RealtimeSttTokenResponse mintRealtimeSttToken(String userId) {
+        if (!realtimeSttEnabled) {
+            throw new BusinessException(StatusCode.REALTIME_STT_DISABLED);
+        }
+        return ttsSttAdapter.mintRealtimeToken();
+    }
+
     // ── Submit (FE → orchestrator) ───────────────────────────────────────────
 
     /**
@@ -131,6 +158,24 @@ public class AnswerService {
         if (!sq.getSessionId().equals(sessionId)) {
             throw new BusinessException(StatusCode.QUESTION_NOT_IN_SESSION);
         }
+        // Lever 2 fast path (realtime-stt-plan.md §6.2): a VIDEO answer that
+        // arrives with a real-time transcript scores straight off it — no wait
+        // for the video upload or batch STT. The clip uploads in the background
+        // and attaches later via POST .../attach-video. Gated by the
+        // kill-switch; a blank transcript (flaky mic / lost network) falls
+        // through to the legacy upload-then-batch-STT flow (§8.1 #1).
+        //
+        // Checked BEFORE the dedup throw so this path can be idempotent: a
+        // retried submit (lost 200 / double-fire) gets back the existing
+        // answerId instead of a 409, so the FE can still attach its background
+        // video to the right answer (§8.4 #11).
+        if (input.type() == AnswerType.VIDEO
+                && realtimeSttEnabled
+                && input.transcriptText() != null
+                && !input.transcriptText().isBlank()) {
+            return submitWithRealtimeTranscript(session, sq, input, userId);
+        }
+
         // One answer per session_question (the planner runs once per question;
         // a duplicate would double-score a topic / over-count the budget). A
         // reload-during-waiting or a retried submit lands here — reject cleanly
@@ -185,6 +230,150 @@ public class AnswerService {
     }
 
     /**
+     * Lever 2 fast path. Persists a VIDEO answer straight into EVALUATING off
+     * the client's real-time transcript and stages {@code evaluation-requested}
+     * immediately — skipping the upload wait and the batch-STT hop entirely.
+     *
+     * <p>The video object is NOT persisted here even when the FE passes its
+     * in-flight id: it's still uploading, so {@code storage_object_id} stays
+     * null until {@code attachVideo} wires it up (which is also the single
+     * place that re-verifies READY and triggers the background batch STT). That
+     * keeps "video attached yet?" unambiguous for idempotency.
+     */
+    private SubmitAnswerOutput submitWithRealtimeTranscript(
+            InterviewSession session, SessionQuestion sq, SubmitAnswerInput input, String userId) {
+
+        // Idempotent retry (§8.4 #11): a re-fired fast-path submit (lost 200 /
+        // double-submit) returns the existing answer so the FE keeps the right
+        // answerId for its background attach-video — no 409, no second row.
+        var existing = answerRepo.findBySessionQuestionId(sq.getId());
+        if (existing.isPresent()) {
+            Answer a = existing.get();
+            return new SubmitAnswerOutput(a.getId(), a.getStatus(), a.getSubmittedAt(), null);
+        }
+
+        // Optional pre-flight: if the FE passed the in-flight upload id, fail
+        // fast on a wrong-owner / wrong-kind object — but allow a non-READY
+        // (PENDING) status since the clip is still streaming up.
+        if (input.storageObjectId() != null) {
+            verifyStorageOwnership(input.storageObjectId(), userId);
+        }
+
+        String source = input.transcriptSource() != null && !input.transcriptSource().isBlank()
+                ? input.transcriptSource() : "REALTIME_WEBSPEECH";
+
+        Answer answer = answerRepo.save(Answer.builder()
+                .sessionId(session.getId())
+                .sessionQuestionId(sq.getId())
+                .type(AnswerType.VIDEO)
+                .status(AnswerStatus.EVALUATING)  // skip PROCESSING/READY — we score now
+                .realtimeTranscript(input.transcriptText())
+                .transcriptSource(source)
+                .submittedAt(OffsetDateTime.now())
+                .build());
+
+        logTransition(answer.getId(), null, AnswerStatus.EVALUATING, "realtime-transcript-submitted", Map.of(
+                "transcriptSource", source,
+                "transcriptChars", String.valueOf(input.transcriptText().length())));
+
+        // Log the actual transcript text the FE sent so we can confirm the
+        // realtime fast path is producing usable content (grep "REALTIME
+        // TRANSCRIPT" on the VPS). Capped so a long answer doesn't flood logs.
+        log.info("REALTIME TRANSCRIPT received answerId={} session={} sq={} source={} lang={} durationMs={} chars={} text=\"{}\"",
+                answer.getId(), session.getId(), sq.getId(), source,
+                input.transcriptLanguage(), input.transcriptDurationMs(),
+                input.transcriptText().length(), transcriptPreview(input.transcriptText()));
+
+        stageSpokenEvaluation(answer, sq, session, input.transcriptText(),
+                input.transcriptDurationMs(), input.transcriptLanguage());
+
+        // VIDEO is planner-gated — the next question is pinned async once the
+        // AI verdict lands. Nothing to return synchronously.
+        return new SubmitAnswerOutput(
+                answer.getId(), answer.getStatus(), answer.getSubmittedAt(), null);
+    }
+
+    /**
+     * Builds the {@code evaluation-requested} envelope for a spoken
+     * (BEHAVIORAL / CORE_CONCEPTUAL) answer and stages it to the outbox. Shared
+     * by the Lever 2 fast path ({@link #submitWithRealtimeTranscript}) and the
+     * legacy batch-STT path ({@link #applyTranscriptReadyLegacy}) so the AI
+     * payload is identical regardless of where the transcript came from.
+     *
+     * <p>Does not touch the answer's status — the caller owns the transition.
+     * Field names are camelCase to match the AI service's Pydantic CamelModel.
+     */
+    private void stageSpokenEvaluation(
+            Answer answer, SessionQuestion sq, InterviewSession session,
+            String transcriptText, Integer durationMs, String spokenLanguageHint) {
+
+        Map<String, Object> snap = sq.getSnapshot() != null ? sq.getSnapshot() : Map.of();
+
+        // Prefer the candidate's profile language for the AI's response — the
+        // spoken-language hint just says what they SPOKE; feedback should land
+        // in the language they set on their profile. Fallback chain:
+        //   profile.preferredLanguage → spoken hint → "vi".
+        String preferred = null;
+        try {
+            UserProfileResponse profile = loadProfile(session);
+            if (profile != null && profile.preferredLanguage() != null) {
+                preferred = profile.preferredLanguage().toLowerCase();
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to load profile for response-language hint, falling back to spoken hint: {}",
+                    ex.getMessage());
+        }
+        String responseLanguage;
+        if ("vi".equals(preferred) || "en".equals(preferred)) {
+            responseLanguage = preferred;
+        } else if (spokenLanguageHint != null) {
+            responseLanguage = spokenLanguageHint.toLowerCase().contains("vi") ? "vi" : "en";
+        } else {
+            responseLanguage = "vi";
+        }
+
+        Map<String, Object> question = new HashMap<>();
+        question.put("id", sq.getQuestionId());
+        question.put("text", sq.getInlineText() != null ? sq.getInlineText() : snap.get("text"));
+        if (sq.getQuestionType() == QuestionType.BEHAVIORAL) {
+            question.put("competency", snap.get("competency"));
+            question.put("expectedSignals", snap.getOrDefault("expectedSignals", List.of()));
+        } else {
+            question.put("domain", snap.get("domain"));
+            question.put("keyConcepts", snap.getOrDefault("keyConcepts", List.of()));
+            question.put("depthExpected", snap.getOrDefault("depthExpected", "intermediate"));
+        }
+
+        Map<String, Object> answerBlock = new HashMap<>();
+        answerBlock.put("transcript", transcriptText != null ? transcriptText : "");
+        answerBlock.put("durationSeconds", durationMs != null ? durationMs / 1000 : 0);
+        answerBlock.put("language", responseLanguage);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("sessionId", answer.getSessionId().toString());
+        payload.put("interviewType",
+                sq.getQuestionType() == QuestionType.BEHAVIORAL ? "behavioral" : "core_conceptual");
+        payload.put("question", question);
+        payload.put("answer", answerBlock);
+        payload.put("responseLanguage", responseLanguage);
+
+        Map<String, Object> envelope = new HashMap<>();
+        envelope.put("eventId", java.util.UUID.randomUUID().toString());
+        envelope.put("eventType", "EVALUATION_REQUESTED");
+        envelope.put("occurredAt", OffsetDateTime.now().toString());
+        envelope.put("answerId", answer.getId().toString());
+        envelope.put("sessionId", answer.getSessionId().toString());
+        envelope.put("questionId", String.valueOf(sq.getQuestionId()));
+        envelope.put("payload", payload);
+
+        outboxWriter.stage(
+                KafkaTopics.EVALUATION_REQUESTED,
+                "EVALUATION_REQUESTED",
+                answer.getId(),
+                envelope);
+    }
+
+    /**
      * Loads the just-pinned next coding question (by sequence) as a redacted
      * view, or null if the plan is exhausted (last problem submitted). Coding
      * questions carry no audio, so no URL signing is needed.
@@ -227,6 +416,81 @@ public class AnswerService {
         // a follow-up uniqueness query — added when we build the answers index in
         // V2. For now the FE flow makes a fresh upload per submission.
         return object;
+    }
+
+    /**
+     * Lighter sibling of {@link #verifyStorageObject} for the Lever 2 fast
+     * path: checks ownership + kind but tolerates a non-READY status, because
+     * the clip is still uploading when {@code submit} runs. Full READY
+     * verification happens later in {@link #attachVideo}.
+     */
+    private void verifyStorageOwnership(UUID storageObjectId, String userId) {
+        StorageObjectResponse object;
+        try {
+            object = storageAdapter.getObject(storageObjectId);
+        } catch (BusinessException e) {
+            if (e.getHttpStatus() == 404) {
+                throw new BusinessException(StatusCode.STORAGE_OBJECT_NOT_READY);
+            }
+            throw e;
+        }
+        if (!"INTERVIEW_VIDEO".equals(object.kind())) {
+            throw new BusinessException(StatusCode.STORAGE_OBJECT_WRONG_KIND);
+        }
+        if (!userId.equals(object.ownerUserId())) {
+            throw new BusinessException(StatusCode.STORAGE_OBJECT_OWNER_MISMATCH);
+        }
+    }
+
+    /**
+     * Lever 2 (realtime-stt-plan.md §6.2.3). FE calls this once the background
+     * video upload composes, after a fast-path submit. Wires the (now READY)
+     * object onto the already-scored answer and stages {@code answer-submitted}
+     * so tts-stt runs batch STT for the authoritative transcript.
+     *
+     * <p>Deliberately skips the {@code ensureWithinTimeBudget} /
+     * {@code IN_PROGRESS} guards that {@link #submit} uses (§8.2 #7): the
+     * upload can finish after the session clock is up or after the session is
+     * COMPLETED, and rejecting it then would silently drop the video. Ownership
+     * is the only gate.
+     *
+     * <p>Idempotent (§8.2 #12): a second attach (FE double-finish / retry) is a
+     * no-op so batch STT never fires twice.
+     */
+    @Transactional
+    public void attachVideo(UUID sessionId, UUID answerId, UUID storageObjectId, String userId) {
+        if (storageObjectId == null) {
+            throw new BusinessException(StatusCode.VALIDATION_ERROR, "storageObjectId is required");
+        }
+        InterviewSession session = sessionRepo.findById(sessionId)
+                .orElseThrow(() -> new BusinessException(StatusCode.SESSION_NOT_FOUND));
+        if (!session.getUserId().equals(userId)) {
+            throw new BusinessException(StatusCode.SESSION_NOT_OWNER);
+        }
+        Answer answer = answerRepo.findById(answerId)
+                .orElseThrow(() -> new BusinessException(StatusCode.ANSWER_NOT_FOUND));
+        if (!answer.getSessionId().equals(sessionId)) {
+            throw new BusinessException(StatusCode.ANSWER_NOT_FOUND);
+        }
+        if (answer.getStorageObjectId() != null) {
+            log.debug("Answer {} already has a video attached — ignoring duplicate attach-video", answerId);
+            return;
+        }
+
+        StorageObjectResponse storageObject = verifyStorageObject(storageObjectId, userId);
+        answer.setStorageObjectId(storageObjectId);
+        answerRepo.save(answer);
+
+        SessionQuestion sq = sessionQuestionRepo.findById(answer.getSessionQuestionId())
+                .orElseThrow(() -> new BusinessException(StatusCode.QUESTION_NOT_IN_SESSION));
+        // Background record only — the answer is already EVALUATING/SCORED off
+        // the real-time transcript. tts-stt's transcript-ready will be applied
+        // as the authoritative transcript (never re-scores) via applyTranscriptReady.
+        stageOutbound(answer, sq, session.getUserId(), storageObject);
+        logTransition(answerId, answer.getStatus(), answer.getStatus(), "video-attached", Map.of(
+                "storageObjectId", storageObjectId.toString()));
+        log.info("Answer {} attached background video {} — staged answer-submitted for batch STT",
+                answerId, storageObjectId);
     }
 
     private void stageOutbound(
@@ -419,18 +683,33 @@ public class AnswerService {
     // ── Apply transcript-ready / -failed (tts-stt → orchestrator) ────────────
 
     /**
-     * Called by the {@code transcript-ready} consumer. Flips the answer
-     * from PROCESSING → READY → EVALUATING (in one Tx) and stages the
-     * {@code evaluation-requested} payload to the outbox so the AI
-     * service has a self-contained input — no callback needed.
+     * Called by the {@code transcript-ready} consumer. The meaning depends on
+     * the answer's current status (realtime-stt-plan.md §6.2.4 / §8.2 #5):
      *
-     * <p>The eval payload shape matches what {@code AI/api.py POST /evaluate}
-     * accepts: BehavioralInput / ConceptualInput. Coding answers don't
-     * land here — they go through the judge-service path.
+     * <ul>
+     *   <li>{@code PROCESSING} → legacy batch-STT flow: flip
+     *       PROCESSING → EVALUATING and stage {@code evaluation-requested} so
+     *       the AI scores this transcript. (The eval payload shape matches
+     *       {@code AI/api.py POST /evaluate}: BehavioralInput / ConceptualInput.)</li>
+     *   <li>{@code EVALUATING | SCORED} → Lever 2 fast path already scored this
+     *       answer off the real-time transcript; the batch transcript arriving
+     *       now is the <em>authoritative</em> record. Store it for
+     *       display/reconciliation only — never re-score, never re-plan
+     *       (idempotent against late delivery + finalize races, §8.2 #6).</li>
+     *   <li>anything else (SUBMITTED / READY / FAILED) → ignore. A FAILED answer
+     *       could in principle be rescued from batch, but we leave that to an
+     *       operator replay for now.</li>
+     * </ul>
      *
-     * <p>Idempotency: an answer already past PROCESSING is a no-op return.
-     * The consumer's own dedup ({@code processed_event}) is the primary
-     * guard but we belt-and-brace here so a manual replay is safe.
+     * <p>⚠️ Do NOT reintroduce a single {@code if (status != PROCESSING) return}
+     * early-return here — that silently discarded the authoritative transcript
+     * on the fast path (the regression §8.2 #5 calls out). The {@code switch} is
+     * load-bearing.
+     *
+     * <p>Idempotency: the consumer's {@code processed_event} dedup is the
+     * primary guard; the per-status branches are individually idempotent so a
+     * manual replay stays safe. Coding answers don't land here — they go
+     * through the judge-service path.
      */
     @Transactional
     public void applyTranscriptReady(
@@ -439,19 +718,10 @@ public class AnswerService {
 
         Answer answer = answerRepo.findById(answerId)
                 .orElseThrow(() -> new BusinessException(StatusCode.ANSWER_NOT_FOUND));
-        if (answer.getStatus() != AnswerStatus.PROCESSING) {
-            log.debug("Answer {} status is {} — ignoring late transcript-ready",
-                    answerId, answer.getStatus());
-            return;
-        }
 
-        SessionQuestion sq = sessionQuestionRepo.findById(answer.getSessionQuestionId())
-                .orElseThrow(() -> new BusinessException(StatusCode.QUESTION_NOT_IN_SESSION));
-
-        // Step 1 — resolve transcript text + duration. The event now
-        // carries the text inline, so the common path needs no REST hop.
-        // Only legacy events replayed from before that field existed fall
-        // back to GET /internal/transcripts/{id}.
+        // Resolve transcript text + duration once. The event carries the text
+        // inline on the common path; only legacy events replayed from before
+        // that field existed fall back to GET /internal/transcripts/{id}.
         String text;
         Integer durMs;
         if (transcriptText != null && !transcriptText.isBlank()) {
@@ -463,95 +733,100 @@ public class AnswerService {
             durMs = transcript.durationMs();
         }
 
-        // Step 2 — answer rows transition: PROCESSING → READY → EVALUATING
-        // in one Tx. We collapse READY into EVALUATING because the
-        // evaluation-requested outbox row goes out in this same write —
-        // there's no observable READY tick from outside.
+        switch (answer.getStatus()) {
+            case PROCESSING ->
+                    applyTranscriptReadyLegacy(answer, transcriptId, languageCode, text, durMs);
+            case EVALUATING, SCORED ->
+                    attachAuthoritativeTranscript(answer, transcriptId, text);
+            default ->
+                    log.debug("Answer {} status is {} — ignoring transcript-ready "
+                            + "(no legacy scoring / authoritative action applies)",
+                            answerId, answer.getStatus());
+        }
+    }
+
+    /**
+     * Legacy batch-STT scoring path. Flips PROCESSING → EVALUATING (READY is
+     * collapsed in — the evaluation-requested outbox row goes out in this same
+     * write, so there's no observable READY tick) and stages the AI request.
+     * The batch transcript is also the scoring transcript here, so it's stored
+     * as {@code authoritativeTranscript} (and {@code transcriptSource =
+     * BATCH_SCRIBE}) — that's what a follow-up reads back via
+     * {@link #extractTranscript}.
+     */
+    private void applyTranscriptReadyLegacy(
+            Answer answer, UUID transcriptId, String languageCode, String text, Integer durMs) {
+
+        SessionQuestion sq = sessionQuestionRepo.findById(answer.getSessionQuestionId())
+                .orElseThrow(() -> new BusinessException(StatusCode.QUESTION_NOT_IN_SESSION));
+        InterviewSession session = sessionRepo.findById(answer.getSessionId())
+                .orElseThrow(() -> new BusinessException(StatusCode.SESSION_NOT_FOUND));
+
         AnswerStatus prev = answer.getStatus();
         answer.setStatus(AnswerStatus.EVALUATING);
         answer.setTranscriptId(transcriptId);
+        answer.setTranscriptSource("BATCH_SCRIBE");
+        answer.setAuthoritativeTranscript(text);
         answerRepo.save(answer);
-        logTransition(answerId, prev, AnswerStatus.EVALUATING, "transcript-ready", Map.of(
+        logTransition(answer.getId(), prev, AnswerStatus.EVALUATING, "transcript-ready", Map.of(
                 "transcriptId", transcriptId.toString(),
                 "languageCode", String.valueOf(languageCode)));
 
-        // Step 3 — assemble evaluation-requested. Field names match
-        // AI/models/inputs.py exactly so the payload deserialises into
-        // BehavioralInput / ConceptualInput on the Python side.
-        Map<String, Object> snap = sq.getSnapshot() != null ? sq.getSnapshot() : Map.of();
+        stageSpokenEvaluation(answer, sq, session, text, durMs, languageCode);
+    }
 
-        // Prefer the candidate's profile language for the AI's response —
-        // STT auto-detect is a hint about what the candidate SPOKE, but the
-        // feedback should land in the language the candidate set on their
-        // profile (e.g. a Vietnamese candidate who says "let me think" mid-
-        // answer still wants the writeup in Vietnamese). Fallback chain:
-        //   profile.preferredLanguage  →  STT detected language  →  "vi"
-        InterviewSession session = sessionRepo.findById(answer.getSessionId())
-                .orElseThrow(() -> new BusinessException(StatusCode.SESSION_NOT_FOUND));
-        String preferred = null;
-        try {
-            UserProfileResponse profile = loadProfile(session);
-            if (profile != null && profile.preferredLanguage() != null) {
-                preferred = profile.preferredLanguage().toLowerCase();
-            }
-        } catch (Exception ex) {
-            log.warn("Failed to load profile for response-language hint, falling back to STT: {}",
-                    ex.getMessage());
+    /**
+     * Fast-path reconciliation (realtime-stt-plan.md §8.1 #3 / §8.2 #5). The
+     * answer already scored off the real-time transcript; record the batch
+     * transcript as authoritative for display + comparison and flag a material
+     * divergence for an admin. Never changes status, score, planner state, or
+     * stages any event — late delivery after the session is finalized must be a
+     * pure no-op beyond this write.
+     */
+    private void attachAuthoritativeTranscript(Answer answer, UUID transcriptId, String text) {
+        if (answer.getAuthoritativeTranscript() != null) {
+            log.debug("Answer {} already has an authoritative transcript — ignoring duplicate", answer.getId());
+            return;
         }
-        String responseLanguage;
-        if ("vi".equals(preferred) || "en".equals(preferred)) {
-            responseLanguage = preferred;
-        } else if (languageCode != null) {
-            responseLanguage = languageCode.toLowerCase().contains("vi") ? "vi" : "en";
-        } else {
-            responseLanguage = "vi";
+        answer.setAuthoritativeTranscript(text);
+        if (answer.getTranscriptId() == null) {
+            answer.setTranscriptId(transcriptId);
         }
+        Boolean mismatch = computeTranscriptMismatch(answer.getRealtimeTranscript(), text);
+        answer.setTranscriptMismatch(mismatch);
+        answerRepo.save(answer);
+        logTransition(answer.getId(), answer.getStatus(), answer.getStatus(),
+                "authoritative-transcript-attached", Map.of(
+                        "transcriptId", String.valueOf(transcriptId),
+                        "mismatch", String.valueOf(mismatch)));
+        log.info("Answer {} ({}) attached authoritative batch transcript — mismatch={}",
+                answer.getId(), answer.getStatus(), mismatch);
+    }
 
-        // Field names are camelCase to match the AI service's Pydantic
-        // CamelModel base — the AI side accepts both (populate_by_name=True)
-        // but emits camelCase, so producing camelCase here keeps the wire
-        // format symmetric and consistent with the rest of Mockwise.
-        Map<String, Object> question = new HashMap<>();
-        question.put("id", sq.getQuestionId());
-        question.put("text", sq.getInlineText() != null ? sq.getInlineText() : snap.get("text"));
-        if (sq.getQuestionType() == QuestionType.BEHAVIORAL) {
-            question.put("competency", snap.get("competency"));
-            question.put("expectedSignals", snap.getOrDefault("expectedSignals", List.of()));
-        } else {
-            question.put("domain", snap.get("domain"));
-            question.put("keyConcepts", snap.getOrDefault("keyConcepts", List.of()));
-            question.put("depthExpected", snap.getOrDefault("depthExpected", "intermediate"));
+    /**
+     * Cheap divergence check between the real-time transcript that scored an
+     * answer and the batch transcript that arrived later. Flags a material
+     * mismatch on either a big length difference or low word overlap. Returns
+     * {@code null} when there's nothing to compare (legacy answer / blank text).
+     */
+    private static Boolean computeTranscriptMismatch(String realtime, String batch) {
+        if (realtime == null || realtime.isBlank() || batch == null || batch.isBlank()) {
+            return null;
         }
-
-        Map<String, Object> answerBlock = new HashMap<>();
-        answerBlock.put("transcript", text != null ? text : "");
-        answerBlock.put("durationSeconds", durMs != null ? durMs / 1000 : 0);
-        answerBlock.put("language", responseLanguage);
-
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("sessionId", answer.getSessionId().toString());
-        payload.put("interviewType",
-                sq.getQuestionType() == QuestionType.BEHAVIORAL ? "behavioral" : "core_conceptual");
-        payload.put("question", question);
-        payload.put("answer", answerBlock);
-        payload.put("responseLanguage", responseLanguage);
-
-        // Wrap in the EvaluationRequestedEvent shape the AI consumer expects
-        // (AI/models/evaluation_events.py).
-        Map<String, Object> envelope = new HashMap<>();
-        envelope.put("eventId", java.util.UUID.randomUUID().toString());
-        envelope.put("eventType", "EVALUATION_REQUESTED");
-        envelope.put("occurredAt", OffsetDateTime.now().toString());
-        envelope.put("answerId", answer.getId().toString());
-        envelope.put("sessionId", answer.getSessionId().toString());
-        envelope.put("questionId", String.valueOf(sq.getQuestionId()));
-        envelope.put("payload", payload);
-
-        outboxWriter.stage(
-                com.mockwise.interview.message.constants.KafkaTopics.EVALUATION_REQUESTED,
-                "EVALUATION_REQUESTED",
-                answer.getId(),
-                envelope);
+        String[] a = realtime.toLowerCase().trim().split("\\s+");
+        String[] b = batch.toLowerCase().trim().split("\\s+");
+        if (a.length == 0 || b.length == 0) {
+            return null;
+        }
+        double lenRatio = (double) Math.min(a.length, b.length) / Math.max(a.length, b.length);
+        java.util.Set<String> sa = new java.util.HashSet<>(java.util.Arrays.asList(a));
+        java.util.Set<String> sb = new java.util.HashSet<>(java.util.Arrays.asList(b));
+        java.util.Set<String> inter = new java.util.HashSet<>(sa);
+        inter.retainAll(sb);
+        java.util.Set<String> union = new java.util.HashSet<>(sa);
+        union.addAll(sb);
+        double jaccard = union.isEmpty() ? 0.0 : (double) inter.size() / union.size();
+        return lenRatio < 0.6 || jaccard < 0.5;
     }
 
     /**
@@ -1095,8 +1370,33 @@ public class AnswerService {
         return o instanceof List<?> l ? (List<String>) l : null;
     }
 
+    /** Single-line, length-capped transcript for logs (avoid flooding on long answers). */
+    private static String transcriptPreview(String text) {
+        if (text == null) return "";
+        String oneLine = text.replaceAll("\\s+", " ").trim();
+        int cap = 2000;
+        return oneLine.length() <= cap ? oneLine : oneLine.substring(0, cap) + "…(+" + (oneLine.length() - cap) + " chars)";
+    }
+
+    /**
+     * Parent transcript for AI follow-up context. Reads the stored transcript
+     * columns first (realtime-stt-plan.md §12.1): the fast path's
+     * {@code realtimeTranscript} is the text that actually scored the parent,
+     * and the legacy path stores the batch text as {@code authoritativeTranscript}
+     * — so a follow-up never depends on the AI echoing {@code answer.transcript}
+     * back in {@code rawEvaluation}. The rawEvaluation read stays as a fallback
+     * for rows written before these columns existed.
+     */
     private static String extractTranscript(Answer parentAnswer) {
-        if (parentAnswer == null || parentAnswer.getRawEvaluation() == null) return "";
+        if (parentAnswer == null) return "";
+        if (parentAnswer.getRealtimeTranscript() != null && !parentAnswer.getRealtimeTranscript().isBlank()) {
+            return parentAnswer.getRealtimeTranscript();
+        }
+        if (parentAnswer.getAuthoritativeTranscript() != null
+                && !parentAnswer.getAuthoritativeTranscript().isBlank()) {
+            return parentAnswer.getAuthoritativeTranscript();
+        }
+        if (parentAnswer.getRawEvaluation() == null) return "";
         Object answer = parentAnswer.getRawEvaluation().get("answer");
         if (answer instanceof Map<?, ?> m) {
             Object t = m.get("transcript");
