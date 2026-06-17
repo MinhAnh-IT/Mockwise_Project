@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Briefcase, Calendar, MapPin, Sparkles } from 'lucide-react';
+import { ArrowRight, Briefcase, Calendar, Sparkles } from 'lucide-react';
 import { useAuth } from '@/auth/useAuth';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
@@ -76,10 +76,6 @@ function ProfileChip({ profile }: { profile: UserProfile }) {
         <li className="flex items-center gap-2 text-on-surface">
           <Calendar className="w-4 h-4 text-on-surface-variant" />
           {profile.experience} năm kinh nghiệm
-        </li>
-        <li className="flex items-center gap-2 text-on-surface">
-          <MapPin className="w-4 h-4 text-on-surface-variant" />
-          {profile.city}
         </li>
       </ul>
     </div>

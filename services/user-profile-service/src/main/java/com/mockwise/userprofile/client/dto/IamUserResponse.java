@@ -1,8 +1,9 @@
 package com.mockwise.userprofile.client.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
+
+import java.time.Instant;
 
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -10,7 +11,8 @@ public record IamUserResponse(
         String userId,
         String email,
         Boolean isVerified,
-        Boolean blocked
+        Boolean blocked,
+        Instant lastLoginAt
 ) {
 }
 

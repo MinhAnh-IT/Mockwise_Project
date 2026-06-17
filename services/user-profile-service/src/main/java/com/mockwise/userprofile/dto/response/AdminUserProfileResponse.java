@@ -2,6 +2,7 @@ package com.mockwise.userprofile.dto.response;
 
 import com.mockwise.userprofile.entity.Language;
 
+import java.time.Instant;
 import java.util.List;
 
 public record AdminUserProfileResponse(
@@ -10,9 +11,10 @@ public record AdminUserProfileResponse(
         String email,
         Boolean isVerified,
         Boolean blocked,
+        Instant lastLoginAt,
         PositionResponse position,
-        String city,
         Integer experience,
+        Instant createdAt,
         List<String> techStack,
         Language preferredLanguage,
         Integer yearsInCurrentRole,

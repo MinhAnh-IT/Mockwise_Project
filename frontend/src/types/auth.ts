@@ -11,7 +11,6 @@ export type ProfileDraftRequest = {
   fullName: string;
   trackId: string;
   levelId: string;
-  city: string;
   experience: number;
   /**
    * Optional first-pass profile fields. Users can register with only the
@@ -51,7 +50,6 @@ export type UserResponse = {
 export type UserProfileSnapshot = {
   userId: string;
   fullName: string;
-  city: string;
   experience: number;
 };
 

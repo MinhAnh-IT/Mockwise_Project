@@ -10,7 +10,6 @@ public record UserProfileUpdateRequest(
         String fullName,
         String trackId,
         String levelId,
-        String city,
 
         @Min(value = 0, message = "Experience must be >= 0")
         Integer experience,

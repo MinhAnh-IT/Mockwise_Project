@@ -1,7 +1,6 @@
 import {
   Pencil,
   Mail,
-  MapPin,
   Briefcase,
   GraduationCap,
   Calendar,
@@ -78,7 +77,6 @@ export default function ProfilePage() {
                 label="Số năm kinh nghiệm"
                 value={`${profile.experience} năm`}
               />
-              <InfoRow icon={<MapPin className="w-4 h-4" />} label="Thành phố" value={profile.city} />
               <InfoRow
                 icon={<Clock className="w-4 h-4" />}
                 label="Số năm ở vị trí hiện tại"

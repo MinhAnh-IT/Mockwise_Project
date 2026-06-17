@@ -18,9 +18,6 @@ public record ProfileDraftRequest(
         @NotBlank(message = "Level ID must not be blank")
         String levelId,
 
-        @NotBlank(message = "City must not be blank")
-        String city,
-
         @NotNull(message = "Experience must not be null")
         @Min(value = 0, message = "Experience must be 0 or greater")
         Integer experience,
