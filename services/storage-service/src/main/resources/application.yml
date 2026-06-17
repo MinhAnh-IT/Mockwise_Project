@@ -76,6 +76,17 @@ minio:
     audio-max-bytes: 26214400   # 25 MB
     avatar-max-bytes: 5242880   # 5 MB
 
+# PendingUploadReaper — reclaims abandoned uploads (orphaned PENDING_UPLOAD rows +
+# their MinIO bytes/parts). More common since the Lever 2 fast path detaches the
+# video upload from submit (realtime-stt-plan.md §8.4 #10). Grace must exceed the
+# longest legitimate record-then-upload so an in-progress upload is never swept.
+storage:
+  reaper:
+    pending-grace-minutes: ${STORAGE_REAPER_GRACE_MINUTES:120}
+    interval-ms: ${STORAGE_REAPER_INTERVAL_MS:1800000}      # 30 min
+    initial-delay-ms: ${STORAGE_REAPER_INITIAL_DELAY_MS:300000}  # 5 min after boot
+    batch-size: ${STORAGE_REAPER_BATCH_SIZE:200}
+
 internal:
   auth:
     api-key: ${INTERNAL_API_KEY}

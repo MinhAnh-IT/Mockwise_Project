@@ -20,6 +20,14 @@ import java.util.UUID;
  * <p>The conditional rules are checked in the service layer rather than
  * with a custom validator because the message text needs to reference
  * the {@code AnswerType} the caller actually sent.
+ *
+ * <p>Lever 2 (realtime-stt-plan.md §6.1/§6.2): VIDEO answers may carry a
+ * real-time transcript the browser built while the candidate spoke. When
+ * present (and the feature is enabled) the answer scores straight off it —
+ * {@code storageObjectId} becomes optional and the video uploads in the
+ * background, attached afterwards via {@code POST .../attach-video}. The
+ * transcript comes straight from the client, so it is hard-capped here
+ * (§8.3 #8) and never interpolated into the AI system prompt.
  */
 public record SubmitAnswerInput(
 
@@ -32,5 +40,23 @@ public record SubmitAnswerInput(
         String code,
 
         @Size(max = 20, message = "language must be at most 20 characters")
-        String language
+        String language,
+
+        // Real-time transcript (fast path). Null → legacy flow (wait for
+        // batch STT). Capped hard because it bypasses server-side STT.
+        @Size(max = 20000, message = "transcriptText must be at most 20000 characters")
+        String transcriptText,
+
+        // "vi" / "en" — the language the candidate spoke, as detected client
+        // side. Profile language still wins for the feedback (see service).
+        @Size(max = 16, message = "transcriptLanguage must be at most 16 characters")
+        String transcriptLanguage,
+
+        // Recording wall-clock in ms, from the recorder. Best-effort metadata
+        // surfaced to the AI as durationSeconds.
+        Integer transcriptDurationMs,
+
+        // "REALTIME_WEBSPEECH" today. Recorded on the answer for audit.
+        @Size(max = 32, message = "transcriptSource must be at most 32 characters")
+        String transcriptSource
 ) {}

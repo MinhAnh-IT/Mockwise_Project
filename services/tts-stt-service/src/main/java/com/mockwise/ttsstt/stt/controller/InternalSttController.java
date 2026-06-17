@@ -4,12 +4,14 @@ import com.core.apiresponse.response.ApiResponse;
 import com.mockwise.ttsstt.common.exception.BusinessException;
 import com.mockwise.ttsstt.common.exception.StatusCode;
 import com.mockwise.ttsstt.stt.dto.request.CreateTranscriptRequest;
+import com.mockwise.ttsstt.stt.dto.response.RealtimeSttTokenResponse;
 import com.mockwise.ttsstt.stt.dto.response.SttJobResponse;
 import com.mockwise.ttsstt.stt.dto.response.TranscriptResponse;
 import com.mockwise.ttsstt.stt.entity.SttJob;
 import com.mockwise.ttsstt.stt.kafka.event.AnswerSubmittedEvent;
 import com.mockwise.ttsstt.stt.repository.SttJobRepository;
 import com.mockwise.ttsstt.stt.repository.TranscriptRepository;
+import com.mockwise.ttsstt.stt.service.RealtimeSttTokenClient;
 import com.mockwise.ttsstt.stt.service.SttOrchestrator;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -40,6 +42,19 @@ public class InternalSttController {
     SttOrchestrator orchestrator;
     SttJobRepository jobRepo;
     TranscriptRepository transcriptRepo;
+    RealtimeSttTokenClient realtimeTokenClient;
+
+    /**
+     * Mints a single-use ElevenLabs realtime Scribe token for the Lever 2 fast
+     * path. interview-service relays the result to the authenticated browser,
+     * which connects straight to the ElevenLabs WebSocket — our API key stays
+     * here. POST (not GET) because each call consumes a fresh token.
+     */
+    @PostMapping("/realtime-stt-token")
+    public ResponseEntity<ApiResponse<RealtimeSttTokenResponse>> mintRealtimeToken() {
+        return ResponseEntity.ok(ApiResponse.success(
+                RealtimeSttTokenResponse.from(realtimeTokenClient.mint())));
+    }
 
     @PostMapping("/transcripts")
     public ResponseEntity<ApiResponse<SttJobResponse>> createTranscript(

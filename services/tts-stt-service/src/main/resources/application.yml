@@ -89,6 +89,9 @@ elevenlabs:
   # pronunciation than v2 + auto-detect on short sentences.
   tts-model: ${ELEVENLABS_TTS_MODEL:eleven_turbo_v2_5}
   stt-model: ${ELEVENLABS_STT_MODEL:scribe_v1}
+  # Realtime WebSocket Scribe (Lever 2 fast path). The browser connects with a
+  # single-use token minted here; this model id is handed back to the FE.
+  realtime-stt-model: ${ELEVENLABS_REALTIME_STT_MODEL:scribe_v2_realtime}
   default-language-code: ${ELEVENLABS_DEFAULT_LANGUAGE_CODE:vi}
   tts-timeout-ms: ${ELEVENLABS_TIMEOUT_TTS_MS:30000}
   stt-timeout-ms: ${ELEVENLABS_TIMEOUT_STT_MS:600000}

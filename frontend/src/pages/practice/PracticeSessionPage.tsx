@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import {
+  attachVideo,
   finishSession,
   getSession,
   submitAnswer,
@@ -10,7 +11,8 @@ import {
 import { uploadVideoPresigned } from '@/api/storage';
 import QuestionCard from '@/components/practice/QuestionCard';
 import SessionHeader from '@/components/practice/SessionHeader';
-import VideoRecorder from '@/components/practice/VideoRecorder';
+import VideoRecorder, { type RecorderSubmission } from '@/components/practice/VideoRecorder';
+import { wordCount } from '@/lib/realtimeTranscriber';
 import WaitingNext from '@/components/practice/WaitingNext';
 import CodingWorkspace from '@/components/practice/coding/CodingWorkspace';
 import { findPracticeOption } from '@/data/practice';
@@ -39,6 +41,34 @@ const ANSWER_ALREADY_SUBMITTED_CODE = 4100;
 /** Whole-seconds remaining until an ISO deadline, floored at 0. */
 function remainingSecs(deadlineIso: string): number {
   return Math.max(0, Math.floor((Date.parse(deadlineIso) - Date.now()) / 1000));
+}
+
+/**
+ * Lever 2 background attach. After a fast-path submit, wire the video to the
+ * already-scored answer once its upload composes. Best-effort and fully
+ * detached from the critical path: if the streaming upload failed
+ * ({@code uploadResult} → null) we fall back to a presigned PUT of the in-memory
+ * blob so the candidate still gets a replay; any failure is swallowed (the
+ * answer is already scored, and the attach endpoint is idempotent so a missed
+ * one just means no replay video).
+ */
+async function attachVideoInBackground(
+  sid: string,
+  answerId: string,
+  uploadResult: Promise<string | null>,
+  blob: Blob,
+  mimeType: string,
+): Promise<void> {
+  try {
+    let objectId = await uploadResult;
+    if (!objectId) {
+      const stored = await uploadVideoPresigned(blob, sid, mimeType || undefined);
+      objectId = stored.objectId;
+    }
+    await attachVideo(sid, answerId, objectId);
+  } catch (e) {
+    console.warn('[attach-video] background attach failed — answer already scored', e);
+  }
 }
 
 /**
@@ -206,21 +236,64 @@ export default function PracticeSessionPage() {
   }, [phase]);
 
   const handleSubmit = useCallback(
-    async (blob: Blob, mimeType: string, uploadedObjectId: string | null) => {
+    async (submission: RecorderSubmission) => {
       if (!sid || !current) return;
+      const { blob, mimeType, transcript, uploadResult } = submission;
+      const sqId = current.sessionQuestionId;
       setPhase('submitting');
       setError(null);
+
+      // ── Lever 2 fast path ──────────────────────────────────────────────
+      // A trusted real-time transcript → submit + score immediately, then
+      // attach the video in the background once its upload composes. The user
+      // stops waiting on the ~75% upload + ~15% batch-STT entirely.
+      if (transcript) {
+        // Log the transcript leaving the browser so the realtime path is easy
+        // to confirm in DevTools alongside the backend "REALTIME TRANSCRIPT" log.
+        console.info(
+          `[realtime-stt] submitting transcript (${transcript.language}, ${wordCount(transcript.text)} words, ${transcript.durationMs}ms):`,
+          transcript.text,
+        );
+        try {
+          const out = await submitAnswer(sid, sqId, {
+            type: 'VIDEO',
+            transcriptText: transcript.text,
+            transcriptLanguage: transcript.language,
+            transcriptDurationMs: transcript.durationMs,
+            transcriptSource: 'REALTIME_WEBSPEECH',
+          });
+          setPhase('waiting');
+          // Detached from the critical path — a failure here only costs the
+          // "watch replay" video, never the score.
+          void attachVideoInBackground(sid, out.answerId, uploadResult, blob, mimeType);
+          return;
+        } catch (err) {
+          if (err instanceof ApiError && err.code === SESSION_TIME_UP_CODE) {
+            navigate(`/practice/${type}/session/${sid}/report`, { replace: true });
+            return;
+          }
+          if (err instanceof ApiError && err.code === ANSWER_ALREADY_SUBMITTED_CODE) {
+            setPhase('waiting');
+            return;
+          }
+          const msg = err instanceof ApiError ? err.message
+            : err instanceof Error ? err.message : 'Không gửi được câu trả lời.';
+          setError(msg);
+          setPhase('recording');
+          return;
+        }
+      }
+
+      // ── Legacy path (no real-time transcript) ──────────────────────────
+      // Wait for the upload (streaming or fallback presigned PUT), then submit
+      // with the storage objectId — the answer scores off batch STT.
       try {
-        // Fast path: the recorder streamed the clip to MinIO *during*
-        // recording and storage already composed it — just submit the id,
-        // no post-"Nộp" transfer. Fallback path (streaming unavailable or
-        // failed): the legacy presigned-PUT of the in-memory blob.
-        let storageObjectId = uploadedObjectId;
+        let storageObjectId = await uploadResult;
         if (!storageObjectId) {
           const stored = await uploadVideoPresigned(blob, sid, mimeType || undefined);
           storageObjectId = stored.objectId;
         }
-        await submitAnswer(sid, current.sessionQuestionId, {
+        await submitAnswer(sid, sqId, {
           type: 'VIDEO',
           storageObjectId,
         });
@@ -250,7 +323,7 @@ export default function PracticeSessionPage() {
         setPhase('recording');
       }
     },
-    [sid, current],
+    [sid, current, navigate, type],
   );
 
   const handleSubmitCode = useCallback(

@@ -50,3 +50,33 @@ export function submitAnswer(
 export function getAnswer(sessionId: string, answerId: string): Promise<AnswerView> {
   return unwrap(`${PREFIX}/${sessionId}/answers/${answerId}`);
 }
+
+/**
+ * Lever 2 (realtime-stt-plan.md §5 Provider C): mint a single-use ElevenLabs
+ * realtime Scribe token. POST — each token is consumed on use. Throws (409
+ * REALTIME_STT_DISABLED) when the backend kill-switch is off, which the caller
+ * treats as "no fast path → legacy flow".
+ */
+export function getRealtimeSttToken(): Promise<{
+  token: string;
+  model: string;
+  expiresInSeconds?: number;
+}> {
+  return unwrap(`${PREFIX}/realtime-stt/token`, { method: 'POST' });
+}
+
+/**
+ * Lever 2 (realtime-stt-plan.md §6.2.3): attach the background-uploaded video to
+ * a fast-path answer once its upload composes. Idempotent + safe to call after
+ * the session has ended, so a late upload is never dropped. Returns 204.
+ */
+export function attachVideo(
+  sessionId: string,
+  answerId: string,
+  storageObjectId: string,
+): Promise<void> {
+  return unwrap(`${PREFIX}/${sessionId}/answers/${answerId}/attach-video`, {
+    method: 'POST',
+    body: { storageObjectId },
+  });
+}

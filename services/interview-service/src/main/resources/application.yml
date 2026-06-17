@@ -65,6 +65,13 @@ internal:
 # Outbox poller + topic-name overrides. Defaults match the producers
 # we expect from tts-stt-service and the AI service.
 interview:
+  # Lever 2 (realtime-stt-plan.md §9): when true, a VIDEO submit carrying a
+  # real-time transcript scores straight off it and the video uploads in the
+  # background. Default ON so a fresh deploy runs the fast path with no env
+  # setup; set INTERVIEW_REALTIME_STT_ENABLED=false to force the legacy flow.
+  # (FE keeps its own build-time flag in step; see VITE_REALTIME_STT_ENABLED.)
+  realtime-stt:
+    enabled: ${INTERVIEW_REALTIME_STT_ENABLED:true}
   outbox:
     # 100ms (was 1000). The flow has 3 outbox hops; at 1000ms each added
     # up to ~3s p99 of pure waiting. The drain query is backed by the

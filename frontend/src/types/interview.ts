@@ -97,6 +97,14 @@ export type SubmitAnswerInput = {
   storageObjectId?: string;
   code?: string;
   language?: string;
+  // Lever 2 fast path (realtime-stt-plan.md §6.2): a real-time transcript built
+  // in the browser while the candidate spoke. When present (+ backend flag on),
+  // the answer scores straight off it and the video uploads in the background,
+  // attached afterwards via attachVideo(). Absent → legacy upload-then-STT flow.
+  transcriptText?: string;
+  transcriptLanguage?: string;
+  transcriptDurationMs?: number;
+  transcriptSource?: string;
 };
 
 export type SubmitAnswerOutput = {
@@ -261,6 +269,10 @@ export type AnswerView = {
   // server's download-ttl-seconds; re-fetch the session to get a fresh one.
   storageObjectId: string | null;
   mediaUrl: string | null;
+  // VIDEO answers only, revealed once SCORED: the transcript that actually
+  // scored this answer (real-time on the fast path, else batch STT). Shown on
+  // the report so the candidate reads the same text the AI graded.
+  transcript?: string | null;
   // CODE answers only, revealed once the session is SCORED: the candidate's
   // submitted source + the judge's per-case roster. Null/absent for VIDEO
   // answers and while the session is still in progress.
