@@ -1,17 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, Loader2, ListChecks } from 'lucide-react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '@/api/client';
-import { startSession } from '@/api/interviews';
+import { previewSession, startSession } from '@/api/interviews';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
 import { findPracticeOption, type PracticeOption } from '@/data/practice';
+import type { SessionPreviewOutput } from '@/types/interview';
 
 /**
  * Readiness screen for a practice type. Shown after the user picks a type on
- * /practice and before the live session begins. Length and question count
- * come from the catalog today; once the interview-orchestrator service exists
- * they'll come from the session-create response.
+ * /practice and before the live session begins. The question range + time cap
+ * are resolved from the caller's real blueprint via GET /interviews/preview
+ * (so they match what the session will actually use); the catalog values are
+ * only a fallback while that loads or if it fails.
  */
 export default function PracticeIntroPage() {
   const { type } = useParams<{ type: string }>();
@@ -19,6 +21,31 @@ export default function PracticeIntroPage() {
   const navigate = useNavigate();
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<SessionPreviewOutput | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  // Pull this user's real question range + time cap so the meta cards show
+  // their actual blueprint instead of the catalog's generic fallback. Soft-
+  // fail: any error just leaves `preview` null and we render the fallback.
+  const interviewType = option?.interviewType ?? null;
+  useEffect(() => {
+    if (!interviewType) return;
+    let cancelled = false;
+    setPreviewLoading(true);
+    previewSession(interviewType)
+      .then((p) => {
+        if (!cancelled) setPreview(p);
+      })
+      .catch(() => {
+        /* keep fallback */
+      })
+      .finally(() => {
+        if (!cancelled) setPreviewLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [interviewType]);
 
   if (!option) {
     return <Navigate to="/practice" replace />;
@@ -61,7 +88,7 @@ export default function PracticeIntroPage() {
 
           <Heading option={option} />
 
-          <SessionMeta option={option} />
+          <SessionMeta option={option} preview={preview} loading={previewLoading} />
 
           <Checklist items={option.readiness.checklist} />
 
@@ -103,18 +130,51 @@ function Heading({ option }: { option: PracticeOption }) {
   );
 }
 
-function SessionMeta({ option }: { option: PracticeOption }) {
+function SessionMeta({
+  option,
+  preview,
+  loading,
+}: {
+  option: PracticeOption;
+  preview: SessionPreviewOutput | null;
+  loading: boolean;
+}) {
+  // Time is one whole-session clock (no per-question limit) — present it as a
+  // hard cap, not an "expected" duration. Real number when we have it.
+  const timeValue = preview
+    ? `Tối đa ${preview.timeBudgetMinutes} phút`
+    : `Tối đa ${option.readiness.estimatedMinutes}`;
+
+  // Questions are a range: the adaptive planner adds follow-ups on top of the
+  // base questions, so we never show a single exact count for behavioral/core.
+  let questionValue: string;
+  let questionHint: string | undefined;
+  if (preview) {
+    questionValue =
+      preview.minQuestions === preview.maxQuestions
+        ? `${preview.maxQuestions} ${option.id === 'coding' ? 'bài' : 'câu'}`
+        : `${preview.minQuestions}–${preview.maxQuestions} ${option.id === 'coding' ? 'bài' : 'câu'}`;
+    questionHint = preview.adaptive ? 'Thích ứng theo câu trả lời (có câu follow-up)' : 'Cố định';
+  } else {
+    questionValue = option.readiness.questionCount;
+    questionHint = option.id === 'coding' ? undefined : 'Có thể thêm câu follow-up';
+  }
+
   return (
     <div className="grid grid-cols-2 gap-3 mb-8">
       <MetaCard
         icon={<Clock className="w-4 h-4" />}
-        label="Thời lượng dự kiến"
-        value={option.readiness.estimatedMinutes}
+        label="Thời gian tối đa"
+        value={timeValue}
+        hint="Hết giờ phiên sẽ tự kết thúc"
+        loading={loading}
       />
       <MetaCard
         icon={<ListChecks className="w-4 h-4" />}
         label="Số câu hỏi"
-        value={option.readiness.questionCount}
+        value={questionValue}
+        hint={questionHint}
+        loading={loading}
       />
     </div>
   );
@@ -124,10 +184,14 @@ function MetaCard({
   icon,
   label,
   value,
+  hint,
+  loading,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  hint?: string;
+  loading?: boolean;
 }) {
   return (
     <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4">
@@ -135,7 +199,14 @@ function MetaCard({
         {icon}
         {label}
       </div>
-      <p className="text-base font-bold text-on-surface">{value}</p>
+      {loading ? (
+        <div className="h-5 w-24 rounded bg-outline-variant/30 animate-pulse" />
+      ) : (
+        <p className="text-base font-bold text-on-surface">{value}</p>
+      )}
+      {hint && !loading && (
+        <p className="mt-1 text-[11px] leading-snug text-on-surface-variant">{hint}</p>
+      )}
     </div>
   );
 }

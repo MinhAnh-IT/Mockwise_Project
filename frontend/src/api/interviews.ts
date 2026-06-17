@@ -2,12 +2,14 @@ import { unwrap } from '@/api/client';
 import type {
   AnswerView,
   ApiListResponse,
+  SessionPreviewOutput,
   SessionSummaryView,
   SessionView,
   StartSessionInput,
   StartSessionOutput,
   SubmitAnswerInput,
   SubmitAnswerOutput,
+  InterviewType,
 } from '@/types/interview';
 
 const PREFIX = '/api/v1/interviews';
@@ -16,6 +18,19 @@ export function startSession(input: StartSessionInput): Promise<StartSessionOutp
   return unwrap(`${PREFIX}/start`, {
     method: 'POST',
     body: input,
+  });
+}
+
+/**
+ * Resolve the real question range + time cap for the caller's blueprint without
+ * creating a session. Used by the practice intro screen so it shows this user's
+ * actual numbers instead of hard-coded guesses.
+ */
+export function previewSession(
+  interviewType: InterviewType,
+): Promise<SessionPreviewOutput> {
+  return unwrap(`${PREFIX}/preview`, {
+    query: { interviewType },
   });
 }
 

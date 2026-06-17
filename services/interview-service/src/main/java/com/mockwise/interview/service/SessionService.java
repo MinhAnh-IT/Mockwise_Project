@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mockwise.interview.dto.response.AnswerView;
 import com.mockwise.interview.dto.response.OverallReviewView;
 import com.mockwise.interview.dto.response.PinnedQuestionView;
+import com.mockwise.interview.dto.response.SessionPreviewOutput;
 import com.mockwise.interview.dto.response.SessionSummaryView;
 import com.mockwise.interview.dto.response.SessionView;
 import com.mockwise.interview.entity.Answer;
@@ -207,6 +208,48 @@ public class SessionService {
                 // Session is IN_PROGRESS — strip rubric/classification fields
                 // so the candidate doesn't see expectedPoints, difficulty, topic, etc.
                 signAudio(PinnedQuestionView.fromEntity(firstQuestion)).redacted());
+    }
+
+    // ── /preview ──────────────────────────────────────────────────────────────
+
+    /**
+     * Resolves the blueprint {@link #start} would pick for this caller (same
+     * track+level normalisation) WITHOUT creating a session, so the practice
+     * intro screen can show the real question range + time cap for this user
+     * instead of hard-coded guesses.
+     *
+     * <p>Question count is a range: the adaptive planner adds follow-ups on top
+     * of the base topics, so the floor is one question per blueprint topic and
+     * the ceiling is the full {@code questionBudget}. CODING is non-adaptive —
+     * its plan length is fixed, so floor == ceiling.
+     */
+    @Transactional(readOnly = true)
+    public SessionPreviewOutput preview(String userId, InterviewType interviewType) {
+        if (interviewType == null) {
+            throw new BusinessException(StatusCode.VALIDATION_ERROR, "interviewType is required");
+        }
+        UserProfileResponse profile = userProfileAdapter.getProfile(userId);
+        String role  = BlueprintNormalizer.normalizeRole(safeTrack(profile));
+        String level = BlueprintNormalizer.normalizeLevel(safeLevel(profile));
+
+        InterviewBlueprint blueprint = blueprintLoader.findFor(role, level, interviewType)
+                .orElseThrow(() -> new BusinessException(StatusCode.BLUEPRINT_NOT_FOUND));
+
+        if (interviewType == InterviewType.CODING) {
+            int problems = blueprintLoader.codingDifficultyPlan(blueprint).size();
+            return new SessionPreviewOutput(
+                    interviewType, role, level, problems, problems,
+                    blueprint.getTimeBudgetMinutes(), /* adaptive */ false);
+        }
+
+        // Floor = one question per topic (no follow-ups), ceiling = full budget.
+        // Guard the budget up to the floor so a misconfigured blueprint can't
+        // report a max below the min.
+        int base = blueprint.getTopics() != null ? blueprint.getTopics().size() : 0;
+        int max = Math.max(base, blueprint.getQuestionBudget());
+        return new SessionPreviewOutput(
+                interviewType, role, level, base, max,
+                blueprint.getTimeBudgetMinutes(), /* adaptive */ true);
     }
 
     // ── /list (history) ──────────────────────────────────────────────────────

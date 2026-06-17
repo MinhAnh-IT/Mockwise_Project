@@ -24,10 +24,12 @@ export type PracticeOption = {
    */
   recordingMaxSeconds: number;
   /**
-   * Pre-session readiness details. Length and question count are decided by
-   * the backend (mocked here until the interview-orchestrator service exists),
-   * so the user just sees them on the readiness screen — they don't tune
-   * anything.
+   * Pre-session readiness details. The intro screen resolves the REAL question
+   * range + time cap for the signed-in user via GET /interviews/preview (the
+   * actual blueprint picked by their track+level). {@code estimatedMinutes} /
+   * {@code questionCount} here are only a fallback shown while that call is in
+   * flight or if it fails — keep them as honest ranges, not exact numbers,
+   * since the adaptive planner adds follow-ups on top of the base questions.
    */
   readiness: {
     estimatedMinutes: string;
@@ -47,8 +49,8 @@ export const PRACTICE_OPTIONS: PracticeOption[] = [
     interviewType: 'BEHAVIORAL',
     recordingMaxSeconds: 5 * 60,
     readiness: {
-      estimatedMinutes: '20–25 phút',
-      questionCount: '5–7 câu',
+      estimatedMinutes: '25–55 phút',
+      questionCount: '5–10 câu',
       longDescription:
         'AI sẽ đặt các câu hỏi tình huống dựa trên kinh nghiệm trong hồ sơ của bạn và đánh giá phản hồi theo các tiêu chí: rõ ràng, cảm xúc, thuyết phục.',
       checklist: [
@@ -67,8 +69,8 @@ export const PRACTICE_OPTIONS: PracticeOption[] = [
     interviewType: 'CORE',
     recordingMaxSeconds: 10 * 60,
     readiness: {
-      estimatedMinutes: '25–35 phút',
-      questionCount: '6–8 câu',
+      estimatedMinutes: '25–55 phút',
+      questionCount: '5–9 câu',
       longDescription:
         'Hệ thống chọn câu hỏi theo lĩnh vực và cấp độ trong hồ sơ. Có thể có câu follow-up để kiểm tra độ sâu hiểu biết.',
       checklist: [
@@ -90,8 +92,8 @@ export const PRACTICE_OPTIONS: PracticeOption[] = [
     interviewType: 'CODING',
     recordingMaxSeconds: 0,
     readiness: {
-      estimatedMinutes: '45–60 phút',
-      questionCount: '1–2 bài',
+      estimatedMinutes: '60–110 phút',
+      questionCount: '2–4 bài',
       longDescription:
         'Bạn viết code trong trình biên tập tích hợp, nộp để chạy test case, và nhận phản hồi về độ phức tạp cùng hướng tối ưu.',
       checklist: [

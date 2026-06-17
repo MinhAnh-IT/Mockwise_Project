@@ -4,9 +4,11 @@ import com.core.apiresponse.response.ApiListResponse;
 import com.core.apiresponse.response.ApiResponse;
 import com.mockwise.interview.common.security.CustomUserDetails;
 import com.mockwise.interview.dto.request.StartSessionInput;
+import com.mockwise.interview.dto.response.SessionPreviewOutput;
 import com.mockwise.interview.dto.response.SessionSummaryView;
 import com.mockwise.interview.dto.response.SessionView;
 import com.mockwise.interview.dto.response.StartSessionOutput;
+import com.mockwise.interview.enums.InterviewType;
 import com.mockwise.interview.service.SessionService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -34,6 +36,8 @@ import java.util.UUID;
  *
  * <ul>
  *   <li>{@code POST /start} — create a session, return the first question.</li>
+ *   <li>{@code GET  /preview} — resolve the caller's blueprint (question range
+ *       + time cap) without creating a session, for the intro screen.</li>
  *   <li>{@code GET  /result} — list the caller's sessions (history page).</li>
  *   <li>{@code GET  /{sid}} — full session detail incl. topic progress + pinned questions.</li>
  *   <li>{@code POST /{sid}/finish} — user-stopped end-of-session.</li>
@@ -53,6 +57,14 @@ public class SessionController {
         StartSessionOutput output = sessionService.start(user.getUserId(), input);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(output));
+    }
+
+    @GetMapping("/preview")
+    public ResponseEntity<ApiResponse<SessionPreviewOutput>> preview(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @RequestParam InterviewType interviewType) {
+        return ResponseEntity.ok(ApiResponse.success(
+                sessionService.preview(user.getUserId(), interviewType)));
     }
 
     @GetMapping("/result")
