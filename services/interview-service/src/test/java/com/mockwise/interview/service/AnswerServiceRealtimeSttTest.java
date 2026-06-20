@@ -109,7 +109,7 @@ class AnswerServiceRealtimeSttTest {
 
     @Test
     void submit_fastPath_createsEvaluatingAnswer_stagesEval_noStorageNeeded() {
-        when(sessionRepo.findById(sessionId)).thenReturn(java.util.Optional.of(session));
+        when(sessionRepo.findByIdForUpdate(sessionId)).thenReturn(java.util.Optional.of(session));
         when(sessionQuestionRepo.findById(sqId)).thenReturn(java.util.Optional.of(sq));
         when(answerRepo.existsBySessionQuestionId(sqId)).thenReturn(false);
 
@@ -132,7 +132,7 @@ class AnswerServiceRealtimeSttTest {
 
     @Test
     void submit_fastPathRetry_returnsExistingAnswer_doesNotDuplicateOrStage() {
-        when(sessionRepo.findById(sessionId)).thenReturn(java.util.Optional.of(session));
+        when(sessionRepo.findByIdForUpdate(sessionId)).thenReturn(java.util.Optional.of(session));
         when(sessionQuestionRepo.findById(sqId)).thenReturn(java.util.Optional.of(sq));
         UUID existingId = UUID.randomUUID();
         Answer existing = Answer.builder()
@@ -152,7 +152,7 @@ class AnswerServiceRealtimeSttTest {
     @Test
     void submit_flagOff_ignoresTranscript_fallsToLegacy_requiresStorage() {
         ReflectionTestUtils.setField(service, "realtimeSttEnabled", false);
-        when(sessionRepo.findById(sessionId)).thenReturn(java.util.Optional.of(session));
+        when(sessionRepo.findByIdForUpdate(sessionId)).thenReturn(java.util.Optional.of(session));
         when(sessionQuestionRepo.findById(sqId)).thenReturn(java.util.Optional.of(sq));
 
         // Legacy VIDEO path needs a storageObjectId — absent here → validation error.

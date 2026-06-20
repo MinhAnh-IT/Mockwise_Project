@@ -141,7 +141,18 @@ public class AnswerService {
     public SubmitAnswerOutput submit(
             UUID sessionId, UUID sessionQuestionId, SubmitAnswerInput input, String userId) {
 
-        InterviewSession session = sessionRepo.findById(sessionId)
+        // Lock the session row for the whole submit. This serialises against
+        // the overall-review gate in SessionFinalizer.maybeRequestOverallReview
+        // (also findByIdForUpdate), which the user-triggered /finish runs. Without
+        // it, a "submit then immediately finish" loses the answer: finish's gate
+        // could read the answer table before this transaction commits the new
+        // answer row, see nothing in-flight, fire the overall review without it,
+        // and set the once-only requested flag — so when grading later scores the
+        // answer, the gate no-ops and that answer is silently dropped from the
+        // session report. With the lock, finish blocks until the answer is
+        // committed (gate then holds for it) or this submit is correctly rejected
+        // with SESSION_NOT_IN_PROGRESS if finish won the race first.
+        InterviewSession session = sessionRepo.findByIdForUpdate(sessionId)
                 .orElseThrow(() -> new BusinessException(StatusCode.SESSION_NOT_FOUND));
         if (!session.getUserId().equals(userId)) {
             throw new BusinessException(StatusCode.SESSION_NOT_OWNER);
@@ -1127,6 +1138,20 @@ public class AnswerService {
                     java.time.Duration.between(
                             answer.getSubmittedAt().toInstant(),
                             OffsetDateTime.now().toInstant()).toMillis());
+        }
+
+        // If the candidate already ended the session (user /finish or the
+        // deadline) while this answer was still being graded, the score above is
+        // all we need — there is no "next question" to plan. Skip the planner so
+        // we never pin a phantom question onto an already-COMPLETED session
+        // (it would surface as a MISSING entry in the report), then fire the
+        // overall-review gate, which now sees this answer terminal and includes it.
+        if (session.getStatus() != SessionStatus.IN_PROGRESS) {
+            log.info("Answer {} scored after session {} left IN_PROGRESS ({}) — "
+                    + "skipping planner, gating overall review",
+                    answerId, session.getId(), session.getStatus());
+            sessionFinalizer.maybeRequestOverallReview(session.getId());
+            return;
         }
 
         // Run the planner — this is the "smart" tick.
