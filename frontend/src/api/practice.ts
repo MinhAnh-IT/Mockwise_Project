@@ -112,7 +112,7 @@ export function getLeaderboard(
   return unwrap(`${BASE}/leaderboard`, { query: { window, limit } });
 }
 
-/** Community insights: trending (this week) + hardest (lowest accept ratio) problems. */
+/** Community insights: trending (this week) + hardest (lowest per-user solve rate) problems. */
 export function getCommunity(): Promise<CommunityResponse> {
   return unwrap(`${BASE}/community`);
 }
