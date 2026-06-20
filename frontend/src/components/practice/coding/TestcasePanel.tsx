@@ -23,6 +23,18 @@ function fmt(value: unknown): string {
   }
 }
 
+/**
+ * Sample expected output is usually a single-keyed record ({@code { result: … }});
+ * unwrap it to the bare value so it reads like LeetCode's "Output", falling back
+ * to the whole object for multi-field returns and to a dash when empty.
+ */
+function fmtExpected(out: Record<string, unknown> | null | undefined): string {
+  const keys = Object.keys(out ?? {});
+  if (keys.length === 0) return '—';
+  if (keys.length === 1) return fmt(out![keys[0]]);
+  return fmt(out);
+}
+
 /** Bottom-right console — LeetCode's "Testcase / Result" split. */
 export default function TestcasePanel({
   sampleCases,
@@ -182,12 +194,18 @@ function CasesView({
           </button>
         ))}
       </div>
-      {/* LeetCode shows ONLY the inputs here — the expected answer appears in
-          the Result tab after running, so it isn't given away up front. */}
+      {/* These are SAMPLE cases (not the hidden judge set), so we reveal the
+          expected answer alongside the inputs — it lets the user see the
+          required output format without having to run first. */}
       <div className="space-y-3">
         {Object.entries(tc.inputData).map(([k, v]) => (
           <IOField key={k} label={`${k} =`} value={fmt(v)} t={t} />
         ))}
+        <IOField
+          label="Kết quả mong đợi"
+          value={fmtExpected(tc.expectedOutput)}
+          t={t}
+        />
       </div>
     </div>
   );
