@@ -330,7 +330,7 @@ raw_input
     │   Validate input theo mode
     │   mode=leetcode → validated_input chỉ có leetcodeUrl + meta
     │   mode=custom   → validated_input có đủ fields
-    │   numTestcases > MAX_TESTCASES (mặc định 25) → error too_many_testcases (END)
+    │   numTestcases > MAX_TESTCASES (mặc định 1000) → error too_many_testcases (END)
     │   Lỗi validation → trả về error ngay (END)
     │
 [problem_analyzer]
@@ -657,7 +657,7 @@ AI tự estimate theo difficulty:
 | `sum(isHidden) != numHidden` (= `numTestcases − numVisible`) | retry |
 | Hai testcase có `inputData` giống nhau (so sánh canonicalized JSON) | retry |
 | Bất kỳ `expectedOutput` nào rỗng `{}` / sai shape | retry |
-| `numTestcases > MAX_TESTCASES` (default `25`) | chặn sớm ở `generator_router` → `error: too_many_testcases` |
+| `numTestcases > MAX_TESTCASES` (default `1000`) | chặn sớm ở `generator_router` → `error: too_many_testcases` |
 | Vượt `GENERATOR_MAX_RETRIES` (default `2`) | trả partial result + `warning: "max_retries_exceeded (...)"` |
 | `raw_testcases` = None (generator fail) + vượt retry | trả `error: generation_failed` |
 
@@ -762,7 +762,7 @@ Admin UI
 | `THINKING_LEVEL` | `low` | `minimal` / `low` / `medium` / `high` (Gemini 3) — auto-map sang `thinking_budget` nếu dùng Gemini 2.x |
 | `GENERATOR_MODEL_NAME` | `gemini-3.1-pro-preview` | **Model riêng** cho analyzer + testcase_generator + input_generator |
 | `GENERATOR_THINKING_LEVEL` | `medium` | Thinking level cho generator model |
-| `MAX_TESTCASES` | `25` | Cap `numTestcases` (chặn ở `generator_router`) |
+| `MAX_TESTCASES` | `1000` | Trần `numTestcases` (chặn ở `generator_router`); LLM one-shot chỉ kham ~vài chục thật sự |
 | `GENERATOR_MAX_RETRIES` | `2` | Số lần retry tối đa của `testcase_validator` |
 | `PROGRAMMATIC_INPUTS` | `false` | Bật Phase B — `input_generator` sinh input lớn bằng code |
 | `PROGRAMMATIC_INPUT_SEED` | `42` | Seed cố định cho `gen_inputs` (deterministic qua repair loop) |

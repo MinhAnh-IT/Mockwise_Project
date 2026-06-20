@@ -32,7 +32,7 @@ raw_input
     │
 [generator_router]
     │   • validate request theo mode (camelCase only)
-    │   • CHẶN nếu numTestcases > MAX_TESTCASES (mặc định 25) → error too_many_testcases
+    │   • CHẶN nếu numTestcases > MAX_TESTCASES (mặc định 1000) → error too_many_testcases
     │   • lỗi validation → final_output → END
     │
 [problem_analyzer]
@@ -95,7 +95,9 @@ Hai node sinh đề truyền model riêng; phần còn lại của service vẫn
 Kèm theo:
 - `GENERATOR_MAX_RETRIES` nâng `1 → 2` (lỗi lệch count / trùng input thường hết ở
   lần regenerate thứ 2).
-- **`MAX_TESTCASES` cap** (mặc định 25), chặn ngay ở `generator_router`. Trước đây
+- **`MAX_TESTCASES` cap** (mặc định 1000 — chỉ là trần chống request vô lý; LLM
+  one-shot thực tế chỉ kham ~vài chục, vài trăm→1000 cần đường sinh hàng loạt bằng
+  code), chặn ở `generator_router`. Trước đây
   **không có giới hạn nào** → user xin con số quá lớn mà bước sinh one-shot không
   kham nổi chính là nguyên nhân "sinh tùm bậy".
 
@@ -159,7 +161,7 @@ lưu — không phải lúc nào cũng là lỗi, nhưng là tín hiệu cần l
 |---|---|---|
 | `GENERATOR_MODEL_NAME` | `gemini-3.1-pro-preview` | Model riêng cho analyzer + testcase_generator + input_generator |
 | `GENERATOR_THINKING_LEVEL` | `medium` | Thinking level cho generator model |
-| `MAX_TESTCASES` | `25` | Cap numTestcases (chặn ở router) |
+| `MAX_TESTCASES` | `1000` | Trần `numTestcases` (chặn ở router). LLM one-shot chỉ kham ~vài chục thật sự |
 | `GENERATOR_MAX_RETRIES` | `2` | Retry của testcase_validator (trước là 1) |
 | `PROGRAMMATIC_INPUTS` | `false` | Bật Phase B (sinh input lớn bằng code) |
 | `PROGRAMMATIC_INPUT_SEED` | `42` | Seed cố định → deterministic qua các lần repair |

@@ -61,8 +61,12 @@ def testcase_generator_node(state: GeneratorState) -> dict:
     try:
         prompt = build_testcase_generation_prompt(req, analysis, retry_instruction)
 
-        # 20 testcases × ~400 tokens each = ~8k, leave headroom for larger counts
-        max_tokens = max(8192, req.num_testcases * 600)
+        # 20 testcases × ~400 tokens each = ~8k, scale up with count but CLAMP to a
+        # safe ceiling — the model's max output is ~32k, and asking for e.g.
+        # num_testcases*600 = 600k on a 1000-case request would be an invalid
+        # request. Past the ceiling the one-shot LLM path can't fit the batch
+        # anyway (that's the programmatic generator's job).
+        max_tokens = min(32768, max(8192, req.num_testcases * 600))
         result: _TestcaseList = call_structured(
             prompt,
             _TestcaseList,

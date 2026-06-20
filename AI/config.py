@@ -19,10 +19,11 @@ EMBEDDING_DIM: int = int(os.getenv("EMBEDDING_DIM", "768"))
 GENERATOR_MODEL_NAME: str = os.getenv("GENERATOR_MODEL_NAME", "gemini-3.1-pro-preview")
 GENERATOR_THINKING_LEVEL: str = os.getenv("GENERATOR_THINKING_LEVEL", "medium")
 # Upper bound on numTestcases. The generator emits all N cases in one structured
-# call, which degrades (count drift, duplicates, fake "large" inputs) as N grows;
-# the cap keeps requests inside the range the one-shot path can satisfy. The
-# programmatic input-generator (phase B) can lift this later.
-MAX_TESTCASES: int = int(os.getenv("MAX_TESTCASES", "25"))
+# call, so it realistically tops out around a few dozen (count drift, duplicates,
+# token truncation past that). The cap is only a hard ceiling against absurd
+# requests — genuinely large counts (hundreds→1000) need the programmatic bulk
+# generator, not the LLM one-shot path.
+MAX_TESTCASES: int = int(os.getenv("MAX_TESTCASES", "1000"))
 
 # ─── Evaluation graph ─────────────────────────────────────────────────────────
 MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "2"))
