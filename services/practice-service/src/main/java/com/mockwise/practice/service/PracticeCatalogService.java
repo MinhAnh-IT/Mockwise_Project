@@ -83,7 +83,10 @@ public class PracticeCatalogService {
         if (d == null) {
             throw new BusinessException(StatusCode.PROBLEM_NOT_FOUND);
         }
-        return toView(d);
+        ProblemStatus myStatus = statusRepo.findByUserIdAndQuestionId(userId, id)
+                .map(PracticeProblemStatus::getStatus)
+                .orElse(ProblemStatus.NONE);
+        return toView(d, myStatus);
     }
 
     // ── Mapping ────────────────────────────────────────────────────────────────
@@ -119,7 +122,7 @@ public class PracticeCatalogService {
                         }));
     }
 
-    private CodingProblemView toView(QbCodingDetail d) {
+    private CodingProblemView toView(QbCodingDetail d, ProblemStatus myStatus) {
         CodingProblemView.FunctionMeta fnMeta = null;
         if (d.functionMeta() != null) {
             List<CodingProblemView.Param> params = d.functionMeta().params() == null
@@ -152,7 +155,8 @@ public class PracticeCatalogService {
                 d.optimalSpaceComplexity(),
                 fnMeta,
                 d.starterCode() == null ? java.util.Map.of() : d.starterCode(),
-                samples);
+                samples,
+                myStatus);
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────

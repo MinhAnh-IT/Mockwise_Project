@@ -49,6 +49,8 @@ export type PracticeProblemDetail = {
   functionMeta: FunctionMeta;
   starterCode: Partial<StarterCode>;
   sampleTestCases: SampleTestCase[];
+  /** The current user's relationship to this problem. */
+  myStatus: ProblemStatus;
 };
 
 /** 202 response from run/submit — poll the submission by id. */
