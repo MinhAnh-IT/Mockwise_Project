@@ -3,6 +3,11 @@
 > **Status:** Implemented
 > **Service:** AI-Evaluation
 > **Feature:** `POST /generate-testcases`
+>
+> 📌 Tài liệu này tập trung vào **API contract + schema + format từng field**.
+> Mô tả **luồng runtime hiện tại** (model riêng cho generator, cap numTestcases,
+> node `input_generator` sinh input lớn bằng code) xem
+> [`testcase-generation-flow.md`](./testcase-generation-flow.md).
 
 ---
 
@@ -325,6 +330,7 @@ raw_input
     │   Validate input theo mode
     │   mode=leetcode → validated_input chỉ có leetcodeUrl + meta
     │   mode=custom   → validated_input có đủ fields
+    │   numTestcases > MAX_TESTCASES (mặc định 25) → error too_many_testcases (END)
     │   Lỗi validation → trả về error ngay (END)
     │
 [problem_analyzer]
@@ -338,6 +344,7 @@ raw_input
     │   - starter_code: { python, java, cpp, javascript }  ← 4 ngôn ngữ
     │   - reference_solution + brute_force_solution: 2 lời giải Python ĐỘC LẬP
     │     (để expected_verifier chạy thật & đối chiếu consensus)
+    │   - unique_answer: cờ "đề có đúng 1 đáp án?" (gate cho input_generator)
     │   - optimal_time_complexity, optimal_space_complexity (hoặc dùng input nếu custom có)
     │   - time_limit_minutes
     │   - constraints & edge_case_hints (nội bộ cho bước tiếp theo)
@@ -351,6 +358,12 @@ raw_input
     │   ├─ 2–3 Edge cases    (visible, empty/single/negative/overflow...)
     │   ├─ N   Normal cases  (visible, random valid inputs)
     │   └─ num_hidden Hidden cases (is_hidden=true, large/complex inputs)
+    │
+[input_generator]  (Phase B · no-op nếu PROGRAMMATIC_INPUTS=false)
+    │   Chỉ chạy khi: flag ON + VERIFY_EXPECTED_OUTPUTS ON + unique_answer=true.
+    │   LLM viết gen_inputs(num_cases, seed) → chạy sandboxed → THAY inputData của
+    │   hidden case bằng input LỚN/ngẫu nhiên đúng constraint (expected_verifier
+    │   sẽ điền output). Mọi lỗi → giữ hidden case của LLM + warning.
     │
 [expected_verifier]  ──(unverifiable + còn budget)──► quay lại [problem_analyzer]
     │   DUAL-SOLUTION CONSENSUS: chạy CẢ HAI lời giải (reference_solution tối ưu
@@ -388,6 +401,11 @@ class GeneratorState(TypedDict):
     leetcode_problem: Optional[dict]    # fetched LeetCode data (mode=leetcode only)
     problem_analysis: Optional[dict]    # structured output của problem_analyzer
     raw_testcases: Optional[list]       # structured output của testcase_generator
+    verifier_warning: Optional[str]     # note từ expected_verifier
+    programmatic_warning: Optional[str] # note từ input_generator (Phase B)
+    needs_reference_retry: bool         # expected_verifier → regenerate lời giải
+    reference_retry_count: int          # đếm repair loop (REFERENCE_MAX_RETRIES)
+    reference_feedback: Optional[str]   # lý do cặp lời giải trước bị từ chối
     final_output: Optional[dict]
     retry_count: int
     needs_retry: bool
@@ -638,8 +656,9 @@ AI tự estimate theo difficulty:
 | `len(testcases) != numTestcases` | retry |
 | `sum(isHidden) != numHidden` (= `numTestcases − numVisible`) | retry |
 | Hai testcase có `inputData` giống nhau (so sánh canonicalized JSON) | retry |
-| Bất kỳ `expectedOutput` nào rỗng `{}` | retry |
-| Vượt `GENERATOR_MAX_RETRIES` (default `1`) | trả partial result + `warning: "max_retries_exceeded (...)"` |
+| Bất kỳ `expectedOutput` nào rỗng `{}` / sai shape | retry |
+| `numTestcases > MAX_TESTCASES` (default `25`) | chặn sớm ở `generator_router` → `error: too_many_testcases` |
+| Vượt `GENERATOR_MAX_RETRIES` (default `2`) | trả partial result + `warning: "max_retries_exceeded (...)"` |
 | `raw_testcases` = None (generator fail) + vượt retry | trả `error: generation_failed` |
 
 Duplicate check dùng `json.dumps(inputData, sort_keys=True)` để tránh false positive khi LLM đổi thứ tự key.
@@ -662,14 +681,17 @@ AI-Evaluation/
 │   ├── leetcode_fetcher.py             ← fetch_leetcode_problem() (4-language starter code)
 │   ├── nodes/
 │   │   ├── __init__.py
-│   │   ├── generator_router.py         ← validate & init state
-│   │   ├── problem_analyzer.py         ← fetch LeetCode (nếu cần) + LLM suy metadata + 4-lang starter
-│   │   ├── testcase_generator.py       ← LLM sinh testcases
+│   │   ├── generator_router.py         ← validate & init state + cap MAX_TESTCASES
+│   │   ├── problem_analyzer.py         ← fetch LeetCode (nếu cần) + LLM suy metadata + 4-lang starter + unique_answer
+│   │   ├── testcase_generator.py       ← LLM sinh testcases (generator model)
+│   │   ├── input_generator.py          ← Phase B: sinh input lớn bằng code (gen_inputs)
+│   │   ├── expected_verifier.py        ← dual-solution consensus tính expectedOutput
 │   │   └── testcase_validator.py       ← validate output, retry, assemble camelCase response
 │   └── prompts/
 │       ├── __init__.py
-│       ├── problem_analysis.py         ← prompt với judge-service type table + 4 language templates
-│       └── testcase_generation.py
+│       ├── problem_analysis.py         ← prompt với judge-service type table + 4 language templates + unique_answer
+│       ├── testcase_generation.py
+│       └── input_generation.py         ← Phase B: prompt cho gen_inputs(num_cases, seed)
 │
 ├── evaluator/                          ← Evaluator (LiveCoding/Behavioral/Conceptual)
 │   └── ...
@@ -736,17 +758,25 @@ Admin UI
 | Env | Default | Dùng cho |
 |---|---|---|
 | `GOOGLE_API_KEY` | — | Gemini API key (bắt buộc) |
-| `MODEL_NAME` | `gemini-3-flash-preview` | Model gọi cả analyzer + generator |
+| `MODEL_NAME` | `gemini-flash-latest` | Model mặc định cho các tác vụ chung (evaluator, selector) |
 | `THINKING_LEVEL` | `low` | `minimal` / `low` / `medium` / `high` (Gemini 3) — auto-map sang `thinking_budget` nếu dùng Gemini 2.x |
-| `GENERATOR_MAX_RETRIES` | `1` | Số lần retry tối đa của `testcase_validator` |
+| `GENERATOR_MODEL_NAME` | `gemini-3.1-pro-preview` | **Model riêng** cho analyzer + testcase_generator + input_generator |
+| `GENERATOR_THINKING_LEVEL` | `medium` | Thinking level cho generator model |
+| `MAX_TESTCASES` | `25` | Cap `numTestcases` (chặn ở `generator_router`) |
+| `GENERATOR_MAX_RETRIES` | `2` | Số lần retry tối đa của `testcase_validator` |
+| `PROGRAMMATIC_INPUTS` | `false` | Bật Phase B — `input_generator` sinh input lớn bằng code |
+| `PROGRAMMATIC_INPUT_SEED` | `42` | Seed cố định cho `gen_inputs` (deterministic qua repair loop) |
 | `VERIFY_EXPECTED_OUTPUTS` | `true` | Bật bước `expected_verifier` (chạy reference solution qua judge driver để tính `expectedOutput`). Đặt `false` để quay lại tin output LLM tự tính |
-| `EXPECTED_VERIFY_TIMEOUT_SECONDS` | `15` | Giới hạn wall-clock mỗi lần chạy 1 lời giải trên 1 testcase |
+| `EXPECTED_VERIFY_TIMEOUT_SECONDS` | `15` | Giới hạn wall-clock mỗi lần chạy 1 lời giải / hàm sinh trên 1 testcase |
 | `REFERENCE_MAX_RETRIES` | `2` | Số lần regenerate 2 lời giải khi chúng lệch nhau (repair loop) |
 | `MAX_RETRIES` | `2` | Retry cho evaluator agent (`/evaluate`) |
 | `MODEL_VERSION` | `evaluator-v1.0` | Ghi vào `meta.modelVersion` của response |
 | `SERVICE_API_KEY` | — | Nếu set, `/generate-testcases` & `/evaluate` yêu cầu `X-API-Key` header |
 
-Tất cả LLM call đi qua `llm.call_structured(prompt, response_model)` — thay model / thinking level chỉ cần sửa `.env`, không cần sửa code.
+LLM call đi qua `llm.call_structured(prompt, response_model, model=, thinking_level=)`.
+Mặc định dùng `MODEL_NAME`/`THINKING_LEVEL`; ba node sinh đề truyền `GENERATOR_MODEL_NAME`/`GENERATOR_THINKING_LEVEL`. Thay model chỉ cần sửa `.env`.
+
+> ⚠ Trên key prod, `gemini-3-pro` / `gemini-3-pro-preview` KHÔNG generate được; default dùng `gemini-3.1-pro-preview` (đã verify). Fallback: `gemini-2.5-pro` (code tự dùng `thinking_budget` cho dòng 2.x).
 
 ---
 

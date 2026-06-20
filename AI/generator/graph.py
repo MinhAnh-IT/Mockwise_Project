@@ -4,6 +4,7 @@ from generator.state import GeneratorState
 from generator.nodes.generator_router import generator_router_node
 from generator.nodes.problem_analyzer import problem_analyzer_node
 from generator.nodes.testcase_generator import testcase_generator_node
+from generator.nodes.input_generator import input_generator_node
 from generator.nodes.expected_verifier import expected_verifier_node
 from generator.nodes.testcase_validator import testcase_validator_node
 
@@ -44,6 +45,7 @@ def build_generator_graph():
     graph.add_node("generator_router", generator_router_node)
     graph.add_node("problem_analyzer", problem_analyzer_node)
     graph.add_node("testcase_generator", testcase_generator_node)
+    graph.add_node("input_generator", input_generator_node)
     graph.add_node("expected_verifier", expected_verifier_node)
     graph.add_node("testcase_validator", testcase_validator_node)
 
@@ -70,12 +72,15 @@ def build_generator_graph():
         },
     )
 
-    # ── generator → verifier → validator ──────────────────────────────────────
+    # ── generator → input_generator → verifier → validator ────────────────────
+    # input_generator (no-op unless PROGRAMMATIC_INPUTS is on) swaps the hidden
+    # cases' inputs for programmatically-generated large/random ones. Then
     # expected_verifier proves each case's expectedOutput by dual-solution
     # consensus and overwrites the ones it can prove. If some case is
     # unverifiable it loops back to problem_analyzer to regenerate the solutions
     # (bounded by REFERENCE_MAX_RETRIES); otherwise it proceeds to validation.
-    graph.add_edge("testcase_generator", "expected_verifier")
+    graph.add_edge("testcase_generator", "input_generator")
+    graph.add_edge("input_generator", "expected_verifier")
     graph.add_conditional_edges(
         "expected_verifier",
         _route_after_verifier,

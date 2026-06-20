@@ -161,9 +161,12 @@ def testcase_validator_node(state: GeneratorState) -> dict:
     retry_count: int = state.get("retry_count", 0)
     generation_start_ms: int = state.get("generation_start_ms", int(time.time() * 1000))
     leetcode_problem: dict | None = state.get("leetcode_problem")
-    # Non-fatal note from expected_verifier (e.g. reference solution could not
-    # solve some case) — surfaced to the admin in the response `warning`.
-    verifier_warning: str | None = state.get("verifier_warning")
+    # Non-fatal notes surfaced to the admin in the response `warning`:
+    #   • verifier_warning      — expected_verifier (e.g. a case it could not prove)
+    #   • programmatic_warning  — input_generator (e.g. it fell back to LLM inputs)
+    verifier_warning: str | None = "; ".join(
+        w for w in (state.get("programmatic_warning"), state.get("verifier_warning")) if w
+    ) or None
 
     max_retries = config.GENERATOR_MAX_RETRIES
 

@@ -3,6 +3,7 @@ from typing import List, Any, Dict
 
 from pydantic import BaseModel, field_validator
 
+import config
 from llm import call_structured
 from generator.prompts.testcase_generation import build_testcase_generation_prompt
 from generator.state import GeneratorState
@@ -62,7 +63,13 @@ def testcase_generator_node(state: GeneratorState) -> dict:
 
         # 20 testcases × ~400 tokens each = ~8k, leave headroom for larger counts
         max_tokens = max(8192, req.num_testcases * 600)
-        result: _TestcaseList = call_structured(prompt, _TestcaseList, max_tokens=max_tokens)
+        result: _TestcaseList = call_structured(
+            prompt,
+            _TestcaseList,
+            max_tokens=max_tokens,
+            model=config.GENERATOR_MODEL_NAME,
+            thinking_level=config.GENERATOR_THINKING_LEVEL,
+        )
 
         # Convert string fields back to dicts for downstream validators
         raw = [

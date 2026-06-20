@@ -13,27 +13,40 @@ from google.genai import types
 import config
 
 
-def _thinking_config() -> types.ThinkingConfig:
-    level = config.THINKING_LEVEL
-    if config.MODEL_NAME.startswith("gemini-3"):
+def _thinking_config(model: str, level: str) -> types.ThinkingConfig:
+    if model.startswith("gemini-3"):
         return types.ThinkingConfig(thinking_level=level)
     # Gemini 2.x uses thinking_budget (token allowance) instead of thinking_level
     budget_map = {"minimal": 0, "low": 1024, "medium": 4096, "high": 8192}
     return types.ThinkingConfig(thinking_budget=budget_map.get(level, 1024))
 
 
-def call_structured(prompt: str, response_model: type, max_tokens: int = 8192) -> Any:
-    """Call Gemini with structured-output mode and return the parsed pydantic model."""
+def call_structured(
+    prompt: str,
+    response_model: type,
+    max_tokens: int = 8192,
+    model: str | None = None,
+    thinking_level: str | None = None,
+) -> Any:
+    """Call Gemini with structured-output mode and return the parsed pydantic model.
+
+    ``model`` / ``thinking_level`` default to the shared MODEL_NAME / THINKING_LEVEL.
+    The coding-question generator overrides them with a stronger model (see
+    config.GENERATOR_MODEL_NAME) because designing testcases is the hardest
+    reasoning step and runs only at admin authoring time.
+    """
+    model = model or config.MODEL_NAME
+    thinking_level = thinking_level or config.THINKING_LEVEL
     client = instructor.from_genai(
         genai.Client(api_key=config.GOOGLE_API_KEY),
         mode=instructor.Mode.GENAI_STRUCTURED_OUTPUTS,
     )
     return client.chat.completions.create(
-        model=config.MODEL_NAME,
+        model=model,
         messages=[{"role": "user", "content": prompt}],
         response_model=response_model,
         generation_config={"temperature": 0.4, "max_tokens": max_tokens},
-        config={"thinking_config": _thinking_config()},
+        config={"thinking_config": _thinking_config(model, thinking_level)},
     )
 
 

@@ -10,9 +10,26 @@ THINKING_LEVEL: str = os.getenv("THINKING_LEVEL", "low")
 EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "gemini-embedding-001")
 EMBEDDING_DIM: int = int(os.getenv("EMBEDDING_DIM", "768"))
 
+# ─── Generator-dedicated model (coding-question / testcase generation) ─────────
+# Designing many diverse, constraint-correct, pairwise-distinct testcase INPUTS
+# is the hardest reasoning step in the product, and it only runs when an admin
+# authors a problem (low frequency) — so the generator path uses a STRONGER
+# model than the shared Flash default. Falls back to MODEL_NAME / THINKING_LEVEL
+# when these are unset, so a single-model deployment still works.
+GENERATOR_MODEL_NAME: str = os.getenv("GENERATOR_MODEL_NAME", "gemini-3.1-pro-preview")
+GENERATOR_THINKING_LEVEL: str = os.getenv("GENERATOR_THINKING_LEVEL", "medium")
+# Upper bound on numTestcases. The generator emits all N cases in one structured
+# call, which degrades (count drift, duplicates, fake "large" inputs) as N grows;
+# the cap keeps requests inside the range the one-shot path can satisfy. The
+# programmatic input-generator (phase B) can lift this later.
+MAX_TESTCASES: int = int(os.getenv("MAX_TESTCASES", "25"))
+
 # ─── Evaluation graph ─────────────────────────────────────────────────────────
 MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "2"))
-GENERATOR_MAX_RETRIES: int = int(os.getenv("GENERATOR_MAX_RETRIES", "1"))
+# Two retries (was 1): count-drift / duplicate-input violations on larger batches
+# often clear on a second regeneration; the extra attempt is cheap relative to a
+# shipped best-effort partial.
+GENERATOR_MAX_RETRIES: int = int(os.getenv("GENERATOR_MAX_RETRIES", "2"))
 # When true, the generator runs the analyzer's reference solution through the
 # real judge Python driver to derive each testcase's expectedOutput (instead of
 # trusting the LLM's hand-computed value). See generator/nodes/expected_verifier.
@@ -24,6 +41,17 @@ EXPECTED_VERIFY_TIMEOUT_SECONDS: int = int(os.getenv("EXPECTED_VERIFY_TIMEOUT_SE
 # How many times to regenerate the reference/brute-force solutions when they
 # disagree (or one fails) on some input — the expected-output repair loop.
 REFERENCE_MAX_RETRIES: int = int(os.getenv("REFERENCE_MAX_RETRIES", "2"))
+# ── Programmatic input generation (phase B) ───────────────────────────────────
+# When true, an LLM-authored `gen_inputs(num_cases, seed)` Python function is run
+# to synthesise the HIDDEN testcases' inputs PROGRAMMATICALLY (genuinely large /
+# random, near constraint bounds) instead of having the model hand-type them —
+# the existing expected_verifier then computes their outputs. Runs ONLY when the
+# analyzer marked the problem unique_answer=true and expected-output verification
+# is on (it relies on it to fill the swapped cases' outputs). Default OFF —
+# enable in staging and smoke-test before prod.
+PROGRAMMATIC_INPUTS: bool = os.getenv("PROGRAMMATIC_INPUTS", "false").lower() == "true"
+# Fixed seed so the generator is deterministic across repair-loop re-runs.
+PROGRAMMATIC_INPUT_SEED: int = int(os.getenv("PROGRAMMATIC_INPUT_SEED", "42"))
 EVALUATOR_VERSION: str = os.getenv("EVALUATOR_VERSION", "evaluator-v1.0")
 # Kept for backwards compatibility — older code reads MODEL_VERSION.
 MODEL_VERSION: str = os.getenv("MODEL_VERSION", EVALUATOR_VERSION)

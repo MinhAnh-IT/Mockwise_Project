@@ -172,6 +172,17 @@ FUNCTION SIGNATURE
   return_type  : return type string
   order_matters: true if output array/list order is significant
                  (false for problems like twoSum, groupAnagrams, permutations)
+  unique_answer: true IF AND ONLY IF every valid input has EXACTLY ONE
+                 acceptable output — e.g. count/sum/length/max/min, a boolean,
+                 a fully-sorted array, the single shortest distance. Set FALSE
+                 when MORE THAN ONE output can be correct for the same input:
+                 "return ANY valid X" problems (twoSum — several index pairs may
+                 hit the target; find ANY peak; return ANY valid subset/ordering;
+                 "if multiple answers exist return any"). When unsure, choose
+                 FALSE. (A downstream step auto-generates large RANDOM inputs and
+                 grades them by exact match; it only runs when unique_answer=true,
+                 because a random input on a multi-answer problem would reject a
+                 candidate's equally-correct answer.)
   in_place     : true IF AND ONLY IF the function's contract is to mutate the
                  FIRST argument AND has no meaningful return value
                  (e.g. sortColors, reverseString, rotate, reverseArray).

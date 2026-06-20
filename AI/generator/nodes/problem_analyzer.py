@@ -2,6 +2,7 @@ from typing import List, Literal
 
 from pydantic import BaseModel, field_validator, model_validator
 
+import config
 from llm import call_structured
 from generator.leetcode_fetcher import (
     LeetCodeFetchError,
@@ -84,6 +85,14 @@ class ProblemAnalysisOutput(BaseModel):
     return_type: str
     order_matters: bool
     in_place: bool
+    # True IFF every valid input has EXACTLY ONE acceptable output (count/sum/
+    # sorted-output/boolean/the-shortest-distance kind of problem). False for
+    # "return ANY valid X" problems (two-sum index pair, any peak, any valid
+    # subset) where several outputs are correct. The judge does an exact match,
+    # so the programmatic random-input generator (input_generator_node) only runs
+    # when this is True — a random input on a multi-answer problem would let the
+    # candidate's equally-correct answer WA against our single stored result.
+    unique_answer: bool
     starter_code: _StarterCode
     reference_solution: str
     brute_force_solution: str
@@ -197,7 +206,9 @@ def problem_analyzer_node(state: GeneratorState) -> dict:
         # brute force) + a VN description, so the default 8192 cap can truncate
         # on harder problems and fail structured parsing — give it headroom.
         result: ProblemAnalysisOutput = call_structured(
-            prompt, ProblemAnalysisOutput, max_tokens=16384
+            prompt, ProblemAnalysisOutput, max_tokens=16384,
+            model=config.GENERATOR_MODEL_NAME,
+            thinking_level=config.GENERATOR_THINKING_LEVEL,
         )
 
         # ── Step 3: override LLM output with authoritative sources ────────────

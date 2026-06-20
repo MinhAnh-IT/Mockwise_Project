@@ -10,6 +10,7 @@ class GeneratorState(TypedDict):
     problem_analysis: Optional[dict]   # structured output of problem_analyzer node
     raw_testcases: Optional[list]      # structured output of testcase_generator node
     verifier_warning: Optional[str]    # non-fatal notes from expected_verifier node
+    programmatic_warning: Optional[str]  # non-fatal notes from input_generator node
     needs_reference_retry: bool        # expected_verifier → regenerate solutions
     reference_retry_count: int         # repair-loop counter (capped REFERENCE_MAX_RETRIES)
     reference_feedback: Optional[str]  # why the last reference/brute pair was rejected
