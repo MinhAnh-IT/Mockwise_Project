@@ -2,9 +2,10 @@
 
 Recompute rules:
 - `overall_score` is recomputed from per-answer scores weighted by the
-  topic's `importance` (HIGH:1.5, MED:1.0, LOW:0.5). Answers with status
-  FAILED are scored 0. The LLM number is overwritten — narrative quality
-  is its job, scoring is ours.
+  topic's `importance` (HIGH:1.5, MED:1.0, LOW:0.5) AND the question's
+  `difficulty` (EASY:0.8, MEDIUM:1.0, HARD:1.3) so harder questions count
+  more. Answers with status FAILED are scored 0. The LLM number is
+  overwritten — narrative quality is its job, scoring is ours.
 - `grade` and `hire_signal` derive from `overall_score` (0–10 bands):
     A ≥ 9.0      strong_yes
     B ≥ 7.5      yes
@@ -27,6 +28,13 @@ logger = logging.getLogger(__name__)
 
 
 _IMPORTANCE_WEIGHT = {"HIGH": 1.5, "MED": 1.0, "LOW": 0.5}
+_DIFFICULTY_WEIGHT = {"EASY": 0.8, "MEDIUM": 1.0, "MED": 1.0, "HARD": 1.3}
+
+
+def _difficulty_weight(difficulty: str | None) -> float:
+    if not difficulty:
+        return 1.0
+    return _DIFFICULTY_WEIGHT.get(difficulty.upper(), 1.0)
 
 
 def _grade_band(score: float) -> tuple[Grade, HireSignal]:
@@ -60,7 +68,8 @@ def _compute_overall_score(payload: SessionEvaluationPayload) -> float:
         score = ans.per_answer_score
         if ans.answer_status == "FAILED" or score is None:
             score = 0.0
-        weight = _topic_weight(payload, ans.topic_kind, ans.topic_value)
+        weight = _topic_weight(payload, ans.topic_kind, ans.topic_value) \
+            * _difficulty_weight(ans.difficulty)
         weighted_sum += float(score) * weight
         weight_total += weight
     if weight_total == 0:

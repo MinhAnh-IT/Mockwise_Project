@@ -3,11 +3,23 @@
 All extend {@link CamelModel} so JSON keys are camelCase on the wire,
 matching the orchestrator's outgoing shape.
 """
-from typing import Literal, List
+from typing import Dict, Literal, List, Optional
 
 from pydantic import Field, field_validator
 
 from models._base import CamelModel
+
+
+# ─── Shared evaluation context ────────────────────────────────────────────────
+
+class EvalContext(CamelModel):
+    """Situational context the grader needs to set the right bar and understand
+    a question. Every field optional so events emitted before the orchestrator
+    started sending this block still parse (backward compatibility)."""
+    is_follow_up: bool = False
+    parent_question_text: Optional[str] = None
+    parent_answer_excerpt: Optional[str] = None
+    probing_gap: Optional[str] = None
 
 
 # ─── Live Coding Input ────────────────────────────────────────────────────────
@@ -53,6 +65,9 @@ class LiveCodingQuestion(CamelModel):
 class TestSummary(CamelModel):
     total: int
     passed: int
+    # Counts of the FAILING cases by judge verdict (e.g. {"WA": 2, "TLE": 1}).
+    # Empty when all passed or for events emitted before this was added.
+    failed_by_status: Dict[str, int] = Field(default_factory=dict)
 
 
 class LiveCodingSubmission(CamelModel):
@@ -77,6 +92,8 @@ class BehavioralQuestion(CamelModel):
     text: str
     competency: str
     expected_signals: List[str]
+    difficulty: Optional[str] = None
+    expected_points: Optional[List[str]] = None
 
 
 class BehavioralAnswer(CamelModel):
@@ -90,6 +107,9 @@ class BehavioralInput(CamelModel):
     interview_type: Literal["behavioral"]
     question: BehavioralQuestion
     answer: BehavioralAnswer
+    context: Optional[EvalContext] = None
+    level: Optional[str] = None
+    target_role: Optional[str] = None
     response_language: Literal["en", "vi"] = "vi"
 
 
@@ -101,6 +121,8 @@ class ConceptualQuestion(CamelModel):
     domain: str
     key_concepts: List[str]
     depth_expected: str
+    difficulty: Optional[str] = None
+    expected_points: Optional[List[str]] = None
 
 
 class ConceptualAnswer(CamelModel):
@@ -114,4 +136,7 @@ class ConceptualInput(CamelModel):
     interview_type: Literal["core_conceptual"]
     question: ConceptualQuestion
     answer: ConceptualAnswer
+    context: Optional[EvalContext] = None
+    level: Optional[str] = None
+    target_role: Optional[str] = None
     response_language: Literal["en", "vi"] = "vi"

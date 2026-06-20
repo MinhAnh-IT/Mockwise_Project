@@ -29,6 +29,11 @@ def build_overall_review_prompt(
         ensure_ascii=False,
         indent=2,
     )
+    adaptive_json = json.dumps(
+        payload.adaptive.model_dump(by_alias=False) if payload.adaptive else {},
+        ensure_ascii=False,
+        indent=2,
+    )
 
     retry_block = f"\n\nIMPORTANT — previous attempt was rejected. {retry_instruction}\n" if retry_instruction else ""
 
@@ -62,8 +67,13 @@ interview_type: {payload.interview_type}
 blueprint (the planned topic coverage):
 {blueprint_json}
 
+adaptive trajectory (how difficulty escalated as the candidate performed):
+{adaptive_json}
+
 answers (in order, with per-answer verdicts already attached):
 {answers_json}
+Each answer carries `difficulty`; follow-ups also carry `parentQuestionText`,
+`parentAnswerExcerpt`, and `probingGap` so you can read them in context.
 
 OUTPUT — strict JSON matching the OverallReviewOutput schema
 ────────────────────────────────────────────────────────────
@@ -103,5 +113,15 @@ GUIDELINES
    take to improve (study X, practise Y).
 6. Pick `overall_score`, `grade`, `hire_signal` consistent with the
    per-answer scores — but downstream validation will recompute the
-   numeric and band, so prioritise narrative quality.{retry_block}
+   numeric and band, so prioritise narrative quality.
+7. Weight harder questions more heavily in your qualitative judgement, and
+   read the TRAJECTORY: if the candidate answered quickly and strongly and was
+   escalated to harder questions (stretchMode true / rising difficulty across
+   the sequence) and still handled them, reward that in the narrative; if
+   difficulty was lowered after weak answers, factor that in. Do not give a
+   candidate who only cleared EASY questions the same credit as one who cleared
+   HARD ones.
+8. For follow-ups, thread them to their parent: assess whether the follow-up
+   closed the `probingGap` and built on `parentAnswerExcerpt`, not as a
+   standalone question.{retry_block}
 """
