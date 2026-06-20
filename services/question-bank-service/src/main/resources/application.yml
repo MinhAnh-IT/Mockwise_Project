@@ -41,12 +41,13 @@ api:
 
 # Server-side proxy to the AI service's /generate-testcases (admin-only).
 # `api-key` is the AI subscription/service secret — it lives ONLY here, never
-# in the browser bundle. Read timeout is generous: generation can take ~30s+.
+# in the browser bundle. Read timeout is generous: generating + verifying a large
+# testcase batch (up to 100) can take a couple of minutes, so allow 300s.
 ai-client:
   base-url: ${AI_SERVICE_URL:http://ai-service:8000}
   api-key: ${SERVICE_API_KEY:}
   connect-timeout-ms: ${AI_CLIENT_CONNECT_TIMEOUT_MS:5000}
-  read-timeout-ms: ${AI_CLIENT_READ_TIMEOUT_MS:120000}
+  read-timeout-ms: ${AI_CLIENT_READ_TIMEOUT_MS:300000}
 
 # Sync TTS call after admin creates / updates a behavioral or core question.
 # Failures are logged but do NOT block question creation.

@@ -19,11 +19,11 @@ EMBEDDING_DIM: int = int(os.getenv("EMBEDDING_DIM", "768"))
 GENERATOR_MODEL_NAME: str = os.getenv("GENERATOR_MODEL_NAME", "gemini-3.1-pro-preview")
 GENERATOR_THINKING_LEVEL: str = os.getenv("GENERATOR_THINKING_LEVEL", "medium")
 # Upper bound on numTestcases. The generator emits all N cases in one structured
-# call, so it realistically tops out around a few dozen (count drift, duplicates,
-# token truncation past that). The cap is only a hard ceiling against absurd
-# requests — genuinely large counts (hundreds→1000) need the programmatic bulk
-# generator, not the LLM one-shot path.
-MAX_TESTCASES: int = int(os.getenv("MAX_TESTCASES", "1000"))
+# call. With the bigger output-token budget + parallel verification, ~100 cases
+# is the healthy ceiling for the one-shot path; past that the LLM output starts to
+# truncate and latency climbs. Genuinely larger counts would need a programmatic
+# bulk generator.
+MAX_TESTCASES: int = int(os.getenv("MAX_TESTCASES", "100"))
 
 # ─── Evaluation graph ─────────────────────────────────────────────────────────
 MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "2"))
@@ -39,6 +39,11 @@ VERIFY_EXPECTED_OUTPUTS: bool = os.getenv("VERIFY_EXPECTED_OUTPUTS", "true").low
 # testcase batch. A runaway/loop reference is abandoned and the LLM's expected
 # outputs are kept, rather than hanging the request worker.
 EXPECTED_VERIFY_TIMEOUT_SECONDS: int = int(os.getenv("EXPECTED_VERIFY_TIMEOUT_SECONDS", "15"))
+# How many testcases to verify CONCURRENTLY. Each case runs the reference (and
+# brute) in its own subprocess; a thread pool dispatches several at once so a
+# 100-case batch finishes in seconds instead of running 200 subprocesses serially.
+# Default tuned to the VPS core count (6).
+EXPECTED_VERIFY_WORKERS: int = int(os.getenv("EXPECTED_VERIFY_WORKERS", "6"))
 # How many times to regenerate the reference/brute-force solutions when they
 # disagree (or one fails) on some input — the expected-output repair loop.
 REFERENCE_MAX_RETRIES: int = int(os.getenv("REFERENCE_MAX_RETRIES", "2"))

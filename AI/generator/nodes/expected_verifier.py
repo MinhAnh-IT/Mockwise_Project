@@ -31,6 +31,7 @@ import json
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import config
@@ -155,34 +156,41 @@ def _run_driver(ref_code: str, stdin_str: str, timeout: int) -> str:
     return proc.stdout
 
 
+def _run_one_case(solution: str, meta: dict, input_data: dict, result_type: str, timeout: int):
+    """Run one solution on ONE input; return ``(ok: bool, value_or_error)``."""
+    try:
+        raw = _run_driver(solution, _build_batch_stdin(meta, [input_data]), timeout)
+    except _ReferenceError as exc:
+        return (False, str(exc))
+    except Exception as exc:  # noqa: BLE001
+        return (False, f"driver run failed ({exc})")
+    frames = _parse_framed(raw)
+    if not frames:
+        return (False, "no driver output")
+    status, body = frames[0]
+    if status != "OK":
+        return (False, body.strip() or "solution raised")
+    try:
+        return (True, _expected_from_stdout(body, result_type))
+    except Exception as exc:  # noqa: BLE001
+        return (False, f"unparseable driver output: {exc}")
+
+
 def _run_solution(solution: str, meta: dict, inputs: list, result_type: str, timeout: int) -> list:
     """Run one solution over `inputs` and return a per-case list of
-    ``(ok: bool, value_or_error)``. Each case is run as its OWN subprocess so a
-    timeout/crash on a heavy input (common for a slow brute force) only loses
-    THAT case rather than the whole batch."""
-    out: list = []
-    for input_data in inputs:
-        try:
-            raw = _run_driver(solution, _build_batch_stdin(meta, [input_data]), timeout)
-        except _ReferenceError as exc:
-            out.append((False, str(exc)))
-            continue
-        except Exception as exc:  # noqa: BLE001
-            out.append((False, f"driver run failed ({exc})"))
-            continue
-        frames = _parse_framed(raw)
-        if not frames:
-            out.append((False, "no driver output"))
-            continue
-        status, body = frames[0]
-        if status != "OK":
-            out.append((False, body.strip() or "solution raised"))
-            continue
-        try:
-            out.append((True, _expected_from_stdout(body, result_type)))
-        except Exception as exc:  # noqa: BLE001
-            out.append((False, f"unparseable driver output: {exc}"))
-    return out
+    ``(ok: bool, value_or_error)`` in input order. Each case is its OWN subprocess
+    (so a timeout/crash on a heavy input — common for a slow brute force — only
+    loses THAT case), and the cases run CONCURRENTLY via a thread pool: the threads
+    just wait on subprocess I/O, so a 100-case batch finishes in seconds instead of
+    spawning 200 subprocesses serially. ``executor.map`` preserves order."""
+    if not inputs:
+        return []
+    workers = max(1, min(getattr(config, "EXPECTED_VERIFY_WORKERS", 6), len(inputs)))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        return list(pool.map(
+            lambda inp: _run_one_case(solution, meta, inp, result_type, timeout),
+            inputs,
+        ))
 
 
 def _meta_from_analysis(analysis: dict) -> dict:
