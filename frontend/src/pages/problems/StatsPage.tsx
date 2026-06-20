@@ -184,7 +184,7 @@ export default function StatsPage() {
                     problemId: t.problemId,
                     title: t.title ?? t.problemId,
                     difficulty: t.difficulty,
-                    meta: `${t.solvers} người giải`,
+                    meta: `${t.participants} người làm`,
                   }))}
                 />
                 <CommunityCard

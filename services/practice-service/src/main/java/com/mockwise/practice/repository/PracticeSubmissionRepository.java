@@ -123,16 +123,18 @@ public interface PracticeSubmissionRepository extends JpaRepository<PracticeSubm
     List<Object[]> leaderboardRanked(@Param("since") java.time.LocalDateTime since);
 
     /**
-     * Problems with the most distinct solvers since {@code :since} (trending).
-     * Each row is {@code [questionId, title, difficulty, solvers]}, hottest first.
+     * Problems with the most distinct participants since {@code :since} (trending).
+     * Counts everyone who <b>submitted</b> the problem in the window — solved or
+     * not — since attempting a problem is itself activity. Each row is
+     * {@code [questionId, title, difficulty, participants]}, hottest first.
      */
     @Query(value = """
             SELECT s.question_id, MAX(s.problem_title), MAX(s.difficulty),
-                   COUNT(DISTINCT s.user_id) AS solvers
+                   COUNT(DISTINCT s.user_id) AS participants
             FROM practice_submission s
-            WHERE s.mode = 'SUBMIT' AND s.verdict = 'AC' AND s.created_at >= :since
+            WHERE s.mode = 'SUBMIT' AND s.created_at >= :since
             GROUP BY s.question_id
-            ORDER BY solvers DESC
+            ORDER BY participants DESC
             """, nativeQuery = true)
     List<Object[]> trendingProblems(@Param("since") java.time.LocalDateTime since);
 
