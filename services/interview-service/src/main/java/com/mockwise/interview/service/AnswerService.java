@@ -23,6 +23,7 @@ import com.mockwise.interview.entity.SessionTopicStateId;
 import com.mockwise.interview.enums.AnswerStatus;
 import com.mockwise.interview.enums.AnswerType;
 import com.mockwise.interview.enums.Completeness;
+import com.mockwise.interview.enums.InterviewType;
 import com.mockwise.interview.enums.Correctness;
 import com.mockwise.interview.enums.Depth;
 import com.mockwise.interview.enums.QuestionType;
@@ -1183,9 +1184,31 @@ public class AnswerService {
 
         long pinnedSoFar = sessionQuestionRepo.countBySessionId(session.getId());
 
+        // Time-aware fill: hand the planner the live session clock so that when
+        // every topic is covered but a full Q&A cycle of time remains, it
+        // deepens (re-probes the weakest covered topic) instead of ending early.
+        long secondsRemaining = 0;
+        if (session.getStartedAt() != null) {
+            OffsetDateTime deadline = session.getStartedAt().plusMinutes(session.getTimeBudgetMinutes());
+            secondsRemaining = Math.max(0,
+                    java.time.Duration.between(OffsetDateTime.now(), deadline).getSeconds());
+        }
+        // Per-question pacing cap by interview type (product spec: a BEHAVIORAL
+        // answer runs ~5 min, a CORE answer ~10 min). This is the deepen
+        // time-gate threshold, sized to the cap (worst case) so we never pin a
+        // bonus question the candidate can't finish before the deadline. Derived
+        // from the type — NOT timeBudget/questionBudget — so CORE (10-min
+        // answers, higher budget) is paced correctly rather than over-eagerly.
+        int capMinutesPerQuestion = switch (session.getInterviewType()) {
+            case CORE   -> 10;
+            case CODING -> 10; // planner isn't used for CODING; harmless default
+            default     -> 5;  // BEHAVIORAL
+        };
+        int secondsPerQuestion = capMinutesPerQuestion * 60;
+
         PlannerInputs inputs = new PlannerInputs(
                 session, blueprint, currentState, currentTopicConfig, verdict,
-                statuses, (int) pinnedSoFar);
+                statuses, (int) pinnedSoFar, (int) secondsRemaining, secondsPerQuestion);
         PlannerOutcome outcome = planner.plan(inputs);
 
         sideEffectApplier.apply(outcome.sideEffects(), session, currentState);
@@ -1269,8 +1292,23 @@ public class AnswerService {
                 .filter(java.util.Objects::nonNull)
                 .toList();
 
-        SessionQuestion next = questionPicker.pickForTopic(
-                session.getId(), m.nextTopic(), m.openingDifficulty(), profile, excludeIds, sequence);
+        SessionQuestion next;
+        try {
+            next = questionPicker.pickForTopic(
+                    session.getId(), m.nextTopic(), m.openingDifficulty(), profile, excludeIds, sequence);
+        } catch (BusinessException e) {
+            // No bank question left for this topic (every candidate already
+            // excluded, even after relaxing). Common on the deepen branch, which
+            // re-probes the weakest covered topic and can drain that competency's
+            // pool. End the session gracefully instead of erroring the answer
+            // flow — the overall review still runs on what was answered.
+            // QuestionPicker is not @Transactional, so catching here does not
+            // mark the surrounding transaction rollback-only.
+            log.info("No bank question to advance session {} (topic {}): {} — ending session",
+                    session.getId(), m.nextTopic().getTopicValue(), e.getMessage());
+            handleEndSession(session, PlannerDecision.EndSession.EndReason.COVERAGE_COMPLETE);
+            return;
+        }
 
         // Promote the new topic to PROBING.
         SessionTopicState ts = topicStateRepo.findById(new SessionTopicStateId(

@@ -90,6 +90,18 @@ public class SessionFinalizerService {
             return;
         }
 
+        // Stamp the real number of questions the candidate actually answered.
+        // questionCount was seeded to the blueprint's questionBudget (a planning
+        // ceiling) at /start, so the result/summary was showing the budget rather
+        // than what was answered. Every finalize path funnels through this gate,
+        // and the gate only fires once every answer is terminal, so this is the
+        // one correct moment to record it. SCORED and FAILED both count — the
+        // candidate submitted an answer either way; pinned-but-unanswered
+        // questions (ended early / time up) are excluded.
+        long answeredCount = answerRepo.countBySessionIdAndStatusIn(sessionId,
+                List.of(AnswerStatus.SCORED, AnswerStatus.FAILED));
+        s.setQuestionCount((int) answeredCount);
+
         Map<String, Object> payload = buildPayload(s);
         outboxWriter.stage(KafkaTopics.SESSION_EVALUATION_REQUESTED,
                 "SESSION_EVALUATION_REQUESTED",
