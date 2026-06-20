@@ -758,9 +758,9 @@ Admin UI
 | Env | Default | Dùng cho |
 |---|---|---|
 | `GOOGLE_API_KEY` | — | Gemini API key (bắt buộc) |
-| `MODEL_NAME` | `gemini-flash-latest` | Model mặc định cho các tác vụ chung (evaluator, selector) |
+| `MODEL_NAME` | `gemini-3.5-flash` | Model cho TOÀN BỘ service (evaluator, selector, generator) — set ở `/opt/mockwise/.env` |
 | `THINKING_LEVEL` | `low` | `minimal` / `low` / `medium` / `high` (Gemini 3) — auto-map sang `thinking_budget` nếu dùng Gemini 2.x |
-| `GENERATOR_MODEL_NAME` | `gemini-3.1-pro-preview` | **Model riêng** cho analyzer + testcase_generator + input_generator |
+| `GENERATOR_MODEL_NAME` | `gemini-3.5-flash` | Model cho analyzer + testcase_generator + input_generator (trùng MODEL_NAME; đổi để generator dùng model khác) |
 | `GENERATOR_THINKING_LEVEL` | `medium` | Thinking level cho generator model |
 | `MAX_TESTCASES` | `1000` | Trần `numTestcases` (chặn ở `generator_router`); LLM one-shot chỉ kham ~vài chục thật sự |
 | `GENERATOR_MAX_RETRIES` | `2` | Số lần retry tối đa của `testcase_validator` |
@@ -776,7 +776,7 @@ Admin UI
 LLM call đi qua `llm.call_structured(prompt, response_model, model=, thinking_level=)`.
 Mặc định dùng `MODEL_NAME`/`THINKING_LEVEL`; ba node sinh đề truyền `GENERATOR_MODEL_NAME`/`GENERATOR_THINKING_LEVEL`. Thay model chỉ cần sửa `.env`.
 
-> ⚠ Trên key prod, `gemini-3-pro` / `gemini-3-pro-preview` KHÔNG generate được; default dùng `gemini-3.1-pro-preview` (đã verify). Fallback: `gemini-2.5-pro` (code tự dùng `thinking_budget` cho dòng 2.x).
+> ⚠ Cả service dùng `gemini-3.5-flash` (set ở `.env`). Trên key prod, `gemini-3-pro` / `gemini-3-pro-preview` KHÔNG generate được; nếu muốn generator mạnh hơn dùng `gemini-3.1-pro-preview` hoặc `gemini-2.5-pro` (code tự dùng `thinking_budget` cho dòng 2.x).
 
 ---
 

@@ -87,7 +87,7 @@ Hai node sinh đề truyền model riêng; phần còn lại của service vẫn
 
 | Node | Model dùng |
 |---|---|
-| `problem_analyzer` | `GENERATOR_MODEL_NAME` (mặc định `gemini-3.1-pro-preview`) + `GENERATOR_THINKING_LEVEL` (`medium`) |
+| `problem_analyzer` | `GENERATOR_MODEL_NAME` (mặc định `gemini-3.5-flash`) + `GENERATOR_THINKING_LEVEL` (`medium`) |
 | `testcase_generator` | như trên |
 | `input_generator` | như trên |
 | Mọi tác vụ khác (evaluator, selector…) | `MODEL_NAME` (Flash) + `THINKING_LEVEL` |
@@ -159,7 +159,7 @@ lưu — không phải lúc nào cũng là lỗi, nhưng là tín hiệu cần l
 
 | Env | Default | Dùng cho |
 |---|---|---|
-| `GENERATOR_MODEL_NAME` | `gemini-3.1-pro-preview` | Model riêng cho analyzer + testcase_generator + input_generator |
+| `GENERATOR_MODEL_NAME` | `gemini-3.5-flash` | Model cho analyzer + testcase_generator + input_generator (giờ trùng MODEL_NAME; tách riêng để có thể trỏ về pro nếu cần) |
 | `GENERATOR_THINKING_LEVEL` | `medium` | Thinking level cho generator model |
 | `MAX_TESTCASES` | `1000` | Trần `numTestcases` (chặn ở router). LLM one-shot chỉ kham ~vài chục thật sự |
 | `GENERATOR_MAX_RETRIES` | `2` | Retry của testcase_validator (trước là 1) |
@@ -169,12 +169,13 @@ lưu — không phải lúc nào cũng là lỗi, nhưng là tín hiệu cần l
 | `EXPECTED_VERIFY_TIMEOUT_SECONDS` | `15` | Timeout mỗi lần chạy lời giải/hàm sinh trên 1 case |
 | `REFERENCE_MAX_RETRIES` | `2` | Số lần regenerate 2 lời giải (repair loop) |
 
-> ⚠ **Model availability:** trên key prod hiện tại, `gemini-3-pro` và
-> `gemini-3-pro-preview` đều KHÔNG generate được (404 / "no longer available").
-> Default đã chọn `gemini-3.1-pro-preview` (đã verify generateContent +
-> thinkingLevel=medium = 200). Nếu Google rút model này, đổi
-> `GENERATOR_MODEL_NAME` sang `gemini-2.5-pro` (code tự dùng `thinking_budget`
-> cho dòng 2.x) hoặc `gemini-pro-latest`.
+> ⚠ **Model hiện tại:** cả service (evaluator + selector + generator) dùng
+> `gemini-3.5-flash` (chọn vì nhanh/rẻ; output testcase vẫn được expected_verifier
+> bảo vệ). `MODEL_NAME` được set trong `/opt/mockwise/.env` — đó là source of
+> truth, đổi ở đó + recreate ai-service (`--env-file`). Muốn generator mạnh hơn
+> độc lập: set `GENERATOR_MODEL_NAME=gemini-3.1-pro-preview` (đã verify khả dụng).
+> Lưu ý model availability trên key prod: `gemini-3-pro` / `gemini-3-pro-preview`
+> KHÔNG generate được; `gemini-2.5-pro` / `gemini-pro-latest` thì được.
 
 ---
 

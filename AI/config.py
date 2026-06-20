@@ -5,18 +5,22 @@ load_dotenv()
 
 # ─── Gemini (chat + embedding) ────────────────────────────────────────────────
 GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
-MODEL_NAME: str = os.getenv("MODEL_NAME", "gemini-flash-latest")
+# Single model across the whole AI service (evaluator, selector, generator):
+# gemini-3.5-flash — chosen for speed/cost. Output correctness on generated
+# testcases is protected by expected_verifier (dual-solution consensus), so a
+# Flash miscomputation gets caught and fixed rather than shipped.
+MODEL_NAME: str = os.getenv("MODEL_NAME", "gemini-3.5-flash")
 THINKING_LEVEL: str = os.getenv("THINKING_LEVEL", "low")
 EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "gemini-embedding-001")
 EMBEDDING_DIM: int = int(os.getenv("EMBEDDING_DIM", "768"))
 
-# ─── Generator-dedicated model (coding-question / testcase generation) ─────────
-# Designing many diverse, constraint-correct, pairwise-distinct testcase INPUTS
-# is the hardest reasoning step in the product, and it only runs when an admin
-# authors a problem (low frequency) — so the generator path uses a STRONGER
-# model than the shared Flash default. Falls back to MODEL_NAME / THINKING_LEVEL
-# when these are unset, so a single-model deployment still works.
-GENERATOR_MODEL_NAME: str = os.getenv("GENERATOR_MODEL_NAME", "gemini-3.1-pro-preview")
+# ─── Generator model (coding-question / testcase generation) ──────────────────
+# Same model as the rest of the service now (was a dedicated pro model). Kept as a
+# separate knob so the generator path can be pointed at a stronger model (e.g.
+# gemini-3.1-pro-preview) independently if generation quality ever needs it.
+# thinking_level is medium here (vs low elsewhere) since testcase/edge design is
+# the heaviest reasoning step; drop to low for faster, cheaper generation.
+GENERATOR_MODEL_NAME: str = os.getenv("GENERATOR_MODEL_NAME", "gemini-3.5-flash")
 GENERATOR_THINKING_LEVEL: str = os.getenv("GENERATOR_THINKING_LEVEL", "medium")
 # Upper bound on numTestcases. The generator emits all N cases in one structured
 # call. With the bigger output-token budget + parallel verification, ~100 cases
