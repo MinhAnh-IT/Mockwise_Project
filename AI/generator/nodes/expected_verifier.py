@@ -349,8 +349,18 @@ def expected_verifier_node(state) -> dict:
             "reference_feedback": feedback,
         }
 
+    # Cases we could NOT prove after the repair budget — kept the AI's unverified
+    # expectedOutput. Surface their ids so the admin UI can flag exactly those rows
+    # (yellow) for manual review instead of a fleeting alert. If verification was
+    # skipped wholesale, every case is unverified.
+    if res["skip_reason"]:
+        unverified_ids = [str(tc.get("id", i)) for i, tc in enumerate(raw_testcases)]
+    else:
+        unverified_ids = [cid for cid, _ in res["unresolved"]]
+
     return {
         "raw_testcases": res["testcases"],
         "needs_reference_retry": False,
         "verifier_warning": _build_warning(res, final=True),
+        "verifier_unverified_ids": unverified_ids,
     }

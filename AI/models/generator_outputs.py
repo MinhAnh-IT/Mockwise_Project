@@ -47,6 +47,10 @@ class GeneratedTestCase(BaseModel):
     expectedOutput: Dict[str, Any]
     is_hidden: bool               # JSON: isHidden
     note: str                     # why this testcase matters
+    # False ⇒ expected_verifier could NOT prove this case's expectedOutput (kept
+    # the AI's value); the admin UI flags it yellow for manual review. Default
+    # True so cases the verifier proved/overwrote — and the legacy path — pass.
+    verified: bool = True         # JSON: verified
 
 
 class GeneratedMeta(BaseModel):

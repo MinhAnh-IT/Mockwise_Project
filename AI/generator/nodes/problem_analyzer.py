@@ -234,9 +234,24 @@ def problem_analyzer_node(state: GeneratorState) -> dict:
             if req.optimal_space_complexity:
                 result.optimal_space_complexity = req.optimal_space_complexity
 
+        analysis = result.model_dump()
+
+        # Reference-retry pass: expected_verifier sent the solutions back because
+        # the previous reference/brute pair disagreed. The existing testcase INPUTS
+        # are being kept verbatim (the graph skips testcase_generator), so the
+        # function contract MUST stay identical to those inputs — keep the prior
+        # analysis and swap in ONLY the two regenerated solutions. Otherwise a
+        # drifted fn/params/return_type would WA every kept case.
+        prior = state.get("problem_analysis")
+        if state.get("needs_reference_retry") and prior:
+            prior = dict(prior)
+            prior["reference_solution"] = analysis["reference_solution"]
+            prior["brute_force_solution"] = analysis["brute_force_solution"]
+            analysis = prior
+
         return {
             "leetcode_problem": leetcode_problem,
-            "problem_analysis": result.model_dump(),
+            "problem_analysis": analysis,
             "generation_error": None,
             "reference_feedback": None,   # consumed — clear for the next pass
         }

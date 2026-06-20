@@ -14,6 +14,7 @@ class GeneratorState(TypedDict):
     needs_reference_retry: bool        # expected_verifier → regenerate solutions
     reference_retry_count: int         # repair-loop counter (capped REFERENCE_MAX_RETRIES)
     reference_feedback: Optional[str]  # why the last reference/brute pair was rejected
+    verifier_unverified_ids: Optional[list]  # ids of cases left UNVERIFIED (admin must review)
     final_output: Optional[dict]
     retry_count: int
     needs_retry: bool

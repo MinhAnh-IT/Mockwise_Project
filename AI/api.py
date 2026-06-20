@@ -292,13 +292,19 @@ def generate_testcases_endpoint(payload: dict, _: None = Security(_require_api_k
 # instance) — a restart drops in-flight jobs, which the client treats as an error.
 
 # Generator graph node name → user-facing step key shown in the progress UI.
+# "generate" and "verify" are deliberately COLLAPSED into one user-facing step
+# ("Sinh & kiểm chứng testcase"): generation and dual-solution verification form a
+# single repair loop (verify can send the solutions back for regeneration), so
+# showing them as two ticks let "verify" sit green while "generate" re-ran — a
+# confusing stale state. One step keeps the spinner honest across the whole loop.
 _STEP_OF_NODE = {
     "problem_analyzer": "analyze",
     "testcase_generator": "generate",
-    "expected_verifier": "verify",
+    "input_generator": "generate",
+    "expected_verifier": "generate",
     "testcase_validator": "validate",
 }
-_STEP_ORDER = ["analyze", "generate", "verify", "validate"]
+_STEP_ORDER = ["analyze", "generate", "validate"]
 
 _JOBS: dict = {}
 _JOBS_LOCK = threading.Lock()
@@ -341,6 +347,13 @@ def _run_job(job_id: str, payload: dict) -> None:
             if phase == "start":
                 job["currentStep"] = key
                 _set_step(job, key, "running")
+                # On any loop-back (verify → re-analyze, validator → re-generate)
+                # an EARLIER step restarts; reset every LATER step to pending so a
+                # downstream tick from a previous pass can't linger green while an
+                # upstream step is re-running.
+                idx = _STEP_ORDER.index(key)
+                for later in _STEP_ORDER[idx + 1:]:
+                    _set_step(job, later, "pending")
             elif phase == "done":
                 _set_step(job, key, "done")
 

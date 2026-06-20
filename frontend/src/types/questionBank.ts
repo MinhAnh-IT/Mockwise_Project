@@ -245,6 +245,9 @@ export type GeneratedTestCase = {
   expectedOutput: Record<string, unknown>;
   isHidden: boolean;
   note: string;
+  /** False ⇒ the AI could not prove this case's expectedOutput (kept its own
+   *  value); the admin form flags it yellow for manual review. Absent = true. */
+  verified?: boolean;
 };
 
 export type AiGeneratedCoding = {
@@ -272,9 +275,12 @@ export type AiGeneratedCoding = {
   warning?: string | null;
 };
 
-/** One step in the async generation progress (mirrors the AI service). */
+/** One step in the async generation progress (mirrors the AI service). The
+ *  "generate" step covers BOTH testcase generation and dual-solution
+ *  verification — they form one repair loop, so the AI service reports them as a
+ *  single step (see AI/api.py _STEP_OF_NODE). */
 export type AiGenerateStep = {
-  key: 'analyze' | 'generate' | 'verify' | 'validate';
+  key: 'analyze' | 'generate' | 'validate';
   status: 'pending' | 'running' | 'done';
 };
 
