@@ -316,6 +316,87 @@ class NextQuestionPlannerTest {
         assertThat(end.reason()).isEqualTo(PlannerDecision.EndSession.EndReason.COVERAGE_COMPLETE);
     }
 
+    // ── Deepen: coverage complete but interview time remains ─────────────────
+
+    @Test
+    void deepensWeakestTopic_whenCoverageCompleteButTimeRemains() {
+        var fx = Fixtures.aDefaultBlueprint();
+        // Same coverage-complete shape as above, but the two covered topics have
+        // different signal: DATABASE is WEAK, API is STRONG. With a full cycle of
+        // time left the planner must re-probe the WEAKEST covered topic instead
+        // of ending.
+        Map<String, TopicStatus> statuses = new LinkedHashMap<>();
+        statuses.put(Fixtures.behavioralOpenerKey(), TopicStatus.NOT_TESTED); // current
+        statuses.put(Fixtures.coreDatabaseKey(),     TopicStatus.WEAK);
+        statuses.put(Fixtures.coreApiKey(),          TopicStatus.STRONG);
+
+        var inputs = Fixtures.inputsBuilder(fx)
+                .allTopicStatuses(statuses)
+                .currentSessionQuestionCount(3) // well under the budget
+                .secondsRemaining(600)          // 10 min left
+                .secondsPerQuestion(300)        // one more 5-min cycle fits
+                .verdict(verdict(7.0f, SignalStrength.STRONG, Correctness.CORRECT, Depth.DEEP,
+                        Completeness.COMPLETE, HireSignal.yes, Grade.B, List.of(), List.of()))
+                .build();
+
+        var out = planner.plan(inputs);
+
+        assertThat(out.decision()).isInstanceOf(PlannerDecision.MoveToNextTopic.class);
+        var move = (PlannerDecision.MoveToNextTopic) out.decision();
+        assertThat(PlannerInputs.topicKey(move.nextTopic())).isEqualTo(Fixtures.coreDatabaseKey());
+    }
+
+    @Test
+    void deepenOnStrongTopic_isHarder() {
+        var fx = Fixtures.aDefaultBlueprint();
+        // Every covered topic is STRONG → the deepen pick is the strongest, and
+        // a STRONG topic must be re-probed one notch harder. API_DESIGN (base
+        // MEDIUM, order 3) is picked over DATABASE (order 4); MEDIUM + 1 = HARD.
+        Map<String, TopicStatus> statuses = new LinkedHashMap<>();
+        statuses.put(Fixtures.behavioralOpenerKey(), TopicStatus.NOT_TESTED); // current
+        statuses.put(Fixtures.coreApiKey(),          TopicStatus.STRONG);
+        statuses.put(Fixtures.coreDatabaseKey(),     TopicStatus.STRONG);
+
+        var inputs = Fixtures.inputsBuilder(fx)
+                .allTopicStatuses(statuses)
+                .currentSessionQuestionCount(3)
+                .secondsRemaining(600)
+                .secondsPerQuestion(300)
+                .verdict(verdict(7.0f, SignalStrength.STRONG, Correctness.CORRECT, Depth.DEEP,
+                        Completeness.COMPLETE, HireSignal.yes, Grade.B, List.of(), List.of()))
+                .build();
+
+        var out = planner.plan(inputs);
+
+        assertThat(out.decision()).isInstanceOf(PlannerDecision.MoveToNextTopic.class);
+        var move = (PlannerDecision.MoveToNextTopic) out.decision();
+        assertThat(PlannerInputs.topicKey(move.nextTopic())).isEqualTo(Fixtures.coreApiKey());
+        assertThat(move.openingDifficulty()).isEqualTo(Difficulty.HARD);
+    }
+
+    @Test
+    void endsSession_whenCoverageCompleteAndNoTimeLeft() {
+        var fx = Fixtures.aDefaultBlueprint();
+        Map<String, TopicStatus> statuses = new LinkedHashMap<>();
+        statuses.put(Fixtures.behavioralOpenerKey(), TopicStatus.NOT_TESTED); // current
+        statuses.put(Fixtures.coreDatabaseKey(),     TopicStatus.WEAK);
+        statuses.put(Fixtures.coreApiKey(),          TopicStatus.STRONG);
+
+        var inputs = Fixtures.inputsBuilder(fx)
+                .allTopicStatuses(statuses)
+                .secondsRemaining(120)          // less than one cycle
+                .secondsPerQuestion(300)
+                .verdict(verdict(7.0f, SignalStrength.STRONG, Correctness.CORRECT, Depth.DEEP,
+                        Completeness.COMPLETE, HireSignal.yes, Grade.B, List.of(), List.of()))
+                .build();
+
+        var out = planner.plan(inputs);
+
+        assertThat(out.decision()).isInstanceOf(PlannerDecision.EndSession.class);
+        assertThat(((PlannerDecision.EndSession) out.decision()).reason())
+                .isEqualTo(PlannerDecision.EndSession.EndReason.COVERAGE_COMPLETE);
+    }
+
     // ── End session: question budget exhausted ───────────────────────────────
 
     @Test
@@ -436,6 +517,10 @@ class NextQuestionPlannerTest {
             private AssessmentVerdict verdict;
             private Map<String, TopicStatus> allTopicStatuses;
             private int currentSessionQuestionCount = 1;
+            // Default 0 → hasTimeToDeepen() is false, so coverage-complete ends
+            // the session as before. Deepen tests set these explicitly.
+            private int secondsRemaining = 0;
+            private int secondsPerQuestion = 0;
 
             InputBuilder(InterviewBlueprint bp, BlueprintTopic current) {
                 this.blueprint = bp;
@@ -457,11 +542,14 @@ class NextQuestionPlannerTest {
             InputBuilder verdict(AssessmentVerdict v) { this.verdict = v; return this; }
             InputBuilder allTopicStatuses(Map<String, TopicStatus> m) { this.allTopicStatuses = m; return this; }
             InputBuilder currentSessionQuestionCount(int n) { this.currentSessionQuestionCount = n; return this; }
+            InputBuilder secondsRemaining(int n) { this.secondsRemaining = n; return this; }
+            InputBuilder secondsPerQuestion(int n) { this.secondsPerQuestion = n; return this; }
 
             PlannerInputs build() {
                 return new PlannerInputs(
                         session, blueprint, topicState, currentTopicConfig,
-                        verdict, allTopicStatuses, currentSessionQuestionCount);
+                        verdict, allTopicStatuses, currentSessionQuestionCount,
+                        secondsRemaining, secondsPerQuestion);
             }
         }
     }

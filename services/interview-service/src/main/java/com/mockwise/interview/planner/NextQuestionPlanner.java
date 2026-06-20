@@ -265,6 +265,16 @@ public class NextQuestionPlanner {
                     effects);
         }
 
+        // Effective values for difficulty calculation: prefer pending updates
+        // from the just-built side effects over the input snapshot. Computed
+        // up-front because both the deepen and normal next-topic paths need it.
+        int effectiveOffset = effects.sessionGlobalDifficultyOffsetSet() != null
+                ? effects.sessionGlobalDifficultyOffsetSet()
+                : inputs.session().getGlobalDifficultyOffset();
+        boolean effectiveStretch = effects.sessionStretchModeSet() != null
+                ? effects.sessionStretchModeSet()
+                : inputs.session().isStretchMode();
+
         // Coverage-complete check: a topic is "uncovered" when its status in
         // allTopicStatuses is NOT_TESTED *and* it's not the topic we're closing
         // right now (which is still NOT_TESTED in the snapshot, but we know
@@ -279,6 +289,29 @@ public class NextQuestionPlanner {
                 .count();
 
         if (uncoveredCount == 0) {
+            // Time-aware fill (Option A): every blueprint topic is covered, but
+            // if a full Q&A cycle of interview time still remains we DEEPEN
+            // rather than end early — re-probe the weakest covered topic so a
+            // strong candidate who never tripped a follow-up still uses the
+            // session's time budget instead of finishing in ~15 min of a 50-min
+            // slot. The question-budget check above and the deadline reaper stay
+            // the hard stops, so this can never loop unbounded.
+            if (inputs.hasTimeToDeepen()) {
+                BlueprintTopic deepen = pickTopicToDeepen(inputs, currentKey);
+                if (deepen != null) {
+                    // Status-aware deepen difficulty: a topic the candidate
+                    // already aced is re-probed one notch HARDER (stretch them on
+                    // their strengths); a weak topic is re-probed at its base
+                    // difficulty (a fair second look at the gap, never harder).
+                    TopicStatus deepenStatus = inputs.allTopicStatuses().get(PlannerInputs.topicKey(deepen));
+                    int deepenExtra = (deepenStatus == TopicStatus.STRONG
+                            || deepenStatus == TopicStatus.ADEQUATE) ? 1 : 0;
+                    Difficulty d = computeOpeningDifficulty(
+                            deepen, effectiveOffset, effectiveStretch, deepenExtra);
+                    return new PlannerOutcome(
+                            new PlannerDecision.MoveToNextTopic(deepen, d), effects);
+                }
+            }
             return new PlannerOutcome(
                     new PlannerDecision.EndSession(PlannerDecision.EndSession.EndReason.COVERAGE_COMPLETE),
                     effects);
@@ -292,20 +325,48 @@ public class NextQuestionPlanner {
                     effects);
         }
 
-        // Effective values for difficulty calculation: prefer pending updates
-        // from the just-built side effects over the input snapshot.
-        int effectiveOffset = effects.sessionGlobalDifficultyOffsetSet() != null
-                ? effects.sessionGlobalDifficultyOffsetSet()
-                : inputs.session().getGlobalDifficultyOffset();
-        boolean effectiveStretch = effects.sessionStretchModeSet() != null
-                ? effects.sessionStretchModeSet()
-                : inputs.session().isStretchMode();
-
         Difficulty opening = computeOpeningDifficulty(
                 next, effectiveOffset, effectiveStretch, extraDifficultyOffset);
         return new PlannerOutcome(
                 new PlannerDecision.MoveToNextTopic(next, opening),
                 effects);
+    }
+
+    /**
+     * Picks an already-covered topic to re-probe when coverage is complete but
+     * interview time remains (the deepen branch). Targets the <em>weakest</em>
+     * covered topic first — re-probing where the candidate did worst is what a
+     * real interviewer does with spare time — tie-broken by importance then
+     * order. Excludes the topic just closed so we never re-ask the same topic
+     * twice in a row. Returns {@code null} when there is no other covered topic
+     * (e.g. a single-topic blueprint), so the caller ends the session.
+     */
+    private BlueprintTopic pickTopicToDeepen(PlannerInputs inputs, String currentKey) {
+        return inputs.blueprint().getTopics().stream()
+                .filter(t -> !PlannerInputs.topicKey(t).equals(currentKey))
+                .filter(t -> {
+                    TopicStatus s = inputs.allTopicStatuses().get(PlannerInputs.topicKey(t));
+                    return s != null && s != TopicStatus.NOT_TESTED;
+                })
+                .min(Comparator
+                        .comparingInt((BlueprintTopic t) ->
+                                weaknessRank(inputs.allTopicStatuses().get(PlannerInputs.topicKey(t))))
+                        .thenComparingInt(t -> -importanceWeight(t))
+                        .thenComparingInt(BlueprintTopic::getOrderHint))
+                .orElse(null);
+    }
+
+    /** Lower = weaker signal = re-probed sooner. Unknown/transient states sort last. */
+    private static int weaknessRank(TopicStatus s) {
+        if (s == null) return 99;
+        return switch (s) {
+            case WEAK      -> 0;
+            case UNKNOWN   -> 1;
+            case PARTIAL   -> 2;
+            case ADEQUATE  -> 3;
+            case STRONG    -> 4;
+            default        -> 5; // NOT_TESTED / PROBING shouldn't reach here
+        };
     }
 
     private BlueprintTopic pickNextTopic(PlannerInputs inputs) {
