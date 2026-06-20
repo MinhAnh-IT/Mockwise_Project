@@ -43,4 +43,35 @@ public class CodingGenerationClient {
             throw new BusinessException(StatusCode.AI_SERVICE_UNAVAILABLE);
         }
     }
+
+    /**
+     * Start an async generation job. Returns immediately with {@code {"jobId"}};
+     * the admin UI then polls {@link #progress(String)} for live step progress.
+     */
+    public JsonNode startGenerate(JsonNode body) {
+        try {
+            JsonNode result = feignClient.startGenerate(body);
+            if (result == null || result.isNull() || !result.hasNonNull("jobId")) {
+                throw new BusinessException(StatusCode.AI_GENERATION_FAILED, "no jobId returned");
+            }
+            return result;
+        } catch (RetryableException ex) {
+            log.error("AI generate start transport error", ex);
+            throw new BusinessException(StatusCode.AI_SERVICE_UNAVAILABLE);
+        }
+    }
+
+    /** Poll an async generation job's progress. */
+    public JsonNode progress(String jobId) {
+        try {
+            JsonNode result = feignClient.getProgress(jobId);
+            if (result == null || result.isNull()) {
+                throw new BusinessException(StatusCode.AI_GENERATION_FAILED, "empty progress");
+            }
+            return result;
+        } catch (RetryableException ex) {
+            log.error("AI generate progress transport error", ex);
+            throw new BusinessException(StatusCode.AI_SERVICE_UNAVAILABLE);
+        }
+    }
 }

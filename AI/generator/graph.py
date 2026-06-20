@@ -1,3 +1,4 @@
+import contextvars
 import logging
 import time
 
@@ -13,6 +14,27 @@ from generator.nodes.testcase_validator import testcase_validator_node
 
 log = logging.getLogger("generator")
 log.setLevel(logging.INFO)
+
+# Per-thread progress callback, invoked by each node's wrapper as it runs. The
+# async job runner (api.py) sets this inside its worker thread so it can surface
+# live step progress to a polling client; left None for plain blocking calls.
+_progress_cb: "contextvars.ContextVar" = contextvars.ContextVar("generator_progress_cb", default=None)
+
+
+def set_progress_callback(cb) -> None:
+    """Register cb(phase, node_name, summary) for the CURRENT thread/context.
+    phase is "start" | "done" | "error". Safe to pass None to clear."""
+    _progress_cb.set(cb)
+
+
+def _emit(phase: str, name: str, summary=None) -> None:
+    cb = _progress_cb.get()
+    if cb is None:
+        return
+    try:
+        cb(phase, name, summary)
+    except Exception:  # noqa: BLE001 — progress reporting must never break generation
+        pass
 
 
 def _summary(out) -> str:
@@ -52,15 +74,18 @@ def _logged(name: str, fn):
     a short summary on exit (✗ on error). Lets an admin `docker logs -f
     ai-service` follow exactly which step the generator is on."""
     def wrapper(state):
+        _emit("start", name)
         log.info("▶ %s", name)
         t = time.time()
         try:
             out = fn(state)
         except Exception:
             log.exception("✗ %s failed after %.1fs", name, time.time() - t)
+            _emit("error", name)
             raise
         summary = _summary(out)
         log.info("✓ %s (%.1fs)%s", name, time.time() - t, f" — {summary}" if summary else "")
+        _emit("done", name, summary)
         return out
     wrapper.__name__ = name
     return wrapper

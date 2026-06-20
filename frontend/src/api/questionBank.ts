@@ -16,6 +16,7 @@ import { API_BASE_URL } from '@/lib/env';
 import type {
   AiGenerateRequest,
   AiGeneratedCoding,
+  AiGenerateProgress,
   AnyQuestion,
   BehavioralFilters,
   BehavioralQuestion,
@@ -194,6 +195,23 @@ export function generateCoding(
   body: AiGenerateRequest,
 ): Promise<AiGeneratedCoding> {
   return unwrap(`${ADMIN}/coding/generate`, { method: 'POST', body });
+}
+
+/**
+ * Async variant: start a generation job, then poll its progress. Lets the UI
+ * show live per-step progress ("đang sinh testcase", "đang verify"…) instead of
+ * blocking on one long request.
+ */
+export function startGenerateCoding(
+  body: AiGenerateRequest,
+): Promise<{ jobId: string }> {
+  return unwrap(`${ADMIN}/coding/generate/start`, { method: 'POST', body });
+}
+
+export function getGenerateProgress(
+  jobId: string,
+): Promise<AiGenerateProgress> {
+  return unwrap(`${ADMIN}/coding/generate/progress/${jobId}`, { method: 'GET' });
 }
 
 const VALID_DIFFICULTY: Difficulty[] = ['EASY', 'MEDIUM', 'HARD'];

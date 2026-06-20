@@ -1,12 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, FlaskConical, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  FlaskConical,
+  Loader2,
+  Plus,
+  Sparkles,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { ApiError } from '@/api/client';
 import {
   createCoding,
-  generateCoding,
+  getGenerateProgress,
   getQuestion,
   mapGeneratedToCodingRequest,
+  startGenerateCoding,
   updateCoding,
 } from '@/api/questionBank';
 import {
@@ -28,7 +38,9 @@ import {
   DIFFICULTY_LABEL,
   STARTER_LANGS,
   type AiGenerateMode,
+  type AiGenerateProgress,
   type AiGenerateRequest,
+  type AiGenerateStep,
   type CodingQuestion,
   type CodingQuestionRequest,
   type Difficulty,
@@ -1016,6 +1028,61 @@ export default function CodingFormPage() {
   );
 }
 
+// ── AI generate progress (live stepper) ────────────────────────────────────
+
+const GEN_STEP_LABEL: Record<AiGenerateStep['key'], string> = {
+  analyze: 'Phân tích đề bài',
+  generate: 'Sinh testcase',
+  verify: 'Kiểm chứng đáp án',
+  validate: 'Kiểm tra & hoàn tất',
+};
+const GEN_STEP_ORDER: AiGenerateStep['key'][] = [
+  'analyze',
+  'generate',
+  'verify',
+  'validate',
+];
+
+function GenerateProgress({
+  progress,
+}: {
+  progress: AiGenerateProgress | null;
+}) {
+  // Before the first poll returns, show every step as pending.
+  const steps: AiGenerateStep[] =
+    progress?.steps?.length
+      ? progress.steps
+      : GEN_STEP_ORDER.map((key) => ({ key, status: 'pending' }));
+
+  return (
+    <div className="space-y-2 rounded-xl border border-outline-variant bg-surface-container p-3">
+      {steps.map((s) => (
+        <div key={s.key} className="flex items-center gap-2 text-sm">
+          {s.status === 'done' ? (
+            <Check className="h-4 w-4 shrink-0 text-green-600" />
+          ) : s.status === 'running' ? (
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-secondary" />
+          ) : (
+            <span className="h-4 w-4 shrink-0 rounded-full border border-outline-variant" />
+          )}
+          <span
+            className={
+              s.status === 'running'
+                ? 'font-semibold text-on-surface'
+                : s.status === 'done'
+                  ? 'text-on-surface-variant'
+                  : 'text-on-surface-variant/60'
+            }
+          >
+            {GEN_STEP_LABEL[s.key] ?? s.key}
+            {s.status === 'running' ? '…' : ''}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── AI generate modal ──────────────────────────────────────────────────────
 
 function AiGenerateModal({
@@ -1038,6 +1105,10 @@ function AiGenerateModal({
   const [numVisible, setNumVisible] = useState('3');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [progress, setProgress] = useState<AiGenerateProgress | null>(null);
+  // Set false on unmount so the poll loop stops touching state after close.
+  const aliveRef = useRef(true);
+  useEffect(() => () => { aliveRef.current = false; }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -1089,10 +1160,38 @@ function AiGenerateModal({
           };
 
     setBusy(true);
+    setProgress(null);
     try {
-      const res = await generateCoding(body);
-      onApply(mapGeneratedToCodingRequest(res), res.warning);
+      // Start the async job, then poll progress ~1s so the UI can show which
+      // step the AI is on instead of blocking on one long request.
+      const { jobId } = await startGenerateCoding(body);
+      let failures = 0;
+      for (;;) {
+        await new Promise((r) => setTimeout(r, 1000));
+        if (!aliveRef.current) return;
+        let p: AiGenerateProgress;
+        try {
+          p = await getGenerateProgress(jobId);
+          failures = 0;
+        } catch (pollErr) {
+          // Tolerate transient blips; give up after several in a row.
+          if (++failures >= 5) throw pollErr;
+          continue;
+        }
+        if (!aliveRef.current) return;
+        setProgress(p);
+        if (p.status === 'done' && p.result) {
+          onApply(mapGeneratedToCodingRequest(p.result), p.result.warning);
+          return;
+        }
+        if (p.status === 'error') {
+          setErr(p.error?.detail || 'Sinh đề thất bại, thử lại sau.');
+          setBusy(false);
+          return;
+        }
+      }
     } catch (e) {
+      if (!aliveRef.current) return;
       setErr(
         e instanceof ApiError ? e.message : 'Sinh đề thất bại, thử lại sau.',
       );
@@ -1233,11 +1332,7 @@ function AiGenerateModal({
               {busy ? 'Đang sinh đề…' : 'Sinh đề'}
             </Button>
           </div>
-          {busy && (
-            <p className="text-center text-xs text-on-surface-variant">
-              Quá trình có thể mất ~30 giây, vui lòng đợi…
-            </p>
-          )}
+          {busy && <GenerateProgress progress={progress} />}
         </div>
       </div>
     </div>

@@ -76,6 +76,21 @@ public class AdminQuestionController {
         return ResponseEntity.ok(ApiResponse.success(codingGenerationClient.generate(body)));
     }
 
+    /**
+     * Async variant: start a generation job (returns {@code {"jobId"}} at once)
+     * and poll its progress. Lets the admin UI show live per-step progress
+     * instead of blocking on one long request.
+     */
+    @PostMapping("/coding/generate/start")
+    public ResponseEntity<ApiResponse<JsonNode>> startGenerateCoding(@RequestBody JsonNode body) {
+        return ResponseEntity.ok(ApiResponse.success(codingGenerationClient.startGenerate(body)));
+    }
+
+    @GetMapping("/coding/generate/progress/{jobId}")
+    public ResponseEntity<ApiResponse<JsonNode>> generateCodingProgress(@PathVariable String jobId) {
+        return ResponseEntity.ok(ApiResponse.success(codingGenerationClient.progress(jobId)));
+    }
+
     // ── Update ────────────────────────────────────────────────────────────────
 
     @PutMapping("/behavioral/{id}")

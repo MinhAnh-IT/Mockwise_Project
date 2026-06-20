@@ -19,7 +19,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import threading
 import time
+import uuid
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -34,6 +36,7 @@ from main import (
     get_generator_graph,
     get_graph,
 )
+from generator.graph import set_progress_callback
 from generator.leetcode_fetcher import (
     LeetCodeFetchError,
     LeetCodeNotFoundError,
@@ -281,6 +284,104 @@ def generate_testcases_endpoint(payload: dict, _: None = Security(_require_api_k
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─── Async generate (start + progress polling) ────────────────────────────────
+# The blocking endpoint above can take ~30-60s; this pair lets the admin UI show
+# live per-step progress instead. State is in-process (the AI service is a single
+# instance) — a restart drops in-flight jobs, which the client treats as an error.
+
+# Generator graph node name → user-facing step key shown in the progress UI.
+_STEP_OF_NODE = {
+    "problem_analyzer": "analyze",
+    "testcase_generator": "generate",
+    "expected_verifier": "verify",
+    "testcase_validator": "validate",
+}
+_STEP_ORDER = ["analyze", "generate", "verify", "validate"]
+
+_JOBS: dict = {}
+_JOBS_LOCK = threading.Lock()
+_JOB_TTL_SECONDS = 1800
+
+
+def _new_job() -> dict:
+    return {
+        "status": "running",          # running | done | error
+        "currentStep": None,
+        "steps": [{"key": k, "status": "pending"} for k in _STEP_ORDER],
+        "result": None,
+        "error": None,
+        "createdAt": time.time(),
+    }
+
+
+def _set_step(job: dict, key: str, status: str) -> None:
+    for s in job["steps"]:
+        if s["key"] == key:
+            s["status"] = status
+
+
+def _prune_jobs() -> None:
+    cutoff = time.time() - _JOB_TTL_SECONDS
+    with _JOBS_LOCK:
+        stale = [j for j, v in _JOBS.items() if v["status"] != "running" and v["createdAt"] < cutoff]
+        for j in stale:
+            _JOBS.pop(j, None)
+
+
+def _run_job(job_id: str, payload: dict) -> None:
+    job = _JOBS[job_id]
+
+    def on_step(phase: str, node: str, _summary) -> None:
+        key = _STEP_OF_NODE.get(node)
+        if not key:
+            return
+        with _JOBS_LOCK:
+            if phase == "start":
+                job["currentStep"] = key
+                _set_step(job, key, "running")
+            elif phase == "done":
+                _set_step(job, key, "done")
+
+    set_progress_callback(on_step)
+    try:
+        result = generate_testcases(payload)
+        with _JOBS_LOCK:
+            if isinstance(result, dict) and result.get("error"):
+                job["status"] = "error"
+                job["error"] = result
+            else:
+                job["status"] = "done"
+                job["result"] = result
+                for s in job["steps"]:
+                    s["status"] = "done"
+                job["currentStep"] = "done"
+    except Exception as e:  # noqa: BLE001
+        logger.exception("async generate job %s failed", job_id)
+        with _JOBS_LOCK:
+            job["status"] = "error"
+            job["error"] = {"error": "generation_failed", "detail": str(e)}
+    finally:
+        _prune_jobs()
+
+
+@app.post("/generate-testcases/start")
+def generate_testcases_start(payload: dict, _: None = Security(_require_api_key)):
+    job_id = uuid.uuid4().hex
+    with _JOBS_LOCK:
+        _JOBS[job_id] = _new_job()
+    threading.Thread(target=_run_job, args=(job_id, payload), daemon=True).start()
+    return {"jobId": job_id}
+
+
+@app.get("/generate-progress/{job_id}")
+def generate_testcases_progress(job_id: str, _: None = Security(_require_api_key)):
+    with _JOBS_LOCK:
+        job = _JOBS.get(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="unknown or expired jobId")
+        return {k: job[k] for k in ("status", "currentStep", "steps", "result", "error")}
 
 
 @app.get("/leetcode/fetch")

@@ -272,6 +272,21 @@ export type AiGeneratedCoding = {
   warning?: string | null;
 };
 
+/** One step in the async generation progress (mirrors the AI service). */
+export type AiGenerateStep = {
+  key: 'analyze' | 'generate' | 'verify' | 'validate';
+  status: 'pending' | 'running' | 'done';
+};
+
+/** Live progress of an async generation job, polled by the admin UI. */
+export type AiGenerateProgress = {
+  status: 'running' | 'done' | 'error';
+  currentStep: string | null;
+  steps: AiGenerateStep[];
+  result: AiGeneratedCoding | null;
+  error?: { error: string; detail?: string } | null;
+};
+
 // ── Vietnamese labels for the UI ───────────────────────────────────────────
 
 export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
