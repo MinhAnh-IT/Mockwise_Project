@@ -56,23 +56,52 @@ Edge case hints:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 TESTCASE REQUIREMENTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Generate EXACTLY {req.num_testcases} test cases with this distribution:
+Generate EXACTLY {req.num_testcases} test cases.
 
-VISIBLE ({num_visible} cases, is_hidden=false):
-  ┌─ 1–2 Sample cases
-  │   Taken directly from the examples in the problem description.
-  │   Use the exact input/output values shown in the problem.
-  ├─ 2–3 Edge cases
-  │   Cover boundary conditions: empty input, single element, all same values,
-  │   negative numbers, zero, maximum constraint values, duplicates, etc.
-  └─ Remaining: Normal cases
-      Random valid inputs that test correctness under typical conditions.
+PRIORITISE EDGE-CASE COVERAGE. The PURPOSE of this set is to expose bugs in a
+candidate's solution, and random "typical" inputs almost never do — boundary and
+edge cases do. So the set must be DOMINATED by edge/boundary cases, NOT by random
+normal inputs. Maximise the number of DISTINCT edge categories you cover; do not
+pad the set with near-duplicate ordinary inputs.
 
-HIDDEN ({req.num_hidden} cases, is_hidden=true):
-  Large or complex inputs designed to distinguish:
-  - O(n) solutions from O(n²) brute force
-  - Inputs near the maximum constraint bounds
-  - Cases that expose incorrect greedy assumptions or missed edge cases
+Target content mix across the WHOLE set (visible + hidden combined):
+
+  • 1–2 SAMPLE cases — exact input/output values from the problem examples.
+
+  • EDGE / BOUNDARY cases — THE BULK of the set. You MUST include at least one
+    dedicated testcase for EACH edge-case hint listed above:
+{edge_hints_str}
+    Then walk through this general checklist and add a case for EVERY category
+    that applies to THIS problem (skip only the truly inapplicable ones):
+      - empty / zero-length input (if constraints allow)
+      - single element
+      - two elements (smallest non-trivial size)
+      - all elements identical / all zero
+      - all negative · all positive · mixed signs
+      - the MINIMUM constraint value AND the MAXIMUM constraint value (both for
+        element magnitude and for length)
+      - already sorted ascending · sorted descending / reversed
+      - many duplicates
+      - the answer sits at the very FIRST position · the very LAST · is ABSENT
+      - exactly at a threshold and off-by-one around it (e.g. == target vs ±1)
+      - overflow-prone magnitudes near int/long limits (when allowed)
+      - strings: empty · single char · all same char · case-sensitivity ·
+        spaces / special chars · whole-string match vs no match
+      - structures (TreeNode/ListNode): empty · single node · skewed (linked-list
+        shaped) · perfectly balanced · deep
+    Pick concrete inputs that make each edge MEANINGFUL for this specific problem.
+
+  • A FEW NORMAL cases — a small number of typical mid-size valid inputs for a
+    sanity baseline. Keep these to a MINIMUM; they are the least valuable.
+
+  • LARGE / PERFORMANCE cases — inputs near the maximum constraint bounds to
+    separate O(n) from O(n²) brute force. Where useful, COMBINE scale with an edge
+    (e.g. a large all-identical array, a large already-sorted array, a large input
+    whose answer is at the last position) — these catch both perf and correctness.
+
+VISIBLE vs HIDDEN split: put the SAMPLE cases plus the most illustrative edges in
+the {num_visible} visible slots; the remaining edges and all large/performance
+cases go in the {req.num_hidden} hidden slots.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STRICT RULES
@@ -139,10 +168,16 @@ Think step by step:
    input (see rule 9). If so, every input you craft must pin the answer down
    to exactly one — verify by scanning for alternative valid answers.
 3. Identify the sample examples from the description → use as Sample cases.
-4. Think of all boundary conditions → use as Edge cases.
-5. Generate diverse normal inputs → Normal cases.
-6. Design large/tricky inputs → Hidden cases.
+4. Go through the edge-case hints AND the general edge checklist one by one;
+   for every category that applies to this problem, craft a concrete Edge case.
+   This is the bulk of your work — favour breadth of distinct edges here.
+5. Add only a FEW normal inputs as a baseline (do not over-fill with these).
+6. Design large/performance inputs, combining scale with an edge where useful.
 7. For EACH testcase, compute the expectedOutput manually before writing it,
    AND confirm no OTHER output would also be accepted for that input.
-8. Verify: count=={req.num_testcases}, hidden=={req.num_hidden}, no duplicate inputs.
+8. Before finishing, ask: "which common bug would slip through this set?" — if a
+   plausible off-by-one / empty / boundary / overflow bug would still pass, add a
+   case that would catch it.
+9. Verify: count=={req.num_testcases}, hidden=={req.num_hidden}, no duplicate inputs,
+   and that edge/boundary cases clearly OUTNUMBER the plain normal ones.
 """.strip()

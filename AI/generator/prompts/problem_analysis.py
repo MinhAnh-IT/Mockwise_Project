@@ -606,9 +606,17 @@ CONSTRAINTS  (one entry per constraint; prose in VIETNAMESE)
     keep all numbers / expressions / identifiers unchanged.
 
 EDGE_CASE_HINTS  (in VIETNAMESE)
-  - List 3–6 specific edge cases relevant to this problem
-  - Examples: "mảng rỗng", "một phần tử", "toàn số âm",
-    "có giá trị trùng", "không tìm thấy target", "đầu vào ở biên ràng buộc"
+  - List 6–12 SPECIFIC edge cases relevant to this problem — be exhaustive, this
+    list directly drives testcase coverage. Aim wide: walk through input size
+    boundaries, value boundaries, ordering, duplicates, sign, answer position,
+    and structure shape — keeping only the ones that actually apply here.
+  - Each hint must be CONCRETE for THIS problem (not generic). Examples:
+    "mảng rỗng", "một phần tử", "hai phần tử", "toàn phần tử giống nhau",
+    "toàn số âm", "giá trị ở biên trên/dưới của ràng buộc", "mảng đã sắp xếp tăng",
+    "mảng sắp xếp giảm/đảo ngược", "nhiều giá trị trùng", "đáp án ở vị trí đầu",
+    "đáp án ở vị trí cuối", "không tìm thấy target", "đúng ngay tại ngưỡng và lệch 1",
+    "độ lớn gần giới hạn int/long (tràn số)", "cây/danh sách rỗng hoặc một node",
+    "cây lệch hẳn một bên"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Fill ALL fields. Do not leave any field empty or null.
