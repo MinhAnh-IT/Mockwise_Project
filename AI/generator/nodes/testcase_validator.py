@@ -79,8 +79,14 @@ def _build_final_response(
     generation_start_ms: int,
     warning: str = None,
     leetcode_problem: dict | None = None,
+    unverified_ids: set | None = None,
 ) -> dict:
-    """Assemble GenerateTestcasesResponse from analysis + validated testcases."""
+    """Assemble GenerateTestcasesResponse from analysis + validated testcases.
+
+    ``unverified_ids`` — case ids expected_verifier could not prove; each such
+    testcase is marked ``verified=False`` so the admin UI can flag it for review.
+    """
+    unverified_ids = unverified_ids or set()
     now_ms = int(time.time() * 1000)
     duration_ms = max(0, now_ms - generation_start_ms)
 
@@ -100,7 +106,10 @@ def _build_final_response(
         javascript=sc["javascript"],
     )
 
-    tc_objects = [GeneratedTestCase(**tc) for tc in testcases]
+    tc_objects = [
+        GeneratedTestCase(**{**tc, "verified": str(tc.get("id")) not in unverified_ids})
+        for tc in testcases
+    ]
     hidden_count = sum(1 for tc in tc_objects if tc.is_hidden)
     visible_count = len(tc_objects) - hidden_count
 
@@ -167,6 +176,9 @@ def testcase_validator_node(state: GeneratorState) -> dict:
     verifier_warning: str | None = "; ".join(
         w for w in (state.get("programmatic_warning"), state.get("verifier_warning")) if w
     ) or None
+    # Cases expected_verifier could not prove → flagged verified=False so the UI
+    # highlights exactly those rows for manual review.
+    unverified_ids: set = {str(i) for i in (state.get("verifier_unverified_ids") or [])}
 
     max_retries = config.GENERATOR_MAX_RETRIES
 
@@ -322,6 +334,7 @@ def testcase_validator_node(state: GeneratorState) -> dict:
                 req, analysis, raw_testcases, generation_start_ms,
                 warning="; ".join(w for w in (exhausted, verifier_warning) if w),
                 leetcode_problem=leetcode_problem,
+                unverified_ids=unverified_ids,
             ),
         }
 
@@ -332,5 +345,6 @@ def testcase_validator_node(state: GeneratorState) -> dict:
             req, analysis, raw_testcases, generation_start_ms,
             warning=verifier_warning,
             leetcode_problem=leetcode_problem,
+            unverified_ids=unverified_ids,
         ),
     }

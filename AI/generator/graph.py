@@ -99,9 +99,17 @@ def _route_after_router(state: GeneratorState):
 
 
 def _route_after_analyzer(state: GeneratorState):
-    """Skip to END immediately if analyzer set final_output (analysis failed)."""
+    """Skip to END immediately if analyzer set final_output (analysis failed).
+
+    On a reference-retry pass (expected_verifier sent the solutions back to be
+    regenerated), the testcase INPUTS already exist and must be preserved verbatim
+    — regenerating them would waste tokens and could turn a hand-crafted edge case
+    into a happy-path one. So skip testcase_generator and go straight to
+    re-verification (input_generator → expected_verifier)."""
     if state.get("final_output"):
         return END
+    if state.get("needs_reference_retry") and state.get("raw_testcases"):
+        return "input_generator"
     return "testcase_generator"
 
 
@@ -150,6 +158,7 @@ def build_generator_graph():
         _route_after_analyzer,
         {
             "testcase_generator": "testcase_generator",
+            "input_generator": "input_generator",
             END: END,
         },
     )

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
+  AlertTriangle,
   ArrowLeft,
   Check,
   FlaskConical,
@@ -65,6 +66,9 @@ type TcRow = {
   /** LeetCode-style explanation for this example. Shown only for non-hidden. */
   noteText: string;
   error?: string;
+  /** True ⇒ AI could not verify this case's expected output — highlight it
+   *  yellow so the admin reviews it before saving. */
+  warn?: boolean;
 };
 
 type Errors = Partial<
@@ -158,7 +162,10 @@ export default function CodingFormPage() {
   // True once an autosaved draft was restored — enables the "discard" action.
   const [restoredDraft, setRestoredDraft] = useState(false);
 
-  function fillFromRequest(q: CodingQuestionRequest) {
+  function fillFromRequest(
+    q: CodingQuestionRequest,
+    unverifiedIds: Set<string> = new Set(),
+  ) {
     setDifficulty(q.difficulty);
     setTitle(q.title);
     setDescription(q.description);
@@ -181,6 +188,7 @@ export default function CodingFormPage() {
             outputText: pretty(tc.expectedOutput),
             is_hidden: tc.is_hidden,
             noteText: tc.note ?? '',
+            warn: !!tc.id && unverifiedIds.has(tc.id),
           }))
         : [emptyRow()],
     );
@@ -592,13 +600,21 @@ export default function CodingFormPage() {
     if (v) setValidate(v);
   }
 
-  function applyGenerated(req: CodingQuestionRequest, warning?: string | null) {
-    fillFromRequest(req);
+  function applyGenerated(
+    req: CodingQuestionRequest,
+    // Prose warning is intentionally not shown as a toast anymore — the
+    // unverified cases are flagged yellow inline (persistent) instead.
+    _warning?: string | null,
+    unverifiedIds: string[] = [],
+  ) {
+    fillFromRequest(req, new Set(unverifiedIds));
     setAiOpen(false);
+    // The unverified cases are highlighted yellow inline (persistent) instead of
+    // a fleeting alert the admin can't read in time — so the toast just confirms.
     setToast({
-      kind: warning ? 'error' : 'success',
-      text: warning
-        ? `Đã sinh đề (có cảnh báo): ${warning}`
+      kind: 'success',
+      text: unverifiedIds.length
+        ? `Đã sinh đề — ${unverifiedIds.length} testcase được bôi vàng cần rà soát thủ công.`
         : 'Đã sinh đề bằng AI — kiểm tra và chỉnh sửa trước khi lưu.',
     });
   }
@@ -883,11 +899,25 @@ export default function CodingFormPage() {
             {errors.testCases && (
               <p className="text-xs text-red-600">{errors.testCases}</p>
             )}
+            {rows.some((r) => r.warn) && (
+              <p className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  {rows.filter((r) => r.warn).length} testcase được AI sinh nhưng
+                  chưa kiểm chứng được đáp án (bôi vàng bên dưới). Hãy rà soát thủ
+                  công trước khi lưu.
+                </span>
+              </p>
+            )}
             <div className="space-y-4">
               {rows.map((row, i) => (
                 <div
                   key={row._k}
-                  className="rounded-xl border border-outline-variant p-4"
+                  className={`rounded-xl border p-4 ${
+                    row.warn
+                      ? 'border-amber-400 bg-amber-50'
+                      : 'border-outline-variant'
+                  }`}
                 >
                   <div className="mb-3 flex items-center justify-between">
                     <span className="text-sm font-semibold text-on-surface">
@@ -925,6 +955,13 @@ export default function CodingFormPage() {
                       </button>
                     </div>
                   </div>
+                  {row.warn && (
+                    <p className="mb-3 flex items-start gap-1.5 rounded-lg bg-amber-100 px-3 py-2 text-xs font-medium text-amber-800">
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      AI chưa kiểm chứng được đáp án của test case này — hãy tự
+                      kiểm tra kỹ trước khi lưu.
+                    </p>
+                  )}
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div>
                       <p className="mb-1 text-xs font-medium text-on-surface-variant">
@@ -992,7 +1029,9 @@ export default function CodingFormPage() {
             </div>
           </section>
 
-          <div className="flex justify-end gap-2">
+          {/* Sticky action bar — pinned to the viewport bottom so the admin can
+              save without scrolling past a long (up to 100) testcase list. */}
+          <div className="sticky bottom-0 z-10 -mx-1 flex justify-end gap-2 border-t border-outline-variant bg-surface-container-lowest/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-surface-container-lowest/80">
             <Button
               variant="ghost"
               onClick={() => navigate('/admin/questions')}
@@ -1032,14 +1071,14 @@ export default function CodingFormPage() {
 
 const GEN_STEP_LABEL: Record<AiGenerateStep['key'], string> = {
   analyze: 'Phân tích đề bài',
-  generate: 'Sinh testcase',
-  verify: 'Kiểm chứng đáp án',
+  // Generation + dual-solution verification are one repair loop (verify can send
+  // the solutions back to be regenerated), so they show as a single step.
+  generate: 'Sinh & kiểm chứng testcase',
   validate: 'Kiểm tra & hoàn tất',
 };
 const GEN_STEP_ORDER: AiGenerateStep['key'][] = [
   'analyze',
   'generate',
-  'verify',
   'validate',
 ];
 
@@ -1090,7 +1129,11 @@ function AiGenerateModal({
   onApply,
 }: {
   onClose: () => void;
-  onApply: (req: CodingQuestionRequest, warning?: string | null) => void;
+  onApply: (
+    req: CodingQuestionRequest,
+    warning?: string | null,
+    unverifiedIds?: string[],
+  ) => void;
 }) {
   const [genMode, setGenMode] = useState<AiGenerateMode>('leetcode');
   const [leetcodeUrl, setLeetcodeUrl] = useState('');
@@ -1181,7 +1224,14 @@ function AiGenerateModal({
         if (!aliveRef.current) return;
         setProgress(p);
         if (p.status === 'done' && p.result) {
-          onApply(mapGeneratedToCodingRequest(p.result), p.result.warning);
+          const unverifiedIds = (p.result.testcases ?? [])
+            .filter((t) => t.verified === false)
+            .map((t) => t.id);
+          onApply(
+            mapGeneratedToCodingRequest(p.result),
+            p.result.warning,
+            unverifiedIds,
+          );
           return;
         }
         if (p.status === 'error') {
