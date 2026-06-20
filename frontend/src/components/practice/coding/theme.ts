@@ -90,19 +90,19 @@ export type CwTokens = ReturnType<typeof cwTokens>;
 export function difficultyStyle(dark: boolean) {
   return {
     EASY: {
-      label: 'Dễ',
+      label: 'Easy',
       cls: dark
         ? 'bg-emerald-500/15 text-emerald-400'
         : 'bg-emerald-100 text-emerald-700',
     },
     MEDIUM: {
-      label: 'Trung bình',
+      label: 'Medium',
       cls: dark
         ? 'bg-amber-500/15 text-amber-400'
         : 'bg-amber-100 text-amber-700',
     },
     HARD: {
-      label: 'Khó',
+      label: 'Hard',
       cls: dark ? 'bg-rose-500/15 text-rose-400' : 'bg-rose-100 text-rose-700',
     },
   };

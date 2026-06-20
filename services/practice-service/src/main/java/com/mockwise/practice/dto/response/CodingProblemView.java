@@ -1,5 +1,7 @@
 package com.mockwise.practice.dto.response;
 
+import com.mockwise.practice.enums.ProblemStatus;
+
 import java.util.List;
 import java.util.Map;
 
@@ -21,7 +23,9 @@ public record CodingProblemView(
         String optimalSpaceComplexity,
         FunctionMeta functionMeta,
         Map<String, String> starterCode,
-        List<SampleTestCase> sampleTestCases
+        List<SampleTestCase> sampleTestCases,
+        /** The current user's relationship to this problem: NONE / ATTEMPTED / SOLVED. */
+        ProblemStatus myStatus
 ) {
 
     public record Param(String name, String type) {}

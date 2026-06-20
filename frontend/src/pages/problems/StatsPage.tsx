@@ -9,6 +9,7 @@ import {
   Target,
   TrendingUp,
   Trophy,
+  Users,
 } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import { getCommunity, getLeaderboard } from '@/api/practice';
@@ -184,7 +185,7 @@ export default function StatsPage() {
                     problemId: t.problemId,
                     title: t.title ?? t.problemId,
                     difficulty: t.difficulty,
-                    meta: `${t.participants} người làm`,
+                    people: t.participants,
                   }))}
                 />
                 <CommunityCard
@@ -195,7 +196,7 @@ export default function StatsPage() {
                     problemId: h.problemId,
                     title: h.title ?? h.problemId,
                     difficulty: h.difficulty,
-                    meta: `${(h.solveRate * 100).toFixed(0)}% giải được · ${h.attempters} người thử`,
+                    progress: { rate: h.solveRate, attempters: h.attempters },
                   }))}
                 />
               </div>
@@ -314,13 +315,42 @@ function LeaderRow({ entry, highlight }: { entry: LeaderboardEntry; highlight?: 
   );
 }
 
+// ── Solve-rate progress bar ────────────────────────────────────────────────
+
+/** Mini progress bar for a problem's solve rate; colour shifts red→amber→green.
+ *  Attempters are kept on the hover tooltip to stay compact. */
+function SolveRateBar({ rate, attempters }: { rate: number; attempters: number }) {
+  const pct = Math.round(rate * 100);
+  const fill = rate < 0.4 ? 'bg-rose-500' : rate < 0.7 ? 'bg-amber-500' : 'bg-emerald-500';
+  const text = rate < 0.4 ? 'text-rose-600' : rate < 0.7 ? 'text-amber-600' : 'text-emerald-600';
+  return (
+    <span
+      className="flex w-28 shrink-0 items-center justify-end gap-2"
+      title={`${pct}% giải được · ${attempters} người thử`}
+    >
+      <span className="h-1.5 w-14 overflow-hidden rounded-full bg-outline-variant/40">
+        <span
+          className={`block h-full rounded-full ${fill}`}
+          style={{ width: `${Math.max(pct, 4)}%` }}
+        />
+      </span>
+      <span className={`w-8 text-right text-xs font-semibold tabular-nums ${text}`}>{pct}%</span>
+    </span>
+  );
+}
+
 // ── Community card ─────────────────────────────────────────────────────────
 
 type CommunityItem = {
   problemId: string;
   title: string;
   difficulty: string | null;
-  meta: string;
+  /** Plain text meta — used when there's neither a progress bar nor a people count. */
+  meta?: string;
+  /** Participant count, rendered as a person icon + number. */
+  people?: number;
+  /** Solve-rate progress bar; attempters surfaced on hover. */
+  progress?: { rate: number; attempters: number };
 };
 
 function CommunityCard({
@@ -361,9 +391,21 @@ function CommunityCard({
                     {DIFFICULTY_LABEL[it.difficulty] ?? it.difficulty}
                   </span>
                 )}
-                <span className="w-24 shrink-0 text-right text-xs text-on-surface-variant">
-                  {it.meta}
-                </span>
+                {it.progress ? (
+                  <SolveRateBar rate={it.progress.rate} attempters={it.progress.attempters} />
+                ) : it.people != null ? (
+                  <span
+                    className="flex shrink-0 items-center gap-1 text-xs font-semibold tabular-nums text-on-surface-variant"
+                    title={`${it.people} người làm`}
+                  >
+                    <Users className="h-3.5 w-3.5" />
+                    {it.people}
+                  </span>
+                ) : (
+                  <span className="w-24 shrink-0 text-right text-xs text-on-surface-variant">
+                    {it.meta}
+                  </span>
+                )}
               </Link>
             </li>
           ))}

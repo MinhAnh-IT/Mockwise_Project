@@ -295,10 +295,11 @@ export type AiGenerateProgress = {
 
 // ── Vietnamese labels for the UI ───────────────────────────────────────────
 
+// Difficulty is shown in English everywhere (user + admin) for consistency.
 export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
-  EASY: 'Dễ',
-  MEDIUM: 'Trung bình',
-  HARD: 'Khó',
+  EASY: 'Easy',
+  MEDIUM: 'Medium',
+  HARD: 'Hard',
 };
 
 export const STATUS_LABEL: Record<QuestionStatus, string> = {

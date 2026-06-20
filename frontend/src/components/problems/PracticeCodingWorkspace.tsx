@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   CheckCircle2,
   ChevronLeft,
+  CircleDot,
   Loader2,
   Moon,
   Play,
@@ -28,6 +29,7 @@ import {
 } from '@/types/coding';
 import type {
   PracticeProblemDetail,
+  ProblemStatus,
   SubmissionDetail,
 } from '@/types/practice';
 import CodeEditor from '@/components/practice/coding/CodeEditor';
@@ -54,9 +56,9 @@ const POLL_MS = 1200;
 const POLL_MAX = 60; // ~72s ceiling
 
 const DIFFICULTY_LABEL: Record<string, string> = {
-  EASY: 'Dễ',
-  MEDIUM: 'Trung bình',
-  HARD: 'Khó',
+  EASY: 'Easy',
+  MEDIUM: 'Medium',
+  HARD: 'Hard',
 };
 
 /**
@@ -72,6 +74,7 @@ export default function PracticeCodingWorkspace({
   onSubmitted,
 }: Props) {
   const [problem, setProblem] = useState<PracticeProblemDetail | null>(null);
+  const [myStatus, setMyStatus] = useState<ProblemStatus>('NONE');
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [language, setLanguage] = useState<CodingLanguage>('java');
@@ -120,6 +123,7 @@ export default function PracticeCodingWorkspace({
       .then((p) => {
         if (cancelled) return;
         setProblem(p);
+        setMyStatus(p.myStatus);
         setCodeByLang({
           java: p.starterCode.java ?? '',
           python: p.starterCode.python ?? '',
@@ -212,6 +216,11 @@ export default function PracticeCodingWorkspace({
       const done = await pollSubmission(submissionId);
       if (done) {
         setVerdict({ verdict: done.verdict, passed: done.passedCases, total: done.totalCases });
+        // Reflect the new standing in the header immediately. SOLVED is sticky —
+        // a later non-AC submit never demotes an already-solved problem.
+        setMyStatus((prev) =>
+          done.verdict === 'AC' ? 'SOLVED' : prev === 'SOLVED' ? 'SOLVED' : 'ATTEMPTED',
+        );
         onSubmitted?.(done.verdict);
       } else {
         setActionError('Chấm quá lâu — xem lại ở mục Lịch sử nộp.');
@@ -305,6 +314,7 @@ export default function PracticeCodingWorkspace({
               {DIFFICULTY_LABEL[difficulty] ?? difficulty}
             </span>
           )}
+          <StatusBadge status={myStatus} />
         </div>
       </header>
 
@@ -411,6 +421,34 @@ export default function PracticeCodingWorkspace({
       </div>
     </div>
   );
+}
+
+// ── Solve-status badge (header) ─────────────────────────────────────────────
+
+/** LeetCode-style indicator: green tick once solved, amber dot while only
+ *  attempted, nothing until the user has submitted at least once. */
+function StatusBadge({ status }: { status: ProblemStatus }) {
+  if (status === 'SOLVED') {
+    return (
+      <span
+        className="flex shrink-0 items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-500"
+        title="Bạn đã giải bài này"
+      >
+        <CheckCircle2 className="h-3.5 w-3.5" /> Đã giải
+      </span>
+    );
+  }
+  if (status === 'ATTEMPTED') {
+    return (
+      <span
+        className="flex shrink-0 items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-500"
+        title="Bạn đã nộp nhưng chưa giải được"
+      >
+        <CircleDot className="h-3.5 w-3.5" /> Đã thử
+      </span>
+    );
+  }
+  return null;
 }
 
 // ── Problem statement (LeetCode-style: title · difficulty · description ·
