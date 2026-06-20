@@ -347,6 +347,9 @@ public class AnswerService {
         Map<String, Object> question = new HashMap<>();
         question.put("id", sq.getQuestionId());
         question.put("text", sq.getInlineText() != null ? sq.getInlineText() : snap.get("text"));
+        // Phase 1: difficulty lets the grader calibrate the expected depth bar
+        // for THIS question (EASY answers aren't penalised for lacking HARD depth).
+        question.put("difficulty", sq.getDifficulty() != null ? sq.getDifficulty().name() : null);
         if (sq.getQuestionType() == QuestionType.BEHAVIORAL) {
             question.put("competency", snap.get("competency"));
             question.put("expectedSignals", snap.getOrDefault("expectedSignals", List.of()));
@@ -354,6 +357,40 @@ public class AnswerService {
             question.put("domain", snap.get("domain"));
             question.put("keyConcepts", snap.getOrDefault("keyConcepts", List.of()));
             question.put("depthExpected", snap.getOrDefault("depthExpected", "intermediate"));
+        }
+        // Phase 3: AI follow-ups carry a richer per-question rubric in
+        // inlineExpectedPoints than the inherited expectedSignals/keyConcepts.
+        if (sq.isFollowUp() && sq.getInlineExpectedPoints() != null
+                && !sq.getInlineExpectedPoints().isEmpty()) {
+            question.put("expectedPoints", sq.getInlineExpectedPoints());
+        }
+
+        // Phase 2: a follow-up only makes sense given the parent Q&A and the gap
+        // it was asked to probe. Without this the grader judges it blind.
+        Map<String, Object> context = new HashMap<>();
+        if (sq.isFollowUp()) {
+            context.put("isFollowUp", true);
+            SessionQuestion parent = sq.getParentSessionQuestionId() != null
+                    ? sessionQuestionRepo.findById(sq.getParentSessionQuestionId()).orElse(null)
+                    : null;
+            if (parent != null) {
+                Map<String, Object> parentSnap =
+                        parent.getSnapshot() != null ? parent.getSnapshot() : Map.of();
+                context.put("parentQuestionText",
+                        parent.getInlineText() != null ? parent.getInlineText() : parentSnap.get("text"));
+                String parentTranscript = extractTranscript(
+                        answerRepo.findBySessionQuestionId(parent.getId()).orElse(null));
+                if (parentTranscript != null && parentTranscript.length() > 800) {
+                    parentTranscript = parentTranscript.substring(0, 800);
+                }
+                context.put("parentAnswerExcerpt", parentTranscript);
+            }
+            Object rationale = snap.get("rationale");   // why this follow-up was asked
+            if (rationale != null) {
+                context.put("probingGap", rationale);
+            }
+        } else {
+            context.put("isFollowUp", false);
         }
 
         Map<String, Object> answerBlock = new HashMap<>();
@@ -367,6 +404,11 @@ public class AnswerService {
                 sq.getQuestionType() == QuestionType.BEHAVIORAL ? "behavioral" : "core_conceptual");
         payload.put("question", question);
         payload.put("answer", answerBlock);
+        payload.put("context", context);
+        // Phase 3: expectations scale with seniority — the grader holds a senior
+        // to deeper reasoning and doesn't penalise a junior for missing it.
+        payload.put("level", session.getLevel());
+        payload.put("targetRole", session.getTargetRole());
         payload.put("responseLanguage", responseLanguage);
 
         Map<String, Object> envelope = new HashMap<>();
@@ -985,7 +1027,7 @@ public class AnswerService {
                 "judgeVerdict", String.valueOf(verdict),
                 "testsPassed", passed + "/" + total));
 
-        stageCodingEvaluationRequested(answer, sq, session, total, passed);
+        stageCodingEvaluationRequested(answer, sq, session, total, passed, caseList);
         log.info("Answer {} CODE judged runnable ({} / {} passed) — requested AI live_coding eval",
                 answerId, passed, total);
     }
@@ -997,7 +1039,8 @@ public class AnswerService {
      * AI consumer routes on {@code interview_type == "live_coding"}.
      */
     private void stageCodingEvaluationRequested(
-            Answer answer, SessionQuestion sq, InterviewSession session, int total, int passed) {
+            Answer answer, SessionQuestion sq, InterviewSession session, int total, int passed,
+            List<Map<String, Object>> caseList) {
 
         Map<String, Object> snap = sq.getSnapshot() != null ? sq.getSnapshot() : Map.of();
 
@@ -1035,6 +1078,18 @@ public class AnswerService {
         Map<String, Object> testSummary = new HashMap<>();
         testSummary.put("total", total);
         testSummary.put("passed", passed);
+        // Breakdown of the FAILING cases by verdict (WA/TLE/MLE), counts only —
+        // no stdin/stdout so hidden testcase data never leaves the judge. Lets
+        // the grader tell a correctness bug (WA) from an efficiency problem
+        // (TLE/MLE) instead of only seeing the pass percentage.
+        Map<String, Integer> failedByStatus = new LinkedHashMap<>();
+        for (Map<String, Object> c : caseList) {
+            String st = String.valueOf(c.get("status"));
+            if (!"AC".equalsIgnoreCase(st)) {
+                failedByStatus.merge(st, 1, Integer::sum);
+            }
+        }
+        testSummary.put("failedByStatus", failedByStatus);
 
         Map<String, Object> submission = new HashMap<>();
         submission.put("code", answer.getCode() != null ? answer.getCode() : "");

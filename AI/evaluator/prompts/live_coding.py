@@ -7,6 +7,13 @@ def build_live_coding_prompt(inp: LiveCodingInput, retry_instruction: str = "") 
     ts = s.test_summary
     oc = q.optimal_complexity
     pass_rate = (ts.passed / ts.total * 100) if ts.total > 0 else 0.0
+    if ts.failed_by_status:
+        # e.g. "2× WA, 1× TLE" — verdict mix of the failing cases.
+        failed_str = ", ".join(f"{n}× {st}" for st, n in ts.failed_by_status.items())
+    elif ts.passed < ts.total:
+        failed_str = f"{ts.total - ts.passed} failed (verdict breakdown unavailable)"
+    else:
+        failed_str = "none — all cases passed"
     tags_str = ", ".join(q.tags) if q.tags else "N/A"
     constraints_str = q.constraints.strip() if q.constraints and q.constraints.strip() else "N/A"
 
@@ -58,6 +65,15 @@ Topic Tags      : {tags_str}
 Time Spent      : {s.time_spent_minutes} minutes
 Language        : {s.language}
 Test Results    : {ts.passed}/{ts.total} passed ({pass_rate:.1f}%)
+Failing cases   : {failed_str}
+  Interpret the failure verdicts: WA (Wrong Answer) → a CORRECTNESS bug or a
+  missed edge case (weigh against Problem Solving / Code Quality). TLE (Time
+  Limit Exceeded) → the algorithm is too SLOW (weigh against Time Complexity).
+  MLE (Memory Limit Exceeded) → excessive memory (weigh against Space Complexity).
+  RE (Runtime Error) → a crash / unhandled exception on some inputs, i.e. a
+  robustness or edge-case bug (weigh against Code Quality / Problem Solving).
+  A solution that passes most cases but fails only on TLE is likely correct but
+  inefficient — do not treat it the same as one failing on WA.
 
 PROBLEM DESCRIPTION:
 {q.description}

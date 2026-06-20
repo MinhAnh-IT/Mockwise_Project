@@ -174,6 +174,12 @@ public class SessionFinalizerService {
         for (Answer a : answerRepo.findBySessionId(s.getId())) {
             answerByQ.put(a.getSessionQuestionId(), a);
         }
+        // Index questions by id so a follow-up can resolve its parent's Q&A for
+        // the reviewer's narrative threading (Phase 4).
+        Map<UUID, SessionQuestion> questionById = new HashMap<>();
+        for (SessionQuestion q : questions) {
+            questionById.put(q.getId(), q);
+        }
 
         List<Map<String, Object>> answers = new java.util.ArrayList<>(questions.size());
         for (SessionQuestion sq : questions) {
@@ -192,6 +198,27 @@ public class SessionFinalizerService {
             entry.put("expectedSignals", snap.get("expectedSignals"));
             entry.put("keyConcepts", snap.get("keyConcepts"));
             entry.put("depthExpected", snap.get("depthExpected"));
+
+            // Phase 4: thread a follow-up to its parent Q&A + the probed gap so
+            // the reviewer can read it in context rather than as a stray question.
+            if (sq.isFollowUp() && sq.getParentSessionQuestionId() != null) {
+                SessionQuestion parent = questionById.get(sq.getParentSessionQuestionId());
+                if (parent != null) {
+                    Map<String, Object> parentSnap =
+                            parent.getSnapshot() != null ? parent.getSnapshot() : Map.of();
+                    entry.put("parentQuestionText",
+                            parent.getInlineText() != null ? parent.getInlineText() : parentSnap.get("text"));
+                    String parentExcerpt = extractTranscript(answerByQ.get(parent.getId()));
+                    if (parentExcerpt != null && parentExcerpt.length() > 800) {
+                        parentExcerpt = parentExcerpt.substring(0, 800);
+                    }
+                    entry.put("parentAnswerExcerpt", parentExcerpt);
+                }
+                Object rationale = snap.get("rationale");
+                if (rationale != null) {
+                    entry.put("probingGap", rationale);
+                }
+            }
 
             if (a != null) {
                 entry.put("answerStatus", a.getStatus().name());
@@ -246,6 +273,14 @@ public class SessionFinalizerService {
         payload.put("level", s.getLevel());
         payload.put("interviewType", s.getInterviewType().name());
         payload.put("responseLanguage", responseLanguage);
+        // Phase 4: the adaptive trajectory — a candidate escalated into harder
+        // questions (stretchMode / rising difficulty) who still handled them
+        // deserves more credit than one who only faced easy questions.
+        Map<String, Object> adaptive = new LinkedHashMap<>();
+        adaptive.put("stretchMode", s.isStretchMode());
+        adaptive.put("runningStrongCount", s.getRunningStrongCount());
+        adaptive.put("globalDifficultyOffset", s.getGlobalDifficultyOffset());
+        payload.put("adaptive", adaptive);
         payload.put("blueprint", blueprintSummary);
         payload.put("answers", answers);
         payload.put("answerCount", answers.size());
@@ -255,8 +290,22 @@ public class SessionFinalizerService {
         return payload;
     }
 
+    /**
+     * The transcript that scored a spoken answer. Reads the dedicated columns
+     * first — after scoring {@code rawEvaluation} is OVERWRITTEN with the AI's
+     * output, which carries no answer block, so the legacy
+     * {@code rawEvaluation.answer.transcript} fallback is "" for every scored
+     * answer. The realtime/authoritative columns are the source of truth.
+     */
     private static String extractTranscript(Answer a) {
-        if (a == null || a.getRawEvaluation() == null) return "";
+        if (a == null) return "";
+        if (a.getRealtimeTranscript() != null && !a.getRealtimeTranscript().isBlank()) {
+            return a.getRealtimeTranscript();
+        }
+        if (a.getAuthoritativeTranscript() != null && !a.getAuthoritativeTranscript().isBlank()) {
+            return a.getAuthoritativeTranscript();
+        }
+        if (a.getRawEvaluation() == null) return "";
         Object answer = a.getRawEvaluation().get("answer");
         if (answer instanceof Map<?, ?> m) {
             Object t = m.get("transcript");

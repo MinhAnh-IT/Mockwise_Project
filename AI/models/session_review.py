@@ -37,6 +37,10 @@ class SessionAnswerSummary(CamelModel):
     per_answer_score: Optional[float] = None
     per_answer_verdict: dict = Field(default_factory=dict)
     answer_status: str = "MISSING"
+    # Follow-up threading (all optional for backward compatibility).
+    parent_question_text: Optional[str] = None
+    parent_answer_excerpt: Optional[str] = None
+    probing_gap: Optional[str] = None
 
 
 class SessionBlueprintSummary(CamelModel):
@@ -46,6 +50,15 @@ class SessionBlueprintSummary(CamelModel):
     question_budget: Optional[int] = None
     time_budget_minutes: Optional[int] = None
     topics: List[dict] = Field(default_factory=list)
+
+
+class SessionAdaptiveState(CamelModel):
+    """The session's adaptive trajectory — how the difficulty escalated as the
+    candidate performed. An explicit model (not a bare dict) so the reviewer's
+    structured-output schema stays Gemini-safe. All fields optional."""
+    stretch_mode: Optional[bool] = None
+    running_strong_count: Optional[int] = None
+    global_difficulty_offset: Optional[int] = None
 
 
 class SessionEvaluationPayload(CamelModel):
@@ -58,6 +71,7 @@ class SessionEvaluationPayload(CamelModel):
     target_role: Optional[str] = None
     level: Optional[str] = None
     interview_type: str
+    adaptive: Optional[SessionAdaptiveState] = None
     blueprint: SessionBlueprintSummary = Field(default_factory=SessionBlueprintSummary)
     answers: List[SessionAnswerSummary] = Field(default_factory=list)
     answer_count: Optional[int] = None
