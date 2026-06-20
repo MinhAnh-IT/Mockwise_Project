@@ -4,8 +4,9 @@ import java.util.List;
 
 /**
  * Community insights for the leaderboard page: {@code trending} = problems with
- * the most distinct solvers this week; {@code hardest} = lowest global accept
- * ratio (over graded SUBMITs, past a minimum-submission threshold).
+ * the most distinct solvers this week; {@code hardest} = lowest per-user
+ * solve-through rate (distinct solvers / distinct attempters), restricted to
+ * problems with enough attempters and a solve rate below the "hard" ceiling.
  */
 public record CommunityResponse(
         List<Trending> trending,
@@ -23,8 +24,8 @@ public record CommunityResponse(
             String problemId,
             String title,
             String difficulty,
-            long total,
-            long accepted,
-            double acceptanceRate
+            long attempters,
+            long solvers,
+            double solveRate
     ) {}
 }

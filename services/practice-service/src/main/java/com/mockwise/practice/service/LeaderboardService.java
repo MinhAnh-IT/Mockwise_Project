@@ -40,7 +40,10 @@ public class LeaderboardService {
     private static final int MAX_LIMIT = 100;
     private static final int TRENDING_LIMIT = 10;
     private static final int HARDEST_LIMIT = 10;
-    private static final long HARDEST_MIN_SUBMISSIONS = 5;
+    /** A problem needs at least this many distinct attempters before we rate its difficulty. */
+    private static final long HARDEST_MIN_ATTEMPTERS = 3;
+    /** Only surface a problem as "hard" when ≤ this fraction of attempters ever solved it. */
+    private static final double HARDEST_MAX_SOLVE_RATE = 0.7;
 
     PracticeSubmissionRepository submissionRepo;
     UserProfileClient userProfile;
@@ -92,7 +95,8 @@ public class LeaderboardService {
         // re-seeded problem. Drop the orphans BEFORE limiting so a stale id
         // never claims a top-N slot with a dead "not found" link.
         List<Object[]> trendingRows = submissionRepo.trendingProblems(weekAgo);
-        List<Object[]> hardestRows  = submissionRepo.hardestProblems(HARDEST_MIN_SUBMISSIONS);
+        List<Object[]> hardestRows  = submissionRepo.hardestProblems(
+                HARDEST_MIN_ATTEMPTERS, HARDEST_MAX_SOLVE_RATE);
 
         Set<String> candidateIds = new LinkedHashSet<>();
         trendingRows.forEach(r -> candidateIds.add((String) r[0]));
@@ -110,11 +114,12 @@ public class LeaderboardService {
                 .filter(r -> valid.contains((String) r[0]))
                 .limit(HARDEST_LIMIT)
                 .map(r -> {
-                    long t = num(r[3]);
-                    long acc = num(r[4]);
+                    long attempters = num(r[3]);
+                    long solvers = num(r[4]);
                     return new CommunityResponse.Hardest(
                             (String) r[0], (String) r[1], (String) r[2],
-                            t, acc, t == 0 ? 0d : (double) acc / t);
+                            attempters, solvers,
+                            attempters == 0 ? 0d : (double) solvers / attempters);
                 })
                 .toList();
 

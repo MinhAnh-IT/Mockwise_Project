@@ -195,7 +195,7 @@ export default function StatsPage() {
                     problemId: h.problemId,
                     title: h.title ?? h.problemId,
                     difficulty: h.difficulty,
-                    meta: `AC ${(h.acceptanceRate * 100).toFixed(0)}%`,
+                    meta: `${(h.solveRate * 100).toFixed(0)}% giải được · ${h.attempters} người thử`,
                   }))}
                 />
               </div>

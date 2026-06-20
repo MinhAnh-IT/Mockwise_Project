@@ -145,9 +145,12 @@ export type HardestProblem = {
   problemId: string;
   title: string | null;
   difficulty: string | null;
-  total: number;
-  accepted: number;
-  acceptanceRate: number;
+  /** Distinct users who attempted (≥1 graded SUBMIT). */
+  attempters: number;
+  /** Distinct users who ever reached AC. */
+  solvers: number;
+  /** solvers / attempters — fraction of attempters who solved it. */
+  solveRate: number;
 };
 
 export type CommunityResponse = {

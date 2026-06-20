@@ -137,22 +137,36 @@ public interface PracticeSubmissionRepository extends JpaRepository<PracticeSubm
     List<Object[]> trendingProblems(@Param("since") java.time.LocalDateTime since);
 
     /**
-     * Lowest global accept ratio over graded SUBMITs, past a minimum-submission
-     * threshold. Each row is {@code [questionId, title, difficulty, total, accepted]},
+     * "Genuinely hard" problems by <b>per-user</b> solve-through rate: of the
+     * distinct users who attempted a problem (≥1 graded SUBMIT), how many ever
+     * reached AC. Per-user (not per-submission) so one user spamming retries
+     * can't fake-harden a problem.
+     *
+     * <p>Only problems with {@code ≥ :minAttempters} distinct attempters AND a
+     * <b>raw</b> solve rate below {@code :maxSolveRate} qualify — so a 100%-solved
+     * problem is never padded in as "hard". Ranking uses a Laplace-smoothed rate
+     * ({@code (solvers+1)/(attempters+2)}) ascending, which keeps a thin-sample
+     * outlier (e.g. 1/3) from leaping above a well-sampled hard problem.
+     *
+     * <p>Each row is {@code [questionId, title, difficulty, attempters, solvers]},
      * hardest first.
      */
     @Query(value = """
             SELECT s.question_id, MAX(s.problem_title), MAX(s.difficulty),
-                   COUNT(*) AS total,
-                   SUM(CASE WHEN s.verdict = 'AC' THEN 1 ELSE 0 END) AS accepted
+                   COUNT(DISTINCT s.user_id) AS attempters,
+                   COUNT(DISTINCT CASE WHEN s.verdict = 'AC' THEN s.user_id END) AS solvers
             FROM practice_submission s
             WHERE s.mode = 'SUBMIT' AND s.verdict IS NOT NULL
             GROUP BY s.question_id
-            HAVING COUNT(*) >= :minSubmissions
-            ORDER BY (CAST(SUM(CASE WHEN s.verdict = 'AC' THEN 1 ELSE 0 END) AS double precision) / COUNT(*)) ASC,
-                     total DESC
+            HAVING COUNT(DISTINCT s.user_id) >= :minAttempters
+               AND (CAST(COUNT(DISTINCT CASE WHEN s.verdict = 'AC' THEN s.user_id END) AS double precision)
+                    / COUNT(DISTINCT s.user_id)) < :maxSolveRate
+            ORDER BY (CAST(COUNT(DISTINCT CASE WHEN s.verdict = 'AC' THEN s.user_id END) + 1 AS double precision)
+                      / (COUNT(DISTINCT s.user_id) + 2)) ASC,
+                     attempters DESC
             """, nativeQuery = true)
-    List<Object[]> hardestProblems(@Param("minSubmissions") long minSubmissions);
+    List<Object[]> hardestProblems(@Param("minAttempters") long minAttempters,
+                                   @Param("maxSolveRate") double maxSolveRate);
 
     /** Distinct calendar days (desc) on which the user had ≥1 ACCEPTED submit — backs streaks. */
     @Query(value = """
