@@ -1,3 +1,6 @@
+import logging
+import time
+
 from langgraph.graph import StateGraph, END
 
 from generator.state import GeneratorState
@@ -7,6 +10,60 @@ from generator.nodes.testcase_generator import testcase_generator_node
 from generator.nodes.input_generator import input_generator_node
 from generator.nodes.expected_verifier import expected_verifier_node
 from generator.nodes.testcase_validator import testcase_validator_node
+
+log = logging.getLogger("generator")
+log.setLevel(logging.INFO)
+
+
+def _summary(out) -> str:
+    """One-line, human-readable summary of what a node produced — so the console
+    trail shows not just WHICH step ran but WHAT it did."""
+    if not isinstance(out, dict):
+        return ""
+    bits = []
+    pa = out.get("problem_analysis")
+    if pa:
+        bits.append(
+            f'analyzed "{pa.get("title")}" — fn={pa.get("fn")}, '
+            f'difficulty={pa.get("difficulty")}, unique_answer={pa.get("unique_answer")}'
+        )
+    rt = out.get("raw_testcases")
+    if rt is not None:
+        hidden = sum(1 for tc in rt if isinstance(tc, dict) and tc.get("is_hidden"))
+        bits.append(f"{len(rt)} testcases ({hidden} hidden)")
+    if out.get("programmatic_warning"):
+        bits.append(f"prog-inputs: {out['programmatic_warning'][:90]}")
+    if out.get("needs_reference_retry"):
+        bits.append(f"solutions disagreed → regenerate (try {out.get('reference_retry_count')})")
+    elif out.get("verifier_warning"):
+        bits.append(f"verify: {out['verifier_warning'][:90]}")
+    if out.get("needs_retry"):
+        bits.append(f"validation failed → retry (attempt {out.get('retry_count')})")
+    if out.get("generation_error"):
+        bits.append(f"error: {str(out['generation_error'])[:90]}")
+    fo = out.get("final_output")
+    if isinstance(fo, dict):
+        bits.append(f"FAILED: {fo['error']}" if fo.get("error") else "READY ✔")
+    return " | ".join(b for b in bits if b)
+
+
+def _logged(name: str, fn):
+    """Wrap a graph node so each step prints ▶ on entry and ✓ with elapsed time +
+    a short summary on exit (✗ on error). Lets an admin `docker logs -f
+    ai-service` follow exactly which step the generator is on."""
+    def wrapper(state):
+        log.info("▶ %s", name)
+        t = time.time()
+        try:
+            out = fn(state)
+        except Exception:
+            log.exception("✗ %s failed after %.1fs", name, time.time() - t)
+            raise
+        summary = _summary(out)
+        log.info("✓ %s (%.1fs)%s", name, time.time() - t, f" — {summary}" if summary else "")
+        return out
+    wrapper.__name__ = name
+    return wrapper
 
 
 def _route_after_router(state: GeneratorState):
@@ -41,13 +98,13 @@ def _route_after_validator(state: GeneratorState):
 def build_generator_graph():
     graph = StateGraph(GeneratorState)
 
-    # ── Register nodes ────────────────────────────────────────────────────────
-    graph.add_node("generator_router", generator_router_node)
-    graph.add_node("problem_analyzer", problem_analyzer_node)
-    graph.add_node("testcase_generator", testcase_generator_node)
-    graph.add_node("input_generator", input_generator_node)
-    graph.add_node("expected_verifier", expected_verifier_node)
-    graph.add_node("testcase_validator", testcase_validator_node)
+    # ── Register nodes (each wrapped to log ▶ entry / ✓ exit + timing) ────────
+    graph.add_node("generator_router", _logged("generator_router", generator_router_node))
+    graph.add_node("problem_analyzer", _logged("problem_analyzer", problem_analyzer_node))
+    graph.add_node("testcase_generator", _logged("testcase_generator", testcase_generator_node))
+    graph.add_node("input_generator", _logged("input_generator", input_generator_node))
+    graph.add_node("expected_verifier", _logged("expected_verifier", expected_verifier_node))
+    graph.add_node("testcase_validator", _logged("testcase_validator", testcase_validator_node))
 
     # ── Entry point ───────────────────────────────────────────────────────────
     graph.set_entry_point("generator_router")

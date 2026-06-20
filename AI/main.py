@@ -1,8 +1,14 @@
+import logging
+import time
+
 from evaluator.graph import build_graph
 from generator.graph import build_generator_graph
 
 _graph = None
 _generator_graph = None
+
+log = logging.getLogger("generator")
+log.setLevel(logging.INFO)
 
 
 def get_graph():
@@ -30,6 +36,11 @@ def generate_testcases(input_json: dict) -> dict:
         dict matching GenerateTestcasesResponse, or error dict
     """
     graph = get_generator_graph()
+    log.info(
+        "═══ generate-testcases START — mode=%s, numTestcases=%s, numVisible=%s ═══",
+        input_json.get("mode"), input_json.get("numTestcases"), input_json.get("numVisible"),
+    )
+    t = time.time()
     result = graph.invoke({
         "raw_input": input_json,
         "validated_input": None,
@@ -42,7 +53,10 @@ def generate_testcases(input_json: dict) -> dict:
         "generation_error": None,
         "generation_start_ms": None,
     })
-    return result.get("final_output", {"error": "generation_failed", "detail": "No output produced"})
+    final = result.get("final_output", {"error": "generation_failed", "detail": "No output produced"})
+    status = f"FAILED ({final['error']})" if isinstance(final, dict) and final.get("error") else "OK"
+    log.info("═══ generate-testcases DONE in %.1fs — %s ═══", time.time() - t, status)
+    return final
 
 
 def evaluate(input_json: dict) -> dict:
