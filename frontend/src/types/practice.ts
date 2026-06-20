@@ -138,7 +138,8 @@ export type TrendingProblem = {
   problemId: string;
   title: string | null;
   difficulty: string | null;
-  solvers: number;
+  /** Distinct users who submitted (solved or not) in the window. */
+  participants: number;
 };
 
 export type HardestProblem = {
