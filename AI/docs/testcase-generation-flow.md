@@ -87,7 +87,7 @@ Hai node sinh đề truyền model riêng; phần còn lại của service vẫn
 
 | Node | Model dùng |
 |---|---|
-| `problem_analyzer` | `GENERATOR_MODEL_NAME` (mặc định `gemini-3.5-flash`) + `GENERATOR_THINKING_LEVEL` (`medium`) |
+| `problem_analyzer` | `GENERATOR_MODEL_NAME` (mặc định `gemini-3.5-flash`) + `GENERATOR_THINKING_LEVEL` (`low`) |
 | `testcase_generator` | như trên |
 | `input_generator` | như trên |
 | Mọi tác vụ khác (evaluator, selector…) | `MODEL_NAME` (Flash) + `THINKING_LEVEL` |
@@ -160,7 +160,7 @@ lưu — không phải lúc nào cũng là lỗi, nhưng là tín hiệu cần l
 | Env | Default | Dùng cho |
 |---|---|---|
 | `GENERATOR_MODEL_NAME` | `gemini-3.5-flash` | Model cho analyzer + testcase_generator + input_generator (giờ trùng MODEL_NAME; tách riêng để có thể trỏ về pro nếu cần) |
-| `GENERATOR_THINKING_LEVEL` | `medium` | Thinking level cho generator model |
+| `GENERATOR_THINKING_LEVEL` | `low` | Thinking cho generator. **Quan trọng:** `medium` làm 50-case phình ~540s; `low` → ~26s (thinking cost tăng siêu tuyến tính theo kích thước output) |
 | `MAX_TESTCASES` | `1000` | Trần `numTestcases` (chặn ở router). LLM one-shot chỉ kham ~vài chục thật sự |
 | `GENERATOR_MAX_RETRIES` | `2` | Retry của testcase_validator (trước là 1) |
 | `PROGRAMMATIC_INPUTS` | `false` | Bật Phase B (sinh input lớn bằng code) |

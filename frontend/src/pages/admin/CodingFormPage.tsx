@@ -1167,7 +1167,7 @@ function AiGenerateModal({
       const { jobId } = await startGenerateCoding(body);
       let failures = 0;
       for (;;) {
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, 2000));
         if (!aliveRef.current) return;
         let p: AiGenerateProgress;
         try {

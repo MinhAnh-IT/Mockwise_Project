@@ -761,7 +761,7 @@ Admin UI
 | `MODEL_NAME` | `gemini-3.5-flash` | Model cho TOÀN BỘ service (evaluator, selector, generator) — set ở `/opt/mockwise/.env` |
 | `THINKING_LEVEL` | `low` | `minimal` / `low` / `medium` / `high` (Gemini 3) — auto-map sang `thinking_budget` nếu dùng Gemini 2.x |
 | `GENERATOR_MODEL_NAME` | `gemini-3.5-flash` | Model cho analyzer + testcase_generator + input_generator (trùng MODEL_NAME; đổi để generator dùng model khác) |
-| `GENERATOR_THINKING_LEVEL` | `medium` | Thinking level cho generator model |
+| `GENERATOR_THINKING_LEVEL` | `low` | Thinking cho generator (`medium` làm 50-case ~540s → `low` ~26s) |
 | `MAX_TESTCASES` | `1000` | Trần `numTestcases` (chặn ở `generator_router`); LLM one-shot chỉ kham ~vài chục thật sự |
 | `GENERATOR_MAX_RETRIES` | `2` | Số lần retry tối đa của `testcase_validator` |
 | `PROGRAMMATIC_INPUTS` | `false` | Bật Phase B — `input_generator` sinh input lớn bằng code |

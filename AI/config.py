@@ -18,10 +18,11 @@ EMBEDDING_DIM: int = int(os.getenv("EMBEDDING_DIM", "768"))
 # Same model as the rest of the service now (was a dedicated pro model). Kept as a
 # separate knob so the generator path can be pointed at a stronger model (e.g.
 # gemini-3.1-pro-preview) independently if generation quality ever needs it.
-# thinking_level is medium here (vs low elsewhere) since testcase/edge design is
-# the heaviest reasoning step; drop to low for faster, cheaper generation.
+# thinking_level is LOW: at medium, a 50-case one-shot ballooned to ~540s (thinking
+# cost grows superlinearly with output size); low cut that to ~26s with the
+# explicit edge-checklist prompt + expected_verifier keeping outputs correct.
 GENERATOR_MODEL_NAME: str = os.getenv("GENERATOR_MODEL_NAME", "gemini-3.5-flash")
-GENERATOR_THINKING_LEVEL: str = os.getenv("GENERATOR_THINKING_LEVEL", "medium")
+GENERATOR_THINKING_LEVEL: str = os.getenv("GENERATOR_THINKING_LEVEL", "low")
 # Upper bound on numTestcases. The generator emits all N cases in one structured
 # call. With the bigger output-token budget + parallel verification, ~100 cases
 # is the healthy ceiling for the one-shot path; past that the LLM output starts to
