@@ -14,6 +14,9 @@ services:
     restart: unless-stopped
     env_file: ../.env
     environment:
+      # Run the JVM clock in Vietnam time so LocalDateTime.now() / LocalDate.now()
+      # match the user's calendar day (containers default to UTC otherwise).
+      TZ: Asia/Ho_Chi_Minh
       SPRING_DATASOURCE_URL: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT:-3306}/iam
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
@@ -36,6 +39,7 @@ services:
     restart: unless-stopped
     env_file: ../.env
     environment:
+      TZ: Asia/Ho_Chi_Minh
       SPRING_DATASOURCE_URL: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT:-3306}/user_profile
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
@@ -48,6 +52,7 @@ services:
     restart: unless-stopped
     env_file: ../.env
     environment:
+      TZ: Asia/Ho_Chi_Minh
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
       MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
       MAIL_PORT: ${MAIL_PORT:-587}
@@ -63,6 +68,7 @@ services:
     environment:
       # Force prod so application-local.yml's hard-coded dev DB url
       # is not loaded on top of the env vars below.
+      TZ: Asia/Ho_Chi_Minh
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/question_bank
       POSTGRES_USER: ${POSTGRES_USER}
@@ -81,6 +87,7 @@ services:
     environment:
       # Force prod so application-local.yml's hard-coded dev values
       # (internal.auth.api-key=dev-internal-key-change-me) are not loaded.
+      TZ: Asia/Ho_Chi_Minh
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/storage
       POSTGRES_USER: ${POSTGRES_USER}
@@ -101,6 +108,7 @@ services:
     environment:
       # Force prod so application-local.yml's hard-coded dev values
       # (storage-client.base-url, ffmpeg path, scoped api-keys) are not loaded.
+      TZ: Asia/Ho_Chi_Minh
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT:-3306}/tts_stt?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       MYSQL_USER: ${MYSQL_USER}
@@ -144,6 +152,7 @@ services:
     restart: unless-stopped
     env_file: ../.env
     environment:
+      TZ: Asia/Ho_Chi_Minh
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/mockwise_interview
       POSTGRES_USER: ${POSTGRES_USER}
@@ -178,6 +187,7 @@ services:
     env_file: ../.env
     environment:
       # Force prod so application-local.yml's localhost defaults are not loaded.
+      TZ: Asia/Ho_Chi_Minh
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/practice
       POSTGRES_USER: ${POSTGRES_USER}
