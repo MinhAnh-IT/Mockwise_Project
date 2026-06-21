@@ -39,6 +39,7 @@ import AdminMonitoringPage from '@/pages/admin/AdminMonitoringPage';
 import AdminJudgePage from '@/pages/admin/AdminJudgePage';
 import AdminAuditPage from '@/pages/admin/AdminAuditPage';
 import AdminFeedbackPage from '@/pages/admin/AdminFeedbackPage';
+import AdminAccountPage from '@/pages/admin/AdminAccountPage';
 import FeedbackWidget from '@/components/feedback/FeedbackWidget';
 
 export default function App() {
@@ -260,6 +261,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <BlueprintFormPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/account"
+            element={
+              <AdminRoute>
+                <AdminAccountPage />
               </AdminRoute>
             }
           />

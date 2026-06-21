@@ -37,7 +37,9 @@ export default function CompleteProfilePage() {
   const [experience, setExperience] = useState('0');
   const [trackId, setTrackId] = useState('');
   const [levelId, setLevelId] = useState('');
-  const [preferredLanguage, setPreferredLanguage] = useState<Language>('VI');
+  // Vietnamese-only platform: always VI, no language picker (kept in payload
+  // for the backend's required `preferredLanguage` field).
+  const preferredLanguage: Language = 'VI';
   const [yearsInCurrentRole, setYearsInCurrentRole] = useState('');
   const [techStackInput, setTechStackInput] = useState('');
   const [industriesInput, setIndustriesInput] = useState('');
@@ -197,7 +199,7 @@ export default function CompleteProfilePage() {
             <div>
               <h2 className="text-sm font-semibold text-on-surface">Tuỳ chọn nâng cao</h2>
               <p className="text-xs text-on-surface-variant mt-0.5">
-                Tech stack, ngành nghề, ngôn ngữ — giúp cá nhân hoá tốt hơn (có thể bỏ qua).
+                Tech stack, ngành nghề — giúp cá nhân hoá tốt hơn (có thể bỏ qua).
               </p>
             </div>
             <ChevronDown className="w-4 h-4 text-on-surface-variant shrink-0 transition-transform group-open:rotate-180" />
@@ -217,17 +219,6 @@ export default function CompleteProfilePage() {
                   onChange={(e) => setYearsInCurrentRole(e.target.value)}
                   placeholder="vd: 1"
                 />
-              </Field>
-
-              <Field label="Ngôn ngữ ưu tiên" htmlFor="preferredLanguage">
-                <Select
-                  id="preferredLanguage"
-                  value={preferredLanguage}
-                  onChange={(e) => setPreferredLanguage(e.target.value as Language)}
-                >
-                  <option value="VI">Tiếng Việt</option>
-                  <option value="EN">English</option>
-                </Select>
               </Field>
             </div>
 

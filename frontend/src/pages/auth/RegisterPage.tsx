@@ -40,7 +40,10 @@ export default function RegisterPage() {
   const [experience, setExperience] = useState('0');
   const [trackId, setTrackId] = useState('');
   const [levelId, setLevelId] = useState('');
-  const [preferredLanguage, setPreferredLanguage] = useState<Language>('VI');
+  // Platform is Vietnamese-only for now, so we always register users as VI and
+  // no longer expose a language picker. Kept in the payload for the backend's
+  // required `preferredLanguage` field.
+  const preferredLanguage: Language = 'VI';
   const [yearsInCurrentRole, setYearsInCurrentRole] = useState('');
   const [techStackInput, setTechStackInput] = useState('');
   const [industriesInput, setIndustriesInput] = useState('');
@@ -277,17 +280,6 @@ export default function RegisterPage() {
                   onChange={(e) => setYearsInCurrentRole(e.target.value)}
                   placeholder="vd: 1"
                 />
-              </Field>
-
-              <Field label="Ngôn ngữ ưu tiên" htmlFor="preferredLanguage">
-                <Select
-                  id="preferredLanguage"
-                  value={preferredLanguage}
-                  onChange={(e) => setPreferredLanguage(e.target.value as Language)}
-                >
-                  <option value="VI">Tiếng Việt</option>
-                  <option value="EN">English</option>
-                </Select>
               </Field>
             </div>
 
