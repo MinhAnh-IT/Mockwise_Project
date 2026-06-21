@@ -9,9 +9,16 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, projectRoot, '');
   const apiTarget = env.VITE_API_PROXY_TARGET ?? 'http://31.220.84.140';
+  const isProd = mode === 'production';
 
   return {
     plugins: [react(), tailwindcss()],
+    // Strip all console.* and debugger statements from the production bundle so
+    // end users can't read debug output in the browser console. Logging is kept
+    // intact during `vite dev`.
+    esbuild: {
+      drop: isProd ? ['console', 'debugger'] : [],
+    },
     resolve: {
       alias: {
         '@': path.resolve(projectRoot, './src'),
@@ -37,7 +44,9 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
-      sourcemap: true,
+      // No sourcemaps in production — they'd let anyone read the original
+      // TypeScript source in DevTools. Keep them on for local builds.
+      sourcemap: !isProd,
     },
   };
 });

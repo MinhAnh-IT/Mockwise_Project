@@ -59,8 +59,11 @@ public class AuthGatewayFilter implements GlobalFilter, Ordered {
             // visitor may not be logged in. Reading/triaging feedback is admin-only.
             new PublicRoute(HttpMethod.POST, "/api/v1/feedbacks"),
             new PublicRoute(HttpMethod.GET,  "/api/v1/iam/auth/health"),
-            new PublicRoute(HttpMethod.POST, "/api/v1/judge/callback/**"),
-            new PublicRoute(HttpMethod.PUT,  "/api/v1/judge/callback/**"),
+            // NOTE: Judge0 posts results back to judge-service over the internal
+            // docker network (JUDGE_CALLBACK_BASE_URL=http://judge-service:8083),
+            // never through this public gateway — so the callback endpoint is
+            // intentionally NOT public. Exposing it would let anyone who guesses
+            // a jobId forge submission verdicts. Keep it off PUBLIC_ROUTES.
 
             // AI Evaluation — protected by X-API-Key at the AI service itself
             // (service-to-service; JWT introspection is skipped here)
