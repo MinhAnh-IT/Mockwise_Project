@@ -5,7 +5,9 @@ import com.mockwise.interview.dto.admin.response.AdminSessionStatsResponse;
 import com.mockwise.interview.entity.InterviewSession;
 import com.mockwise.interview.enums.InterviewType;
 import com.mockwise.interview.enums.SessionStatus;
+import com.mockwise.interview.repository.AnswerRepository;
 import com.mockwise.interview.repository.InterviewSessionRepository;
+import com.mockwise.interview.repository.SessionQuestionRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -18,9 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Read-only admin oversight of interview sessions: a filtered/paginated list
@@ -34,6 +38,8 @@ import java.util.Map;
 public class AdminSessionService {
 
     InterviewSessionRepository sessionRepo;
+    SessionQuestionRepository sessionQuestionRepo;
+    AnswerRepository answerRepo;
 
     @Transactional(readOnly = true)
     public Page<AdminSessionResponse> list(
@@ -72,7 +78,28 @@ public class AdminSessionService {
             return ps.isEmpty() ? cb.conjunction() : cb.and(ps.toArray(Predicate[]::new));
         };
 
-        return sessionRepo.findAll(spec, pageable).map(AdminSessionResponse::from);
+        Page<InterviewSession> page = sessionRepo.findAll(spec, pageable);
+
+        // Real per-session question/answer counts for the page, batched into two
+        // grouped queries (no N+1). question_count on the entity is only exact
+        // for non-adaptive CODING; adaptive sessions add follow-ups, so the list
+        // shows actual pinned-question and submitted-answer counts instead.
+        List<UUID> ids = page.getContent().stream().map(InterviewSession::getId).toList();
+        Map<UUID, Long> totalById = new HashMap<>();
+        Map<UUID, Long> answeredById = new HashMap<>();
+        if (!ids.isEmpty()) {
+            for (Object[] row : sessionQuestionRepo.countGroupedBySessionId(ids)) {
+                totalById.put((UUID) row[0], toLong(row[1]));
+            }
+            for (Object[] row : answerRepo.countGroupedBySessionId(ids)) {
+                answeredById.put((UUID) row[0], toLong(row[1]));
+            }
+        }
+
+        return page.map(s -> AdminSessionResponse.from(
+                s,
+                (int) toLong(answeredById.get(s.getId())),
+                (int) toLong(totalById.get(s.getId()))));
     }
 
     @Transactional(readOnly = true)

@@ -407,7 +407,12 @@ export type AdminSession = {
   level: string | null;
   interviewType: InterviewType | null;
   status: SessionStatus;
+  /** Planned base count set at /start; exact only for non-adaptive CODING. */
   questionCount: number;
+  /** Answers actually submitted (one per question). */
+  answeredQuestions: number;
+  /** Questions actually pinned, follow-ups included. */
+  totalQuestions: number;
   finalScore: number | null;
   startedAt: string | null;
   finishedAt: string | null;

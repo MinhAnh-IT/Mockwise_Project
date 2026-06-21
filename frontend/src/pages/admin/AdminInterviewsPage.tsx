@@ -285,7 +285,7 @@ export default function AdminInterviewsPage() {
                 </th>
                 <th className="px-4 py-3 font-semibold">Trạng thái</th>
                 <th className="hidden px-4 py-3 text-right font-semibold sm:table-cell">
-                  Câu hỏi
+                  Đã trả lời
                 </th>
                 <th className="px-4 py-3 text-right font-semibold">Điểm</th>
                 <th className="hidden px-4 py-3 text-right font-semibold lg:table-cell">
@@ -314,8 +314,11 @@ export default function AdminInterviewsPage() {
                   <td className="px-4 py-3">
                     <Pill tone={STATUS_TONE[s.status]}>{STATUS_LABEL[s.status]}</Pill>
                   </td>
-                  <td className="hidden px-4 py-3 text-right text-on-surface-variant sm:table-cell">
-                    {s.questionCount}
+                  <td
+                    className="hidden px-4 py-3 text-right text-on-surface-variant sm:table-cell"
+                    title="Số câu đã trả lời / tổng số câu đã hỏi (gồm cả câu hỏi đào sâu)"
+                  >
+                    {s.answeredQuestions}/{s.totalQuestions}
                   </td>
                   <td className="px-4 py-3 text-right font-semibold text-on-surface">
                     {fmtScore(s.finalScore)}
