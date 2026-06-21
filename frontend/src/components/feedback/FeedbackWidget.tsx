@@ -1,8 +1,9 @@
 /**
- * Site-wide floating feedback widget. A round button pinned to the bottom-right
- * opens a modal where any visitor (logged in or not) can rate the product, pick
- * a category, and leave a message. Submits to the public POST /feedbacks
- * endpoint. Hidden on /admin/* (admins have their own console surface).
+ * Floating feedback widget shown only on the homepage. A round button pinned to
+ * the bottom-right opens a modal where any visitor (logged in or not) can rate
+ * the product, pick a category, and leave a message. Submits to the public POST
+ * /feedbacks endpoint. Other pages don't surface the widget; admins read the
+ * submissions from their own console.
  */
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -25,8 +26,8 @@ export default function FeedbackWidget() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
 
-  // Admins manage feedback from their own console; don't overlay the widget there.
-  if (location.pathname.startsWith('/admin')) {
+  // Only surface the feedback widget on the homepage.
+  if (location.pathname !== '/' && location.pathname !== '/home') {
     return null;
   }
 
