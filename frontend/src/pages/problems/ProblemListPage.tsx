@@ -133,26 +133,28 @@ export default function ProblemListPage() {
       <Header />
       <main className="mx-auto w-full max-w-7xl flex-1 px-6 pb-24 pt-28">
         {/* Title row */}
-        <div className="mb-6 flex items-center gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-100 text-emerald-700">
-            <Code2 className="h-6 w-6" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold text-on-surface">Luyện thuật toán</h1>
-            <p className="text-sm text-on-surface-variant">
-              Chọn đề, viết code, chạy thử rồi nộp để chấm toàn bộ test case.
-            </p>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-3">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-emerald-700">
+              <Code2 className="h-6 w-6" />
+            </span>
+            <div>
+              <h1 className="text-2xl font-bold text-on-surface">Luyện thuật toán</h1>
+              <p className="text-sm text-on-surface-variant">
+                Chọn đề, viết code, chạy thử rồi nộp để chấm toàn bộ test case.
+              </p>
+            </div>
           </div>
-          <div className="ml-auto hidden gap-2 sm:flex">
+          <div className="flex gap-2 sm:ml-auto">
             <Link
               to="/problems/submissions"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-outline-variant px-3.5 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-outline-variant px-3.5 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface sm:flex-none"
             >
               <History className="h-4 w-4" /> Tiến độ
             </Link>
             <Link
               to="/problems/stats"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-outline-variant px-3.5 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-outline-variant px-3.5 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface sm:flex-none"
             >
               <BarChart3 className="h-4 w-4" /> Xếp hạng
             </Link>
@@ -193,10 +195,10 @@ export default function ProblemListPage() {
 
         {/* List — LeetCode-style table: status · #title · acceptance · difficulty */}
         <div className="overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-sm">
-          <div className="grid grid-cols-[2.5rem_1fr_5.5rem_5rem] items-center gap-3 border-b border-outline-variant/60 bg-surface-container-low/50 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+          <div className="grid grid-cols-[2rem_1fr_4.5rem] sm:grid-cols-[2.5rem_1fr_5.5rem_5rem] items-center gap-3 border-b border-outline-variant/60 bg-surface-container-low/50 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
             <span className="text-center">TT</span>
             <span>Tiêu đề</span>
-            <span className="text-right">Tỉ lệ AC</span>
+            <span className="hidden text-right sm:block">Tỉ lệ AC</span>
             <span className="text-right">Độ khó</span>
           </div>
 
@@ -222,7 +224,7 @@ export default function ProblemListPage() {
                     <Link
                       to={`/problems/${p.id}`}
                       state={{ difficulty: p.difficulty }}
-                      className="group grid grid-cols-[2.5rem_1fr_5.5rem_5rem] items-center gap-3 px-4 py-3.5 transition-colors hover:bg-surface-container-low"
+                      className="group grid grid-cols-[2rem_1fr_4.5rem] sm:grid-cols-[2.5rem_1fr_5.5rem_5rem] items-center gap-3 px-4 py-3.5 transition-colors hover:bg-surface-container-low"
                     >
                       <span className="flex justify-center">
                         <StatusIcon status={p.myStatus} />
@@ -249,7 +251,7 @@ export default function ProblemListPage() {
                           </div>
                         )}
                       </div>
-                      <span className="text-right text-xs tabular-nums text-on-surface-variant">
+                      <span className="hidden text-right text-xs tabular-nums text-on-surface-variant sm:block">
                         {p.acceptanceRate != null
                           ? `${(p.acceptanceRate * 100).toFixed(1)}%`
                           : '—'}

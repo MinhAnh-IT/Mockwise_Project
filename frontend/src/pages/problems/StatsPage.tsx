@@ -90,27 +90,29 @@ export default function StatsPage() {
   return (
     <div className="flex min-h-screen flex-col bg-surface">
       <Header />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-6 pb-24 pt-28">
-        <div className="mb-6 flex items-center gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-amber-100 text-amber-600">
-            <Trophy className="h-6 w-6" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold text-on-surface">Bảng xếp hạng</h1>
-            <p className="text-sm text-on-surface-variant">
-              Điểm tính theo độ khó · Easy 1 · Medium 3 · Hard 5.
-            </p>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 sm:px-6 pb-24 pt-28">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-3">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-600">
+              <Trophy className="h-6 w-6" />
+            </span>
+            <div>
+              <h1 className="text-2xl font-bold text-on-surface">Bảng xếp hạng</h1>
+              <p className="text-sm text-on-surface-variant">
+                Điểm tính theo độ khó · Easy 1 · Medium 3 · Hard 5.
+              </p>
+            </div>
           </div>
-          <div className="ml-auto flex gap-2">
+          <div className="flex gap-2 sm:ml-auto">
             <Link
               to="/problems/submissions"
-              className="rounded-xl border border-outline-variant px-3.5 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
+              className="flex-1 rounded-xl border border-outline-variant px-3.5 py-2 text-center text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface sm:flex-none"
             >
               Tiến độ
             </Link>
             <Link
               to="/problems"
-              className="rounded-xl border border-outline-variant px-3.5 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
+              className="flex-1 rounded-xl border border-outline-variant px-3.5 py-2 text-center text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface sm:flex-none"
             >
               Danh sách đề
             </Link>
@@ -254,13 +256,13 @@ const PODIUM_STYLE = [
 
 function Podium({ entries }: { entries: LeaderboardEntry[] }) {
   return (
-    <div className="flex items-end justify-center gap-3 sm:gap-6">
+    <div className="flex items-end justify-center gap-2 sm:gap-6">
       {entries.map((e, i) => {
         const st = PODIUM_STYLE[i];
         return (
           <div
             key={e.userId}
-            className={`flex w-28 flex-col items-center rounded-2xl border border-outline-variant bg-surface-container-lowest px-3 py-4 shadow-sm sm:w-36 ${st.order}`}
+            className={`flex w-24 flex-col items-center rounded-2xl border border-outline-variant bg-surface-container-lowest px-2 py-4 shadow-sm sm:w-36 sm:px-3 ${st.order}`}
           >
             <span className={`relative rounded-full ring-2 ${st.ring}`}>
               <Avatar src={avatarSrc(e.userId)} fullName={displayName(e)} size="lg" />

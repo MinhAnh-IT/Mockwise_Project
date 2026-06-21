@@ -426,7 +426,7 @@ export default function PracticeSessionPage() {
       // For CODING the next problem is delivered synchronously on submit, so
       // reaching `waiting` means the last problem is in — we're finalizing.
       return (
-        <div className="grid h-screen place-items-center bg-zinc-950 px-6 text-center">
+        <div className="grid h-[100dvh] place-items-center bg-zinc-950 px-6 text-center">
           <p className="text-sm text-zinc-400">
             Đã nộp bài cuối. Đang chấm và tổng hợp báo cáo…
           </p>

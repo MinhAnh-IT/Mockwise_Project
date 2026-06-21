@@ -24,6 +24,7 @@ import {
   type RunResultView,
 } from '@/types/coding';
 import type { PinnedQuestionView } from '@/types/interview';
+import useIsDesktop from '@/lib/useIsDesktop';
 import CodeEditor from './CodeEditor';
 import ProblemPanel from './ProblemPanel';
 import TestcasePanel from './TestcasePanel';
@@ -95,6 +96,14 @@ export default function CodingWorkspace({
   // Split-pane sizing (problem width %, console height %).
   const [leftPct, setLeftPct] = useState(42);
   const [consolePct, setConsolePct] = useState(38);
+
+  // Below md we drop the resizable split-pane (no pointer to drag dividers) for
+  // a one-panel-at-a-time tab layout. Inline % width/height styles are only
+  // applied on desktop; on mobile the panels flex to fill.
+  const isDesktop = useIsDesktop();
+  const [mobileTab, setMobileTab] = useState<'problem' | 'code' | 'result'>(
+    'problem',
+  );
 
   // Appearance — defaults to LIGHT; user flips to dark with the toolbar
   // toggle and the choice is remembered.
@@ -294,7 +303,7 @@ export default function CodingWorkspace({
   if (loadError) {
     return (
       <div
-        className={`grid h-screen place-items-center px-6 text-center ${t.surface}`}
+        className={`grid h-[100dvh] place-items-center px-6 text-center ${t.surface}`}
       >
         <div>
           <p className={`mb-4 text-sm ${t.textBody}`}>{loadError}</p>
@@ -312,7 +321,7 @@ export default function CodingWorkspace({
 
   if (!problem) {
     return (
-      <div className={`grid h-screen place-items-center ${t.surface}`}>
+      <div className={`grid h-[100dvh] place-items-center ${t.surface}`}>
         <span className={`flex items-center gap-2 text-sm ${t.textBody}`}>
           <Loader2 className="h-4 w-4 animate-spin" /> Đang tải đề bài…
         </span>
@@ -329,7 +338,7 @@ export default function CodingWorkspace({
   const lowTime = secondsLeft != null && secondsLeft <= 60;
 
   return (
-    <div className={`flex h-screen flex-col ${t.workspace}`}>
+    <div className={`flex h-[100dvh] flex-col ${t.workspace}`}>
       {/* Top bar */}
       <header
         className={`flex h-12 shrink-0 items-center justify-between border-b px-3 ${t.border} ${t.surface}`}
@@ -348,7 +357,7 @@ export default function CodingWorkspace({
           </span>
           {usingMock && (
             <span
-              className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${
+              className={`hidden sm:inline-block rounded-md px-2 py-0.5 text-[11px] font-medium ${
                 dark
                   ? 'bg-amber-500/15 text-amber-400'
                   : 'bg-amber-100 text-amber-700'
@@ -372,28 +381,62 @@ export default function CodingWorkspace({
         </div>
       </header>
 
-      {/* Body: problem | editor+console */}
-      <div className="flex min-h-0 flex-1">
+      {/* Mobile tab switcher — one panel at a time below md (no split-pane). */}
+      <div
+        className={`md:hidden flex shrink-0 border-b ${t.border} ${t.surface}`}
+      >
+        {(
+          [
+            ['problem', 'Đề bài'],
+            ['code', 'Code'],
+            ['result', 'Kết quả'],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setMobileTab(key)}
+            className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+              mobileTab === key
+                ? dark
+                  ? 'border-b-2 border-sky-400 text-sky-400'
+                  : 'border-b-2 border-sky-600 text-sky-600'
+                : t.textMuted
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Body: problem | editor+console (stacks into tabs below md) */}
+      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         <div
-          style={{ width: `${leftPct}%` }}
-          className={`min-w-0 border-r ${t.border}`}
+          style={isDesktop ? { width: `${leftPct}%` } : undefined}
+          className={`min-w-0 flex-1 md:flex-initial md:border-r ${t.border} ${
+            mobileTab === 'problem' ? 'block' : 'hidden'
+          } md:block`}
         >
           <ProblemPanel problem={problem} dark={dark} />
         </div>
 
         <div
           onMouseDown={onDragX}
-          className={`w-1.5 shrink-0 cursor-col-resize transition-colors ${t.divider}`}
+          className={`hidden md:block w-1.5 shrink-0 cursor-col-resize transition-colors ${t.divider}`}
         />
 
         <div
           ref={rightRef}
-          style={{ width: `${100 - leftPct}%` }}
-          className="flex min-w-0 flex-1 flex-col"
+          style={isDesktop ? { width: `${100 - leftPct}%` } : undefined}
+          className={`min-w-0 flex-1 flex-col md:flex ${
+            mobileTab === 'problem' ? 'hidden' : 'flex'
+          }`}
         >
           {/* Editor toolbar */}
           <div
-            className={`flex h-10 shrink-0 items-center justify-between border-b px-3 ${t.border} ${t.surface}`}
+            className={`h-10 shrink-0 items-center justify-between border-b px-3 ${t.border} ${t.surface} ${
+              mobileTab === 'result' ? 'hidden md:flex' : 'flex'
+            }`}
           >
             <select
               value={language}
@@ -433,8 +476,10 @@ export default function CodingWorkspace({
 
           {/* Editor */}
           <div
-            className="min-h-0 flex-1"
-            style={{ height: `${100 - consolePct}%` }}
+            className={`min-h-0 md:block md:flex-1 ${
+              mobileTab === 'code' ? 'flex-1' : 'hidden'
+            }`}
+            style={isDesktop ? { height: `${100 - consolePct}%` } : undefined}
           >
             <CodeEditor
               value={code}
@@ -450,13 +495,15 @@ export default function CodingWorkspace({
           {/* Horizontal divider */}
           <div
             onMouseDown={onDragY}
-            className={`h-1.5 shrink-0 cursor-row-resize transition-colors ${t.divider}`}
+            className={`hidden md:block h-1.5 shrink-0 cursor-row-resize transition-colors ${t.divider}`}
           />
 
           {/* Console */}
           <div
-            className="min-h-0 overflow-hidden"
-            style={{ height: `${consolePct}%` }}
+            className={`min-h-0 overflow-hidden md:block ${
+              mobileTab === 'result' ? 'flex-1' : 'hidden'
+            }`}
+            style={isDesktop ? { height: `${consolePct}%` } : undefined}
           >
             <TestcasePanel
               sampleCases={problem.sampleTestCases}
@@ -470,7 +517,11 @@ export default function CodingWorkspace({
           <div
             className={`flex h-12 shrink-0 items-center justify-between border-t px-3 ${t.border} ${t.surface}`}
           >
-            <span className={`truncate text-xs ${t.textMuted}`}>
+            <span
+              className={`truncate text-xs ${t.textMuted} ${
+                runError ? 'inline' : 'hidden sm:inline'
+              }`}
+            >
               {runError ?? '⌘/Ctrl + ↵ để Chạy · ⌘/Ctrl + ⇧ + ↵ để Nộp'}
             </span>
             <div className="flex items-center gap-2">
