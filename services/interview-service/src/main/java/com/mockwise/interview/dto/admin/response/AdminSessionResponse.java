@@ -12,6 +12,11 @@ import java.util.UUID;
  * lifecycle + scoring metadata only, never the answers, transcripts or pinned
  * questions — admins may oversee and report on sessions, not inspect their
  * contents.
+ *
+ * <p>{@code questionCount} is the planned base count set at /start; it is exact
+ * only for non-adaptive CODING. {@code totalQuestions} / {@code answeredQuestions}
+ * are the real pinned-question and submitted-answer counts (follow-ups included),
+ * so the admin list can show an accurate "answered / total" for every type.
  */
 public record AdminSessionResponse(
         UUID id,
@@ -21,13 +26,15 @@ public record AdminSessionResponse(
         InterviewType interviewType,
         SessionStatus status,
         int questionCount,
+        int answeredQuestions,
+        int totalQuestions,
         Float finalScore,
         OffsetDateTime startedAt,
         OffsetDateTime finishedAt,
         OffsetDateTime scoredAt,
         OffsetDateTime createdAt
 ) {
-    public static AdminSessionResponse from(InterviewSession s) {
+    public static AdminSessionResponse from(InterviewSession s, int answeredQuestions, int totalQuestions) {
         return new AdminSessionResponse(
                 s.getId(),
                 s.getUserId(),
@@ -36,6 +43,8 @@ public record AdminSessionResponse(
                 s.getInterviewType(),
                 s.getStatus(),
                 s.getQuestionCount(),
+                answeredQuestions,
+                totalQuestions,
                 s.getFinalScore(),
                 s.getStartedAt(),
                 s.getFinishedAt(),
