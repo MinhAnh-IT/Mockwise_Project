@@ -65,6 +65,11 @@ export default function BlueprintFormPage() {
   const location = useLocation();
   const mode: 'create' | 'edit' = id ? 'edit' : 'create';
 
+  // Return to the list with the filters the user came from (passed as `from`).
+  const backTo =
+    '/admin/blueprints' +
+    ((location.state as { from?: string } | null)?.from ?? '');
+
   const [targetRole, setTargetRole] = useState<BlueprintRole | ''>('');
   const [level, setLevel] = useState<Level | ''>('');
   const [interviewType, setInterviewType] = useState<InterviewType | ''>('');
@@ -210,7 +215,7 @@ export default function BlueprintFormPage() {
     try {
       if (mode === 'edit' && id) await updateBlueprint(id, buildBody());
       else await createBlueprint(buildBody());
-      navigate('/admin/blueprints', {
+      navigate(backTo, {
         state: {
           flash: mode === 'edit' ? 'Đã cập nhật blueprint.' : 'Đã tạo blueprint.',
         },
@@ -228,11 +233,11 @@ export default function BlueprintFormPage() {
     <AdminShell
       title={mode === 'edit' ? 'Sửa blueprint' : 'Tạo blueprint'}
       breadcrumb={[
-        { label: 'Blueprint phỏng vấn', to: '/admin/blueprints' },
+        { label: 'Blueprint phỏng vấn', to: backTo },
         { label: mode === 'edit' ? 'Sửa blueprint' : 'Tạo blueprint' },
       ]}
       actions={
-        <Button variant="outline" onClick={() => navigate('/admin/blueprints')}>
+        <Button variant="outline" onClick={() => navigate(backTo)}>
           <ArrowLeft className="h-4 w-4" />
           Quay lại
         </Button>
@@ -243,7 +248,7 @@ export default function BlueprintFormPage() {
       {loading ? (
         <Spinner label="Đang tải blueprint…" />
       ) : loadError ? (
-        <ErrorState message={loadError} onRetry={() => navigate('/admin/blueprints')} />
+        <ErrorState message={loadError} onRetry={() => navigate(backTo)} />
       ) : (
         <form
           onSubmit={onSubmit}
@@ -459,7 +464,7 @@ export default function BlueprintFormPage() {
           )}
 
           <div className="flex justify-end gap-2 border-t border-outline-variant pt-5">
-            <Button variant="ghost" onClick={() => navigate('/admin/blueprints')}>
+            <Button variant="ghost" onClick={() => navigate(backTo)}>
               Huỷ
             </Button>
             <Button type="submit" loading={submitting}>

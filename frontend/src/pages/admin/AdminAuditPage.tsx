@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, RefreshCw, ScrollText, Search, X } from 'lucide-react';
 import { ApiError } from '@/api/client';
+import { useUrlState } from '@/lib/useUrlState';
 import { getAuditLogs } from '@/api/adminAudit';
 import {
   AdminShell,
@@ -63,11 +64,32 @@ const EMPTY_FILTERS: DraftFilters = {
   to: '',
 };
 
+// Committed filters + page index persisted to the URL so they survive a refresh.
+const URL_DEFAULTS = { ...EMPTY_FILTERS, page: 0 };
+
 export default function AdminAuditPage() {
   const [logs, setLogs] = useState<AuditLogPage | null>(null);
-  const [draft, setDraft] = useState<DraftFilters>(EMPTY_FILTERS);
-  const [applied, setApplied] = useState<DraftFilters>(EMPTY_FILTERS);
-  const [page, setPage] = useState(0);
+  const [urlState, setUrlState] = useUrlState(URL_DEFAULTS);
+  const page = urlState.page;
+  const applied: DraftFilters = useMemo(
+    () => ({
+      category: urlState.category,
+      outcome: urlState.outcome,
+      action: urlState.action,
+      actorId: urlState.actorId,
+      from: urlState.from,
+      to: urlState.to,
+    }),
+    [
+      urlState.category,
+      urlState.outcome,
+      urlState.action,
+      urlState.actorId,
+      urlState.from,
+      urlState.to,
+    ],
+  );
+  const [draft, setDraft] = useState<DraftFilters>(() => ({ ...applied }));
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -106,15 +128,11 @@ export default function AdminAuditPage() {
     load();
   }, [load]);
 
-  const applyFilters = () => {
-    setPage(0);
-    setApplied(draft);
-  };
+  const applyFilters = () => setUrlState({ ...draft, page: 0 });
 
   const resetFilters = () => {
-    setPage(0);
     setDraft(EMPTY_FILTERS);
-    setApplied(EMPTY_FILTERS);
+    setUrlState({ ...EMPTY_FILTERS, page: 0 });
   };
 
   return (
@@ -211,8 +229,10 @@ export default function AdminAuditPage() {
                 <Pagination
                   page={logs.page}
                   totalPages={logs.totalPages}
-                  onPrev={() => setPage((p) => Math.max(0, p - 1))}
-                  onNext={() => setPage((p) => Math.min(logs.totalPages - 1, p + 1))}
+                  onPrev={() => setUrlState({ page: Math.max(0, page - 1) })}
+                  onNext={() =>
+                    setUrlState({ page: Math.min(logs.totalPages - 1, page + 1) })
+                  }
                 />
               </>
             ) : (

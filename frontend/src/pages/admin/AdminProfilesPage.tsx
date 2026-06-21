@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useUrlState } from '@/lib/useUrlState';
 import {
   BadgeCheck,
   Ban,
@@ -37,6 +38,9 @@ const PAGE_SIZE = 10;
 
 const EMPTY_FILTERS: AdminProfileFilters = {};
 
+// Filters + page index persisted to the URL so they survive a refresh.
+const URL_DEFAULTS = { trackId: '', levelId: '', keyword: '', page: 0 };
+
 const fmtInt = (n: number) => new Intl.NumberFormat('vi-VN').format(n);
 
 const DATE_FMT = new Intl.DateTimeFormat('vi-VN', {
@@ -65,12 +69,20 @@ export default function AdminProfilesPage() {
   const [tracks, setTracks] = useState<PositionTrack[]>([]);
   const [levels, setLevels] = useState<PositionLevel[]>([]);
 
-  // Draft filters bound to the controls; committed `filters` drive the fetch.
-  const [draft, setDraft] = useState<AdminProfileFilters>(EMPTY_FILTERS);
-  const [filters, setFilters] = useState<AdminProfileFilters>(EMPTY_FILTERS);
+  // URL-backed committed filters + page; draft is bound to the controls.
+  const [urlState, setUrlState] = useUrlState(URL_DEFAULTS);
+  const page = urlState.page;
+  const filters: AdminProfileFilters = useMemo(
+    () => ({
+      trackId: urlState.trackId || undefined,
+      levelId: urlState.levelId || undefined,
+      keyword: urlState.keyword || undefined,
+    }),
+    [urlState.trackId, urlState.levelId, urlState.keyword],
+  );
+  const [draft, setDraft] = useState<AdminProfileFilters>(() => ({ ...filters }));
 
   const [items, setItems] = useState<AdminUserProfile[]>([]);
-  const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState<number | null>(null);
   const [stat, setStat] = useState<number | null>(null);
@@ -115,7 +127,6 @@ export default function AdminProfilesPage() {
         .then((res) => {
           if (cancelled) return;
           setItems(res.items);
-          setPage(res.page);
           setTotalPages(res.totalPages);
           setTotalElements(res.totalElements);
         })
@@ -136,8 +147,8 @@ export default function AdminProfilesPage() {
     [filters],
   );
 
-  // Refetch from page 0 whenever the committed filters change.
-  useEffect(() => load(0), [load]);
+  // Load the page the URL points at; re-runs when filters or page change.
+  useEffect(() => load(page), [load, page]);
 
   // Surface a success message the edit page handed off, then strip it so a
   // refresh/back doesn't replay the toast.
@@ -146,14 +157,24 @@ export default function AdminProfilesPage() {
     if (flash && !flashShownRef.current) {
       flashShownRef.current = true;
       setToast({ kind: 'success', text: flash });
-      navigate(location.pathname, { replace: true });
+      // Strip the one-shot flash state but keep the query (filters/page).
+      navigate(
+        { pathname: location.pathname, search: location.search },
+        { replace: true },
+      );
     }
-  }, [location.state, location.pathname, navigate]);
+  }, [location.state, location.pathname, location.search, navigate]);
 
-  const applyFilters = () => setFilters(draft);
+  const applyFilters = () =>
+    setUrlState({
+      trackId: draft.trackId ?? '',
+      levelId: draft.levelId ?? '',
+      keyword: draft.keyword ?? '',
+      page: 0,
+    });
   const clearFilters = () => {
     setDraft(EMPTY_FILTERS);
-    setFilters(EMPTY_FILTERS);
+    setUrlState({ trackId: '', levelId: '', keyword: '', page: 0 });
   };
 
   const trackName = (id: string) =>
@@ -388,7 +409,7 @@ export default function AdminProfilesPage() {
           <Button
             variant="outline"
             disabled={page <= 0}
-            onClick={() => load(page - 1)}
+            onClick={() => setUrlState({ page: page - 1 })}
           >
             <ChevronLeft className="h-4 w-4" />
             Trước
@@ -399,7 +420,7 @@ export default function AdminProfilesPage() {
           <Button
             variant="outline"
             disabled={page + 1 >= totalPages}
-            onClick={() => load(page + 1)}
+            onClick={() => setUrlState({ page: page + 1 })}
           >
             Sau
             <ChevronRight className="h-4 w-4" />

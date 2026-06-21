@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { ApiError } from '@/api/client';
+import { useUrlState } from '@/lib/useUrlState';
 import {
   getJudge0Health,
   getJudgeDlq,
@@ -44,6 +45,9 @@ const PAGE_SIZE = 20;
 const WINDOWS = ['1h', '24h', '7d'] as const;
 const STATUS_OPTIONS = ['PENDING', 'RUNNING', 'DONE', 'FAILED'] as const;
 const VERDICT_OPTIONS = ['AC', 'WA', 'RE', 'CE', 'TLE', 'MLE'] as const;
+
+// Window/filters/page persisted to the URL so they survive a refresh.
+const JUDGE_URL_DEFAULTS = { window: '24h', status: '', verdict: '', page: 0 };
 
 const TIME_FMT = new Intl.DateTimeFormat('vi-VN', {
   hour: '2-digit',
@@ -85,10 +89,12 @@ export default function AdminJudgePage() {
   const [dlq, setDlq] = useState<DlqOverview | null>(null);
   const [jobs, setJobs] = useState<JudgeJobPage | null>(null);
 
-  const [window_, setWindow] = useState('24h');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [verdictFilter, setVerdictFilter] = useState('');
-  const [page, setPage] = useState(0);
+  // Window + filters + page index persisted to the URL so they survive a refresh.
+  const [urlState, setUrlState] = useUrlState(JUDGE_URL_DEFAULTS);
+  const window_ = urlState.window;
+  const statusFilter = urlState.status;
+  const verdictFilter = urlState.verdict;
+  const page = urlState.page;
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -201,10 +207,7 @@ export default function AdminJudgePage() {
                 {WINDOWS.map((w) => (
                   <button
                     key={w}
-                    onClick={() => {
-                      setPage(0);
-                      setWindow(w);
-                    }}
+                    onClick={() => setUrlState({ window: w, page: 0 })}
                     className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
                       window_ === w
                         ? 'bg-secondary text-white'
@@ -259,10 +262,9 @@ export default function AdminJudgePage() {
               <div className="flex items-center gap-2">
                 <Select
                   value={statusFilter}
-                  onChange={(e) => {
-                    setPage(0);
-                    setStatusFilter(e.target.value);
-                  }}
+                  onChange={(e) =>
+                    setUrlState({ status: e.target.value, page: 0 })
+                  }
                   className="!w-auto"
                 >
                   <option value="">Mọi trạng thái</option>
@@ -274,10 +276,9 @@ export default function AdminJudgePage() {
                 </Select>
                 <Select
                   value={verdictFilter}
-                  onChange={(e) => {
-                    setPage(0);
-                    setVerdictFilter(e.target.value);
-                  }}
+                  onChange={(e) =>
+                    setUrlState({ verdict: e.target.value, page: 0 })
+                  }
                   className="!w-auto"
                 >
                   <option value="">Mọi verdict</option>
@@ -295,8 +296,10 @@ export default function AdminJudgePage() {
                 <Pagination
                   page={jobs.page}
                   totalPages={jobs.totalPages}
-                  onPrev={() => setPage((p) => Math.max(0, p - 1))}
-                  onNext={() => setPage((p) => Math.min(jobs.totalPages - 1, p + 1))}
+                  onPrev={() => setUrlState({ page: Math.max(0, page - 1) })}
+                  onNext={() =>
+                    setUrlState({ page: Math.min(jobs.totalPages - 1, page + 1) })
+                  }
                 />
               </>
             ) : (

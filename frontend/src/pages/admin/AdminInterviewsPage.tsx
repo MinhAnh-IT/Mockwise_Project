@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -7,6 +7,7 @@ import {
   Star,
 } from 'lucide-react';
 import { ApiError } from '@/api/client';
+import { useUrlState } from '@/lib/useUrlState';
 import { getSessionStats, listAdminSessions } from '@/api/adminInterviews';
 import {
   AdminShell,
@@ -33,6 +34,9 @@ import type {
 const PAGE_SIZE = 20;
 
 const EMPTY_FILTERS: AdminSessionFilters = {};
+
+// Filters + page index persisted to the URL so they survive a refresh.
+const URL_DEFAULTS = { status: '', interviewType: '', userId: '', page: 0 };
 
 const STATUSES: SessionStatus[] = [
   'CREATED',
@@ -76,11 +80,23 @@ const typeLabel = (t: InterviewType | null) =>
 export default function AdminInterviewsPage() {
   const [stats, setStats] = useState<InterviewSessionStats | null>(null);
 
-  const [draft, setDraft] = useState<AdminSessionFilters>(EMPTY_FILTERS);
-  const [filters, setFilters] = useState<AdminSessionFilters>(EMPTY_FILTERS);
+  const [urlState, setUrlState] = useUrlState(URL_DEFAULTS);
+  const page = urlState.page;
+  const filters: AdminSessionFilters = useMemo(
+    () => ({
+      status: (urlState.status || undefined) as SessionStatus | undefined,
+      interviewType: (urlState.interviewType || undefined) as
+        | InterviewType
+        | undefined,
+      userId: urlState.userId || undefined,
+    }),
+    [urlState.status, urlState.interviewType, urlState.userId],
+  );
+
+  // Draft filters bound to the controls; committed to the URL on "Áp dụng lọc".
+  const [draft, setDraft] = useState<AdminSessionFilters>(() => ({ ...filters }));
 
   const [items, setItems] = useState<AdminSession[]>([]);
-  const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState<number | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -110,7 +126,6 @@ export default function AdminInterviewsPage() {
         .then((res) => {
           if (cancelled) return;
           setItems(res.items);
-          setPage(p);
           setTotalCount(res.totalCount);
         })
         .catch((err) => {
@@ -130,12 +145,18 @@ export default function AdminInterviewsPage() {
     [filters],
   );
 
-  useEffect(() => load(0), [load]);
+  useEffect(() => load(page), [load, page]);
 
-  const applyFilters = () => setFilters(draft);
+  const applyFilters = () =>
+    setUrlState({
+      status: draft.status ?? '',
+      interviewType: draft.interviewType ?? '',
+      userId: draft.userId ?? '',
+      page: 0,
+    });
   const clearFilters = () => {
     setDraft(EMPTY_FILTERS);
-    setFilters(EMPTY_FILTERS);
+    setUrlState({ status: '', interviewType: '', userId: '', page: 0 });
   };
 
   const totalPages =
@@ -336,7 +357,11 @@ export default function AdminInterviewsPage() {
       {/* Pagination */}
       {!loading && !error && totalPages > 1 && (
         <div className="mt-4 flex items-center justify-center gap-2">
-          <Button variant="outline" disabled={page <= 0} onClick={() => load(page - 1)}>
+          <Button
+            variant="outline"
+            disabled={page <= 0}
+            onClick={() => setUrlState({ page: page - 1 })}
+          >
             <ChevronLeft className="h-4 w-4" />
             Trước
           </Button>
@@ -346,7 +371,7 @@ export default function AdminInterviewsPage() {
           <Button
             variant="outline"
             disabled={page + 1 >= totalPages}
-            onClick={() => load(page + 1)}
+            onClick={() => setUrlState({ page: page + 1 })}
           >
             Sau
             <ChevronRight className="h-4 w-4" />

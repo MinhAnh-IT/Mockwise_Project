@@ -44,6 +44,11 @@ export default function CoreFormPage() {
   const location = useLocation();
   const mode: 'create' | 'edit' = id ? 'edit' : 'create';
 
+  // Return to the list with the tab/filters the user came from (passed as `from`).
+  const backTo =
+    '/admin/questions' +
+    ((location.state as { from?: string } | null)?.from ?? '');
+
   const [difficulty, setDifficulty] = useState<Difficulty | ''>('');
   const [domain, setDomain] = useState<Domain | ''>('');
   const [targetRoles, setTargetRoles] = useState<TargetRole[]>([]);
@@ -134,7 +139,7 @@ export default function CoreFormPage() {
     try {
       if (mode === 'edit' && id) await updateCore(id, body);
       else await createCore(body);
-      navigate('/admin/questions', {
+      navigate(backTo, {
         state: {
           flash:
             mode === 'edit'
@@ -158,11 +163,11 @@ export default function CoreFormPage() {
     <AdminShell
       title={mode === 'edit' ? 'Sửa câu hỏi Chuyên môn' : 'Tạo câu hỏi Chuyên môn'}
       breadcrumb={[
-        { label: 'Ngân hàng câu hỏi', to: '/admin/questions' },
+        { label: 'Ngân hàng câu hỏi', to: backTo },
         { label: mode === 'edit' ? 'Sửa câu hỏi' : 'Tạo câu hỏi' },
       ]}
       actions={
-        <Button variant="outline" onClick={() => navigate('/admin/questions')}>
+        <Button variant="outline" onClick={() => navigate(backTo)}>
           <ArrowLeft className="h-4 w-4" />
           Quay lại
         </Button>
@@ -175,7 +180,7 @@ export default function CoreFormPage() {
       ) : loadError ? (
         <ErrorState
           message={loadError}
-          onRetry={() => navigate('/admin/questions')}
+          onRetry={() => navigate(backTo)}
         />
       ) : (
         <form
@@ -274,7 +279,7 @@ export default function CoreFormPage() {
           <div className="flex justify-end gap-2 border-t border-outline-variant pt-5">
             <Button
               variant="ghost"
-              onClick={() => navigate('/admin/questions')}
+              onClick={() => navigate(backTo)}
             >
               Huỷ
             </Button>

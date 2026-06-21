@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import { ApiError } from '@/api/client';
+import { useUrlState } from '@/lib/useUrlState';
 import {
   deleteQuestion,
   listBehavioral,
@@ -69,19 +70,57 @@ const TABS: QuestionKind[] = ['behavioral', 'core', 'coding'];
 
 type AnyFilters = BehavioralFilters & CoreFilters & CodingFilters;
 
-const EMPTY_FILTERS: AnyFilters = {};
+// Active tab + filters persisted to the URL so they survive a refresh. Empty
+// strings drop out of the query; `tags` is comma-joined.
+const URL_DEFAULTS = {
+  kind: 'behavioral' as QuestionKind,
+  q: '',
+  competency: '',
+  domain: '',
+  targetRole: '',
+  difficulty: '',
+  status: '',
+  tags: '',
+};
+// Filter keys reset when switching tab / clearing — everything except `kind`.
+const FILTER_RESET = {
+  q: '',
+  competency: '',
+  domain: '',
+  targetRole: '',
+  difficulty: '',
+  status: '',
+  tags: '',
+};
 
 export default function AdminQuestionsPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [kind, setKind] = useState<QuestionKind>(
-    () =>
-      (location.state as { kind?: QuestionKind } | null)?.kind ?? 'behavioral',
+  const [urlState, setUrlState] = useUrlState(URL_DEFAULTS);
+  const kind = urlState.kind;
+  const filters: AnyFilters = useMemo(
+    () => ({
+      q: urlState.q || undefined,
+      competency: (urlState.competency || undefined) as Competency | undefined,
+      domain: (urlState.domain || undefined) as Domain | undefined,
+      targetRole: (urlState.targetRole || undefined) as TargetRole | undefined,
+      difficulty: (urlState.difficulty || undefined) as Difficulty | undefined,
+      status: (urlState.status || undefined) as QuestionStatus | undefined,
+      tags: urlState.tags ? urlState.tags.split(',').filter(Boolean) : undefined,
+    }),
+    [
+      urlState.q,
+      urlState.competency,
+      urlState.domain,
+      urlState.targetRole,
+      urlState.difficulty,
+      urlState.status,
+      urlState.tags,
+    ],
   );
-  const [filters, setFilters] = useState<AnyFilters>(EMPTY_FILTERS);
-  // Local keyword input — committed into `filters.q` on submit so typing
+  // Local keyword input — committed into the URL `q` on submit so typing
   // doesn't refetch on every keystroke.
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => urlState.q);
   const [items, setItems] = useState<AnyQuestion[]>([]);
   const [totalCount, setTotalCount] = useState<number | null>(null);
   const [page, setPage] = useState(0);
@@ -145,9 +184,13 @@ export default function AdminQuestionsPage() {
     if (flash && !flashShownRef.current) {
       flashShownRef.current = true;
       setToast({ kind: 'success', text: flash });
-      navigate(location.pathname, { replace: true });
+      // Strip the one-shot flash state but keep the query (tab/filters).
+      navigate(
+        { pathname: location.pathname, search: location.search },
+        { replace: true },
+      );
     }
-  }, [location.state, location.pathname, navigate]);
+  }, [location.state, location.pathname, location.search, navigate]);
 
   const hasNext = totalCount !== null && items.length < totalCount;
 
@@ -171,21 +214,18 @@ export default function AdminQuestionsPage() {
 
   const switchKind = (k: QuestionKind) => {
     if (k === kind) return;
-    setKind(k);
-    setFilters(EMPTY_FILTERS);
     setSearch('');
     setItems([]);
     setTotalCount(null);
     setPage(0);
+    setUrlState({ kind: k, ...FILTER_RESET });
   };
 
-  // Commit the keyword into filters (changing `filters` re-runs the fetch).
-  const applyFilters = () =>
-    setFilters((f) => ({ ...f, q: search.trim() || undefined }));
+  // Commit the keyword into the URL (changing `filters` re-runs the fetch).
+  const applyFilters = () => setUrlState({ q: search.trim() });
   const clearFilters = () => {
     setSearch('');
-    setFilters(EMPTY_FILTERS);
-    setReloadKey((k) => k + 1);
+    setUrlState(FILTER_RESET);
   };
 
   const onChangeStatus = async (q: AnyQuestion, status: QuestionStatus) => {
@@ -228,7 +268,7 @@ export default function AdminQuestionsPage() {
 
   const goEdit = (q: AnyQuestion) =>
     navigate(`/admin/questions/${kind}/${q.id}/edit`, {
-      state: { record: q },
+      state: { record: q, from: location.search },
     });
 
   // Reflect a freshly (re)generated audio key on the card without a refetch.
@@ -246,7 +286,13 @@ export default function AdminQuestionsPage() {
         { label: 'Ngân hàng câu hỏi' },
       ]}
       actions={
-        <Button onClick={() => navigate(`/admin/questions/new/${kind}`)}>
+        <Button
+          onClick={() =>
+            navigate(`/admin/questions/new/${kind}`, {
+              state: { from: location.search },
+            })
+          }
+        >
           <Plus className="h-4 w-4" />
           Tạo câu hỏi {KIND_LABEL[kind]}
         </Button>
@@ -299,8 +345,7 @@ export default function AdminQuestionsPage() {
                 type="button"
                 onClick={() => {
                   setSearch('');
-                  if (filters.q)
-                    setFilters((f) => ({ ...f, q: undefined }));
+                  if (filters.q) setUrlState({ q: '' });
                 }}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-on-surface-variant transition hover:text-on-surface"
                 aria-label="Xoá từ khoá"
@@ -313,9 +358,7 @@ export default function AdminQuestionsPage() {
         {kind === 'behavioral' && (
           <EnumSelect<Competency>
             value={filters.competency}
-            onChange={(v) =>
-              setFilters((f) => ({ ...f, competency: v || undefined }))
-            }
+            onChange={(v) => setUrlState({ competency: v || '' })}
             options={COMPETENCIES}
             labels={COMPETENCY_LABEL}
             placeholder="Mọi năng lực"
@@ -325,18 +368,14 @@ export default function AdminQuestionsPage() {
           <>
             <EnumSelect<Domain>
               value={filters.domain}
-              onChange={(v) =>
-                setFilters((f) => ({ ...f, domain: v || undefined }))
-              }
+              onChange={(v) => setUrlState({ domain: v || '' })}
               options={DOMAINS}
               labels={DOMAIN_LABEL}
               placeholder="Mọi lĩnh vực"
             />
             <EnumSelect<TargetRole>
               value={filters.targetRole}
-              onChange={(v) =>
-                setFilters((f) => ({ ...f, targetRole: v || undefined }))
-              }
+              onChange={(v) => setUrlState({ targetRole: v || '' })}
               options={TARGET_ROLES}
               labels={TARGET_ROLE_LABEL}
               placeholder="Mọi vị trí"
@@ -345,18 +384,14 @@ export default function AdminQuestionsPage() {
         )}
         <EnumSelect<Difficulty>
           value={filters.difficulty}
-          onChange={(v) =>
-            setFilters((f) => ({ ...f, difficulty: v || undefined }))
-          }
+          onChange={(v) => setUrlState({ difficulty: v || '' })}
           options={DIFFICULTIES}
           labels={DIFFICULTY_LABEL}
           placeholder="Mọi độ khó"
         />
         <EnumSelect<QuestionStatus>
           value={filters.status}
-          onChange={(v) =>
-            setFilters((f) => ({ ...f, status: v || undefined }))
-          }
+          onChange={(v) => setUrlState({ status: v || '' })}
           options={STATUSES}
           labels={STATUS_LABEL}
           placeholder="Mọi trạng thái"
@@ -364,9 +399,7 @@ export default function AdminQuestionsPage() {
         <div className="sm:col-span-2 lg:col-span-1">
           <TagInput
             value={filters.tags ?? []}
-            onChange={(tags) =>
-              setFilters((f) => ({ ...f, tags: tags.length ? tags : undefined }))
-            }
+            onChange={(tags) => setUrlState({ tags: tags.join(',') })}
             placeholder="Lọc theo tag…"
           />
         </div>
