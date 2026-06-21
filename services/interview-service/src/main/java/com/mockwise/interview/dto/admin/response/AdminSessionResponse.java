@@ -13,12 +13,12 @@ import java.util.UUID;
  * questions — admins may oversee and report on sessions, not inspect their
  * contents.
  *
- * <p>{@code questionCount} is the planned base count set at /start (the blueprint
- * budget; the fixed coding-plan size for CODING). {@code answeredQuestions} is the
- * real submitted-answer count. {@code totalQuestions} is the display denominator:
- * the blueprint budget while the candidate is at or under it, falling back to the
- * actual pinned-question count once follow-ups push the answered count past the
- * budget — so the admin list shows an accurate "answered / total" for every type.
+ * <p>{@code questionCount} is the planned base count snapshot at /start (kept for
+ * compatibility). {@code answeredQuestions} (A) is the real submitted-answer
+ * count. {@code totalQuestions} is the display denominator {@code max(A, B)} where
+ * B is the live blueprint's question budget: a candidate under budget reads A/B
+ * (stopped early), and once follow-ups push A to or past B it reads A/A. For
+ * non-adaptive CODING A never exceeds B, so it always reads A/B.
  */
 public record AdminSessionResponse(
         UUID id,

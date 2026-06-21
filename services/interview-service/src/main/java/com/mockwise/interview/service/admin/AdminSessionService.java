@@ -2,12 +2,13 @@ package com.mockwise.interview.service.admin;
 
 import com.mockwise.interview.dto.admin.response.AdminSessionResponse;
 import com.mockwise.interview.dto.admin.response.AdminSessionStatsResponse;
+import com.mockwise.interview.entity.InterviewBlueprint;
 import com.mockwise.interview.entity.InterviewSession;
 import com.mockwise.interview.enums.InterviewType;
 import com.mockwise.interview.enums.SessionStatus;
 import com.mockwise.interview.repository.AnswerRepository;
+import com.mockwise.interview.repository.InterviewBlueprintRepository;
 import com.mockwise.interview.repository.InterviewSessionRepository;
-import com.mockwise.interview.repository.SessionQuestionRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +39,7 @@ import java.util.UUID;
 public class AdminSessionService {
 
     InterviewSessionRepository sessionRepo;
-    SessionQuestionRepository sessionQuestionRepo;
+    InterviewBlueprintRepository blueprintRepo;
     AnswerRepository answerRepo;
 
     @Transactional(readOnly = true)
@@ -80,30 +81,48 @@ public class AdminSessionService {
 
         Page<InterviewSession> page = sessionRepo.findAll(spec, pageable);
 
-        // Real per-session answer + pinned-question counts for the page, batched
-        // into two grouped queries (no N+1).
+        // Per-session answer counts (A) for the page, batched into one grouped
+        // query (no N+1).
         List<UUID> ids = page.getContent().stream().map(InterviewSession::getId).toList();
-        Map<UUID, Long> pinnedById = new HashMap<>();
         Map<UUID, Long> answeredById = new HashMap<>();
         if (!ids.isEmpty()) {
-            for (Object[] row : sessionQuestionRepo.countGroupedBySessionId(ids)) {
-                pinnedById.put((UUID) row[0], toLong(row[1]));
-            }
             for (Object[] row : answerRepo.countGroupedBySessionId(ids)) {
                 answeredById.put((UUID) row[0], toLong(row[1]));
             }
         }
 
+        // Adaptive blueprint budget (B) for the page, read from the LIVE blueprint
+        // — not session.question_count, which is a /start snapshot that drifts when
+        // an admin later re-sizes the blueprint (the "2/2 behavioral" bug). Only
+        // BEHAVIORAL/CORE need it; CODING's question_count is the fixed plan size
+        // (topic slots, != questionBudget), so it stays the snapshot. One batched
+        // lookup; a session whose blueprint was deleted falls back to the snapshot.
+        Map<UUID, Integer> budgetByBlueprintId = new HashMap<>();
+        List<UUID> blueprintIds = page.getContent().stream()
+                .filter(s -> s.getInterviewType() != InterviewType.CODING)
+                .map(InterviewSession::getBlueprintId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        if (!blueprintIds.isEmpty()) {
+            for (InterviewBlueprint b : blueprintRepo.findAllById(blueprintIds)) {
+                budgetByBlueprintId.put(b.getId(), b.getQuestionBudget());
+            }
+        }
+
         return page.map(s -> {
             int answered = (int) toLong(answeredById.get(s.getId()));
-            // Denominator: the blueprint budget (question_count, set at /start)
-            // anchors the total so a candidate who stopped early still reads
-            // "answered / planned". Once follow-ups push the answered count past
-            // that budget, the budget is no longer the real ceiling, so fall back
-            // to the actual pinned-question count. For non-adaptive CODING the two
-            // are equal, so the displayed total is always the fixed plan size.
-            int budget = s.getQuestionCount();
-            int total = answered > budget ? (int) toLong(pinnedById.get(s.getId())) : budget;
+            // B = total questions of the blueprint. CODING is a fixed plan, so its
+            // snapshot question_count is authoritative; BEHAVIORAL/CORE read the
+            // live budget (snapshot as fallback when the blueprint was deleted).
+            Integer liveBudget = s.getInterviewType() == InterviewType.CODING || s.getBlueprintId() == null
+                    ? null : budgetByBlueprintId.get(s.getBlueprintId());
+            int budget = liveBudget != null ? liveBudget : s.getQuestionCount();
+            // Display denominator = max(A, B): under budget the candidate stopped
+            // early so anchor on the blueprint total (A/B); once answers reach or
+            // pass the budget (follow-ups) the budget is no longer the ceiling, so
+            // show A/A. CODING never has follow-ups, so A <= B always (A/B).
+            int total = Math.max(answered, budget);
             return AdminSessionResponse.from(s, answered, total);
         });
     }
