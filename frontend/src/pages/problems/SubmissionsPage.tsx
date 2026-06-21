@@ -22,6 +22,7 @@ import {
 } from '@/api/practice';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
+import { parseServerDate } from '@/lib/datetime';
 import type {
   ProblemSubmissionGroup,
   SubmissionDetail,
@@ -284,7 +285,7 @@ export default function SubmissionsPage() {
                           {langLabel(s.language)}
                         </span>
                         <span className="shrink-0 text-xs text-on-surface-variant">
-                          {DATE_FMT.format(new Date(s.createdAt))}
+                          {DATE_FMT.format(parseServerDate(s.createdAt))}
                         </span>
                         <span
                           className={`w-24 shrink-0 text-right text-xs font-semibold ${verdictTone(
@@ -481,7 +482,7 @@ function ProblemGroupRow({ group }: { group: ProblemSubmissionGroup }) {
             {group.problemTitle ?? group.problemId}
           </p>
           <p className="mt-0.5 flex items-center gap-2 text-xs text-on-surface-variant">
-            <span>Nộp gần nhất {DATE_FMT.format(new Date(group.lastSubmittedAt))}</span>
+            <span>Nộp gần nhất {DATE_FMT.format(parseServerDate(group.lastSubmittedAt))}</span>
             {group.bestRuntimeMs != null && (
               <span className="inline-flex items-center gap-1">
                 <Clock className="h-3 w-3" /> {group.bestRuntimeMs} ms
@@ -529,7 +530,7 @@ function ProblemGroupRow({ group }: { group: ProblemSubmissionGroup }) {
                       {s.passedCases}/{s.totalCases}
                     </span>
                     <span className="hidden shrink-0 text-xs text-on-surface-variant sm:inline">
-                      {DATE_FMT.format(new Date(s.createdAt))}
+                      {DATE_FMT.format(parseServerDate(s.createdAt))}
                     </span>
                     {openSub === s.id ? (
                       <ChevronUp className="h-4 w-4 shrink-0 text-on-surface-variant" />

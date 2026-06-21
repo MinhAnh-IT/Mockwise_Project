@@ -12,6 +12,7 @@ import {
   type ListPage,
 } from '@/api/questionBank';
 import QuestionAudioRow from '@/components/admin/QuestionAudio';
+import { parseServerDate } from '@/lib/datetime';
 import {
   AdminShell,
   Button,
@@ -548,7 +549,7 @@ function QuestionCard({
           )}
 
           <p className="mt-2 text-xs text-on-surface-variant">
-            Cập nhật {DATE_FMT.format(new Date(q.updatedAt))}
+            Cập nhật {DATE_FMT.format(parseServerDate(q.updatedAt))}
           </p>
         </div>
 

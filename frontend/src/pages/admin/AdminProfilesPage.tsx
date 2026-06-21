@@ -14,6 +14,7 @@ import { ApiError } from '@/api/client';
 import { listAdminProfiles, getProfileStats } from '@/api/adminProfile';
 import { listAdminTracks, listAdminLevels } from '@/api/adminCatalog';
 import { blockUser, unblockUser } from '@/api/adminUsers';
+import { parseServerDate } from '@/lib/datetime';
 import {
   AdminShell,
   Button,
@@ -56,9 +57,9 @@ const DATETIME_FMT = new Intl.DateTimeFormat('vi-VN', {
   minute: '2-digit',
 });
 const fmtDate = (iso: string | null | undefined) =>
-  iso ? DATE_FMT.format(new Date(iso)) : '—';
+  iso ? DATE_FMT.format(parseServerDate(iso)) : '—';
 const fmtDateTime = (iso: string | null | undefined) =>
-  iso ? DATETIME_FMT.format(new Date(iso)) : 'Chưa đăng nhập';
+  iso ? DATETIME_FMT.format(parseServerDate(iso)) : 'Chưa đăng nhập';
 
 export default function AdminProfilesPage() {
   const navigate = useNavigate();

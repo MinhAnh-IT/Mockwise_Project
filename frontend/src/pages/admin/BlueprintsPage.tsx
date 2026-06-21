@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Pencil, Plus, Star, Trash2 } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import { useUrlState } from '@/lib/useUrlState';
+import { parseServerDate } from '@/lib/datetime';
 import {
   deleteBlueprint,
   listBlueprints,
@@ -377,7 +378,7 @@ function BlueprintCard({
           </div>
 
           <p className="mt-2 text-xs text-on-surface-variant">
-            Cập nhật {DATE_FMT.format(new Date(b.updatedAt))}
+            Cập nhật {DATE_FMT.format(parseServerDate(b.updatedAt))}
           </p>
         </div>
 

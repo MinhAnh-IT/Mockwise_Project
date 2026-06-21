@@ -21,6 +21,7 @@ import { getSession } from '@/api/interviews';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
 import { findPracticeOption } from '@/data/practice';
+import { parseServerDate } from '@/lib/datetime';
 import type {
   OverallReviewView,
   SessionView,
@@ -432,7 +433,7 @@ function scoreTone(score: number | null) {
 }
 
 function MetaStrip({ session }: { session: SessionView }) {
-  const dateText = DATE_FMT.format(new Date(session.startedAt));
+  const dateText = DATE_FMT.format(parseServerDate(session.startedAt));
   const duration = durationMinutes(session.startedAt, session.finishedAt);
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">

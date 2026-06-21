@@ -9,6 +9,7 @@ import {
 import { ApiError } from '@/api/client';
 import { useUrlState } from '@/lib/useUrlState';
 import { getSessionStats, listAdminSessions } from '@/api/adminInterviews';
+import { parseServerDate } from '@/lib/datetime';
 import {
   AdminShell,
   Button,
@@ -73,7 +74,7 @@ const DATE_FMT = new Intl.DateTimeFormat('vi-VN', {
 const fmtInt = (n: number) => new Intl.NumberFormat('vi-VN').format(n);
 const fmtScore = (n: number | null | undefined) =>
   n === null || n === undefined ? '—' : n.toFixed(1);
-const fmtDate = (iso: string | null) => (iso ? DATE_FMT.format(new Date(iso)) : '—');
+const fmtDate = (iso: string | null) => (iso ? DATE_FMT.format(parseServerDate(iso)) : '—');
 const typeLabel = (t: InterviewType | null) =>
   t ? INTERVIEW_TYPE_LABEL[t] ?? t : '—';
 

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import { useUrlState } from '@/lib/useUrlState';
+import { parseServerDate } from '@/lib/datetime';
 import {
   getJudge0Health,
   getJudgeDlq,
@@ -310,7 +311,7 @@ export default function AdminJudgePage() {
           {stats && (
             <p className="flex items-center gap-1.5 text-xs text-on-surface-variant">
               <Activity className="h-3.5 w-3.5" />
-              Cập nhật lúc {TIME_FMT.format(new Date(stats.generatedAt))}
+              Cập nhật lúc {TIME_FMT.format(parseServerDate(stats.generatedAt))}
               {refreshing && ' · đang làm mới…'}
             </p>
           )}
@@ -489,7 +490,7 @@ function DlqCard({ dlq }: { dlq: DlqOverview }) {
                 <span className="font-mono">
                   p{m.partition}@{m.offset}
                 </span>
-                <span>{m.timestamp ? DATETIME_FMT.format(new Date(m.timestamp)) : '—'}</span>
+                <span>{m.timestamp ? DATETIME_FMT.format(parseServerDate(m.timestamp)) : '—'}</span>
               </div>
               {m.exceptionMessage && (
                 <p className="mt-1 break-words font-medium text-red-600" title={m.exceptionClass ?? ''}>
@@ -565,7 +566,7 @@ function JobsTable({
               </td>
               <td className="px-3 py-2">{fmtMs(j.latencyMs)}</td>
               <td className="px-3 py-2 text-xs text-on-surface-variant">
-                {j.createdAt ? DATETIME_FMT.format(new Date(j.createdAt)) : '—'}
+                {j.createdAt ? DATETIME_FMT.format(parseServerDate(j.createdAt)) : '—'}
               </td>
             </tr>
           ))}

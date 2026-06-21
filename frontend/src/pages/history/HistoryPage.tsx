@@ -16,6 +16,7 @@ import { listSessions } from '@/api/interviews';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
 import type { InterviewType, SessionStatus, SessionSummaryView } from '@/types/interview';
+import { parseServerDate } from '@/lib/datetime';
 
 const PAGE_SIZE = 10;
 
@@ -400,7 +401,7 @@ function FilterCard({
 function SessionCard({ summary }: { summary: SessionSummaryView }) {
   const slug = TYPE_SLUG[summary.interviewType] ?? 'behavioral';
   const dateText = DATE_FMT.format(
-    new Date(summary.startedAt ?? summary.createdAt),
+    parseServerDate(summary.startedAt ?? summary.createdAt),
   );
   const score = summary.finalScore;
 
