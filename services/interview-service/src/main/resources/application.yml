@@ -72,6 +72,13 @@ interview:
   # (FE keeps its own build-time flag in step; see VITE_REALTIME_STT_ENABLED.)
   realtime-stt:
     enabled: ${INTERVIEW_REALTIME_STT_ENABLED:true}
+  # Idle-abandon reaper (SessionIdleReaper): closes IN_PROGRESS sessions a
+  # candidate walked away from — no activity (updated_at) for longer than the
+  # threshold — independent of the hard deadline reaper. Answered → COMPLETED
+  # (+score), unanswered → CANCELLED. Env-overridable so prod can retune.
+  session-idle:
+    threshold-minutes: ${INTERVIEW_SESSION_IDLE_THRESHOLD_MINUTES:60}
+    reaper-interval-ms: ${INTERVIEW_SESSION_IDLE_REAPER_INTERVAL_MS:300000}
   outbox:
     # 100ms (was 1000). The flow has 3 outbox hops; at 1000ms each added
     # up to ~3s p99 of pure waiting. The drain query is backed by the
