@@ -144,12 +144,12 @@ export default function SubmissionsPage() {
   return (
     <div className="flex min-h-screen flex-col bg-surface">
       <Header />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-6 pb-24 pt-28">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 sm:px-6 pb-24 pt-28">
         <div className="mb-6 flex items-center gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-secondary/10 text-secondary">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-secondary/10 text-secondary">
             <Target className="h-6 w-6" />
           </span>
-          <div>
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold text-on-surface">Tiến độ của tôi</h1>
             <p className="text-sm text-on-surface-variant">
               Tổng quan kết quả, nhóm theo bài và lịch sử nộp.
@@ -157,7 +157,7 @@ export default function SubmissionsPage() {
           </div>
           <Link
             to="/problems"
-            className="ml-auto rounded-xl border border-outline-variant px-3.5 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
+            className="ml-auto shrink-0 rounded-xl border border-outline-variant px-3.5 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
           >
             Danh sách đề
           </Link>
@@ -202,7 +202,7 @@ export default function SubmissionsPage() {
                     ({filtered.length})
                   </span>
                 </h2>
-                <div className="flex items-center gap-2 sm:ml-auto">
+                <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
                   <div className="inline-flex rounded-xl border border-outline-variant p-0.5">
                     {(['ALL', 'SOLVED', 'ATTEMPTED'] as GroupFilter[]).map((f) => (
                       <button
@@ -219,7 +219,7 @@ export default function SubmissionsPage() {
                       </button>
                     ))}
                   </div>
-                  <div className="relative w-44">
+                  <div className="relative w-full sm:w-44">
                     <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
                     <input
                       value={search}
@@ -528,7 +528,7 @@ function ProblemGroupRow({ group }: { group: ProblemSubmissionGroup }) {
                     <span className="ml-auto text-xs tabular-nums text-on-surface-variant">
                       {s.passedCases}/{s.totalCases}
                     </span>
-                    <span className="shrink-0 text-xs text-on-surface-variant">
+                    <span className="hidden shrink-0 text-xs text-on-surface-variant sm:inline">
                       {DATE_FMT.format(new Date(s.createdAt))}
                     </span>
                     {openSub === s.id ? (
@@ -559,9 +559,21 @@ const CASE_TONE: Record<string, string> = {
   CE: 'text-rose-600',
 };
 
+// Compact per-case grid cell background. Keeps 100+ test cases scannable
+// instead of one wide text chip each.
+const CASE_CELL_TONE: Record<string, string> = {
+  AC: 'bg-emerald-100 text-emerald-700',
+  WA: 'bg-rose-100 text-rose-700',
+  TLE: 'bg-amber-100 text-amber-700',
+  MLE: 'bg-amber-100 text-amber-700',
+  RE: 'bg-rose-100 text-rose-700',
+  CE: 'bg-rose-100 text-rose-700',
+};
+
 function SubmissionDetailPanel({ id }: { id: string }) {
   const [detail, setDetail] = useState<SubmissionDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showCases, setShowCases] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -588,22 +600,63 @@ function SubmissionDetailPanel({ id }: { id: string }) {
     );
   }
 
+  const total = detail.cases.length;
+  const passed = detail.cases.filter(
+    (c) => (c.status ?? '').toUpperCase() === 'AC',
+  ).length;
+  // Tally cases by status for the compact summary line.
+  const tally = detail.cases.reduce<Record<string, number>>((acc, c) => {
+    const k = (c.status ?? '?').toUpperCase();
+    acc[k] = (acc[k] ?? 0) + 1;
+    return acc;
+  }, {});
+
   return (
     <div className="space-y-3 px-1 pb-3">
-      {detail.cases.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {detail.cases.map((c) => (
-            <span
-              key={c.orderIndex}
-              title={c.hidden ? 'Test case ẩn' : undefined}
-              className={`rounded-md border border-outline-variant/60 bg-surface px-2 py-1 text-[11px] font-semibold ${
-                CASE_TONE[c.status?.toUpperCase()] ?? 'text-on-surface-variant'
-              }`}
-            >
-              #{c.orderIndex + 1} {c.status}
-              {c.hidden ? ' 🔒' : ''}
+      {total > 0 && (
+        <div className="rounded-lg border border-outline-variant/60 bg-surface">
+          <button
+            type="button"
+            onClick={() => setShowCases((v) => !v)}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left"
+          >
+            <span className="text-xs font-semibold text-on-surface">
+              Test case{' '}
+              <span
+                className={passed === total ? 'text-emerald-600' : 'text-on-surface-variant'}
+              >
+                {passed}/{total}
+              </span>
             </span>
-          ))}
+            <span className="ml-auto flex flex-wrap items-center justify-end gap-x-2 text-[11px] font-semibold tabular-nums">
+              {Object.entries(tally).map(([st, n]) => (
+                <span key={st} className={CASE_TONE[st] ?? 'text-on-surface-variant'}>
+                  {st} {n}
+                </span>
+              ))}
+            </span>
+            {showCases ? (
+              <ChevronUp className="h-4 w-4 shrink-0 text-on-surface-variant" />
+            ) : (
+              <ChevronDown className="h-4 w-4 shrink-0 text-on-surface-variant" />
+            )}
+          </button>
+          {showCases && (
+            <div className="flex flex-wrap gap-1 border-t border-outline-variant/60 px-3 py-2.5">
+              {detail.cases.map((c) => (
+                <span
+                  key={c.orderIndex}
+                  title={`#${c.orderIndex + 1} ${c.status}${c.hidden ? ' (ẩn)' : ''}`}
+                  className={`grid h-6 w-6 place-items-center rounded text-[10px] font-bold tabular-nums ${
+                    CASE_CELL_TONE[(c.status ?? '').toUpperCase()] ??
+                    'bg-surface-container text-on-surface-variant'
+                  }`}
+                >
+                  {c.orderIndex + 1}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
       <div>

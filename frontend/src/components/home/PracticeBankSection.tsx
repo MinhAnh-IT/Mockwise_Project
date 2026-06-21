@@ -39,10 +39,10 @@ export default function PracticeBankSection() {
   return (
     <section
       id="practice-bank"
-      className="scroll-mt-16 py-20 px-6 md:px-12 bg-surface-container-low"
+      className="scroll-mt-16 py-14 sm:py-20 px-6 md:px-12 bg-surface-container-low"
     >
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
           {/* Left: pitch + CTA */}
           <div className="lg:col-span-5">
             <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary mb-3">
@@ -52,7 +52,7 @@ export default function PracticeBankSection() {
             <h2 className="text-3xl font-bold text-on-surface mb-4">
               Rèn phản xạ giải thuật mỗi ngày
             </h2>
-            <p className="text-on-surface-variant text-lg leading-relaxed mb-8">
+            <p className="text-on-surface-variant text-base sm:text-lg leading-relaxed mb-8">
               Ngân hàng bài tập kiểu LeetCode với hàng trăm đề đã được kiểm thử. Tự luyện theo
               nhịp của bạn, nộp bài chấm ngay và theo dõi sự tiến bộ qua từng ngày.
             </p>

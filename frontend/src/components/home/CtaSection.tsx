@@ -5,22 +5,22 @@ import { useStartHref } from '@/lib/cta';
 export default function CtaSection() {
   const startHref = useStartHref();
   return (
-    <section className="py-24 px-6 md:px-12">
+    <section className="py-16 sm:py-24 px-6 md:px-12">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="max-w-7xl mx-auto bg-slate-950 rounded-[3rem] p-12 md:p-24 text-center relative overflow-hidden"
+        className="max-w-7xl mx-auto bg-slate-950 rounded-3xl sm:rounded-[3rem] p-8 sm:p-12 md:p-24 text-center relative overflow-hidden"
       >
         <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none" />
         <div className="absolute -top-24 -left-24 w-64 h-64 bg-secondary/20 blur-[100px] rounded-full" />
         <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-secondary/10 blur-[100px] rounded-full" />
 
         <div className="relative z-10">
-          <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-8 tracking-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-8 tracking-tight">
             Ngừng suy đoán. Bắt đầu làm chủ.
           </h2>
-          <p className="text-slate-400 text-lg mb-12 max-w-xl mx-auto leading-relaxed">
+          <p className="text-slate-400 text-base sm:text-lg mb-12 max-w-xl mx-auto leading-relaxed">
             Xây dựng phản xạ cần thiết cho những vị trí kỹ thuật cạnh tranh nhất thế giới.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

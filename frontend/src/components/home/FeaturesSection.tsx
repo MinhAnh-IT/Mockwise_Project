@@ -6,7 +6,7 @@ import { useStartHref } from '@/lib/cta';
 export default function FeaturesSection() {
   const startHref = useStartHref();
   return (
-    <section id="features" className="scroll-mt-16 py-20 px-6 md:px-12 bg-surface">
+    <section id="features" className="scroll-mt-16 py-14 sm:py-20 px-6 md:px-12 bg-surface">
       <div className="max-w-7xl mx-auto">
         <div className="mb-12 text-center md:text-left">
           <h2 className="text-3xl font-bold text-on-surface mb-2">Ba Trụ Cột Thành Công</h2>
@@ -18,7 +18,7 @@ export default function FeaturesSection() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           <motion.div
             whileHover={{ y: -5 }}
-            className="md:col-span-8 bg-surface-container-lowest border border-outline-variant p-8 rounded-2xl flex flex-col justify-between group transition-all"
+            className="md:col-span-8 bg-surface-container-lowest border border-outline-variant p-6 sm:p-8 rounded-2xl flex flex-col justify-between group transition-all"
           >
             <div>
               <div className="w-14 h-14 rounded-2xl bg-secondary-fixed flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
@@ -44,7 +44,7 @@ export default function FeaturesSection() {
 
           <motion.div
             whileHover={{ scale: 1.02 }}
-            className="md:col-span-4 bg-secondary-container p-8 rounded-2xl flex flex-col justify-end text-on-secondary-container relative overflow-hidden"
+            className="md:col-span-4 bg-secondary-container p-6 sm:p-8 rounded-2xl flex flex-col justify-end text-on-secondary-container relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 p-8 opacity-10">
               <Layout className="w-32 h-32" />
@@ -66,7 +66,7 @@ export default function FeaturesSection() {
 
           <motion.div
             whileHover={{ y: -5 }}
-            className="md:col-span-4 bg-surface-container-highest p-8 rounded-2xl flex flex-col justify-between border border-outline-variant group transition-all"
+            className="md:col-span-4 bg-surface-container-highest p-6 sm:p-8 rounded-2xl flex flex-col justify-between border border-outline-variant group transition-all"
           >
             <div className="w-12 h-12 rounded-xl bg-surface-container-lowest flex items-center justify-center mb-6 group-hover:rotate-6 transition-transform shadow-sm border border-outline-variant/30">
               <Code2 className="w-6 h-6 text-secondary" />
@@ -80,7 +80,7 @@ export default function FeaturesSection() {
             </div>
           </motion.div>
 
-          <motion.div className="md:col-span-8 bg-surface-container-low border-2 border-dashed border-outline-variant p-8 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-8">
+          <motion.div className="md:col-span-8 bg-surface-container-low border-2 border-dashed border-outline-variant p-6 sm:p-8 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="flex flex-col gap-1 items-center md:items-start">
               <span className="text-5xl font-black text-secondary">98%</span>
               <span className="text-[10px] font-bold text-on-surface-variant tracking-[0.2em] uppercase">

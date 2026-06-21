@@ -8,7 +8,7 @@ import { SITE } from '@/data/site';
 export default function HeroSection() {
   const startHref = useStartHref();
   return (
-    <section className="relative overflow-hidden bg-surface-container-lowest px-6 py-20 md:py-32 flex flex-col items-center text-center">
+    <section className="relative overflow-hidden bg-surface-container-lowest px-6 pt-24 pb-14 sm:py-20 md:py-32 flex flex-col items-center text-center">
       <motion.div
         className="max-w-7xl w-full"
         initial="initial"
@@ -23,14 +23,14 @@ export default function HeroSection() {
         </motion.span>
         <motion.h1
           variants={fadeIn}
-          className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-on-surface mb-6 max-w-4xl mx-auto leading-tight"
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-on-surface mb-6 max-w-4xl mx-auto leading-tight"
         >
           Làm chủ buổi phỏng vấn tiếp theo với{' '}
           <span className="text-secondary">{SITE.name}</span>
         </motion.h1>
         <motion.p
           variants={fadeIn}
-          className="text-lg text-on-surface-variant max-w-2xl mx-auto mb-10"
+          className="text-base sm:text-lg text-on-surface-variant max-w-2xl mx-auto mb-10"
         >
           Người cố vấn thầm lặng trên trình duyệt của bạn. Thực hành phỏng vấn hành vi, kỹ thuật và
           lập trình với phản hồi thời gian thực được thiết kế cho sự chuyên nghiệp xuất sắc.

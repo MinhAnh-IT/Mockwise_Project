@@ -32,6 +32,7 @@ import type {
   ProblemStatus,
   SubmissionDetail,
 } from '@/types/practice';
+import useIsDesktop from '@/lib/useIsDesktop';
 import CodeEditor from '@/components/practice/coding/CodeEditor';
 import Markdown from '@/components/practice/coding/Markdown';
 import TestcasePanel from '@/components/practice/coding/TestcasePanel';
@@ -94,6 +95,12 @@ export default function PracticeCodingWorkspace({
 
   const [leftPct, setLeftPct] = useState(44);
   const [consolePct, setConsolePct] = useState(40);
+
+  // Below md: stacked tab layout instead of the resizable split-pane.
+  const isDesktop = useIsDesktop();
+  const [mobileTab, setMobileTab] = useState<'problem' | 'code' | 'result'>(
+    'problem',
+  );
 
   const [appearance, setAppearance] = useState<CwAppearance>(readStoredAppearance);
   const dark = appearance === 'dark';
@@ -266,7 +273,7 @@ export default function PracticeCodingWorkspace({
 
   if (loadError) {
     return (
-      <div className={`grid h-screen place-items-center px-6 text-center ${t.surface}`}>
+      <div className={`grid h-[100dvh] place-items-center px-6 text-center ${t.surface}`}>
         <div>
           <p className={`mb-4 text-sm ${t.textBody}`}>{loadError}</p>
           <button
@@ -283,7 +290,7 @@ export default function PracticeCodingWorkspace({
 
   if (!problem) {
     return (
-      <div className={`grid h-screen place-items-center ${t.surface}`}>
+      <div className={`grid h-[100dvh] place-items-center ${t.surface}`}>
         <span className={`flex items-center gap-2 text-sm ${t.textBody}`}>
           <Loader2 className="h-4 w-4 animate-spin" /> Đang tải đề bài…
         </span>
@@ -296,7 +303,7 @@ export default function PracticeCodingWorkspace({
     : null;
 
   return (
-    <div className={`flex h-screen flex-col ${t.workspace}`}>
+    <div className={`flex h-[100dvh] flex-col ${t.workspace}`}>
       {/* Top bar */}
       <header className={`flex h-12 shrink-0 items-center justify-between border-b px-3 ${t.border} ${t.surface}`}>
         <div className="flex min-w-0 items-center gap-2">
@@ -318,17 +325,58 @@ export default function PracticeCodingWorkspace({
         </div>
       </header>
 
-      {/* Body */}
-      <div className="flex min-h-0 flex-1">
-        <div style={{ width: `${leftPct}%` }} className={`min-w-0 border-r ${t.border}`}>
+      {/* Mobile tab switcher — one panel at a time below md (no split-pane). */}
+      <div className={`md:hidden flex shrink-0 border-b ${t.border} ${t.surface}`}>
+        {(
+          [
+            ['problem', 'Đề bài'],
+            ['code', 'Code'],
+            ['result', 'Kết quả'],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setMobileTab(key)}
+            className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+              mobileTab === key
+                ? dark
+                  ? 'border-b-2 border-sky-400 text-sky-400'
+                  : 'border-b-2 border-sky-600 text-sky-600'
+                : t.textMuted
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Body (stacks into tabs below md) */}
+      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+        <div
+          style={isDesktop ? { width: `${leftPct}%` } : undefined}
+          className={`min-w-0 flex-1 md:flex-initial md:border-r ${t.border} ${
+            mobileTab === 'problem' ? 'block' : 'hidden'
+          } md:block`}
+        >
           <ProblemStatement problem={problem} difficulty={difficulty} dark={dark} />
         </div>
 
-        <div onMouseDown={onDragX} className={`w-1.5 shrink-0 cursor-col-resize transition-colors ${t.divider}`} />
+        <div onMouseDown={onDragX} className={`hidden md:block w-1.5 shrink-0 cursor-col-resize transition-colors ${t.divider}`} />
 
-        <div ref={rightRef} style={{ width: `${100 - leftPct}%` }} className="flex min-w-0 flex-1 flex-col">
+        <div
+          ref={rightRef}
+          style={isDesktop ? { width: `${100 - leftPct}%` } : undefined}
+          className={`min-w-0 flex-1 flex-col md:flex ${
+            mobileTab === 'problem' ? 'hidden' : 'flex'
+          }`}
+        >
           {/* Editor toolbar */}
-          <div className={`flex h-10 shrink-0 items-center justify-between border-b px-3 ${t.border} ${t.surface}`}>
+          <div
+            className={`h-10 shrink-0 items-center justify-between border-b px-3 ${t.border} ${t.surface} ${
+              mobileTab === 'result' ? 'hidden md:flex' : 'flex'
+            }`}
+          >
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value as CodingLanguage)}
@@ -362,7 +410,12 @@ export default function PracticeCodingWorkspace({
           </div>
 
           {/* Editor */}
-          <div className="min-h-0 flex-1" style={{ height: `${100 - consolePct}%` }}>
+          <div
+            className={`min-h-0 md:block md:flex-1 ${
+              mobileTab === 'code' ? 'flex-1' : 'hidden'
+            }`}
+            style={isDesktop ? { height: `${100 - consolePct}%` } : undefined}
+          >
             <CodeEditor
               value={code}
               language={language}
@@ -374,10 +427,15 @@ export default function PracticeCodingWorkspace({
             />
           </div>
 
-          <div onMouseDown={onDragY} className={`h-1.5 shrink-0 cursor-row-resize transition-colors ${t.divider}`} />
+          <div onMouseDown={onDragY} className={`hidden md:block h-1.5 shrink-0 cursor-row-resize transition-colors ${t.divider}`} />
 
           {/* Console */}
-          <div className="min-h-0 overflow-hidden" style={{ height: `${consolePct}%` }}>
+          <div
+            className={`min-h-0 overflow-hidden md:block ${
+              mobileTab === 'result' ? 'flex-1' : 'hidden'
+            }`}
+            style={isDesktop ? { height: `${consolePct}%` } : undefined}
+          >
             {verdict ? (
               <VerdictBanner verdict={verdict} dark={dark} />
             ) : (
@@ -393,7 +451,11 @@ export default function PracticeCodingWorkspace({
 
           {/* Action bar */}
           <div className={`flex h-12 shrink-0 items-center justify-between border-t px-3 ${t.border} ${t.surface}`}>
-            <span className={`truncate text-xs ${t.textMuted}`}>
+            <span
+              className={`truncate text-xs ${t.textMuted} ${
+                actionError ? 'inline' : 'hidden sm:inline'
+              }`}
+            >
               {actionError ?? '⌘/Ctrl + ↵ để Chạy · ⌘/Ctrl + ⇧ + ↵ để Nộp'}
             </span>
             <div className="flex items-center gap-2">

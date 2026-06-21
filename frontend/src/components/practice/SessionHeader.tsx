@@ -34,7 +34,7 @@ export default function SessionHeader({
   const lowTime = secondsLeft != null && secondsLeft <= 60;
   return (
     <div className="bg-surface-container-lowest border-b border-outline-variant">
-      <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-4">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3 sm:gap-4">
         <div className="flex-1">
           <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">
             {title}
@@ -64,10 +64,13 @@ export default function SessionHeader({
           type="button"
           onClick={onExit}
           disabled={exiting}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors disabled:opacity-50"
+          className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors disabled:opacity-50"
         >
           <LogOut className="w-3.5 h-3.5" />
-          {exiting ? 'Đang kết thúc…' : 'Kết thúc sớm'}
+          <span className="hidden sm:inline">
+            {exiting ? 'Đang kết thúc…' : 'Kết thúc sớm'}
+          </span>
+          <span className="sm:hidden">{exiting ? '…' : 'Kết thúc'}</span>
         </button>
       </div>
     </div>

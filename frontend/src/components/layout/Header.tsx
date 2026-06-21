@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   ChevronDown,
   ClipboardList,
   CreditCard,
   Library,
   LogOut,
+  Menu,
   UserCircle,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/auth/useAuth';
 import type { UserRole } from '@/types/auth';
@@ -43,47 +45,111 @@ export default function Header() {
       ? ADMIN_HEADER_NAV
       : HEADER_NAV_USER;
 
+  const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+
+  // Collapse the mobile panel whenever the route (or hash) changes so it never
+  // lingers over the page after a tap.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname, location.hash]);
+
   return (
-    <header className="fixed top-0 w-full flex justify-between items-center px-6 md:px-12 h-16 bg-surface-container-lowest/80 backdrop-blur-md border-b border-outline-variant/30 z-50">
-      <Link to="/" aria-label="MockWise — Trang chủ" className="flex items-center">
-        <Logo className="h-12 w-auto" />
-      </Link>
+    <header className="fixed top-0 w-full px-6 md:px-12 bg-surface-container-lowest/80 backdrop-blur-md border-b border-outline-variant/30 z-50">
+      <div className="flex justify-between items-center h-16">
+        <Link
+          to="/"
+          aria-label="MockWise — Trang chủ"
+          className="flex items-center"
+        >
+          <Logo className="h-12 w-auto" />
+        </Link>
 
-      {/* Hide nav while we're still confirming the session — rendering a guest
-          nav and then swapping to the user nav (or vice versa) causes a visible
-          flash on every refresh. */}
-      <nav className="hidden md:flex gap-8 items-center">
-        {!isLoading &&
-          centerNav.map((item) => <NavLink key={item.label} item={item} />)}
-      </nav>
+        {/* Hide nav while we're still confirming the session — rendering a guest
+            nav and then swapping to the user nav (or vice versa) causes a visible
+            flash on every refresh. */}
+        <nav className="hidden md:flex gap-8 items-center">
+          {!isLoading &&
+            centerNav.map((item) => <NavLink key={item.label} item={item} />)}
+        </nav>
 
-      <div className="flex items-center gap-2 md:gap-4">
-        {isLoading ? (
-          <AuthSlotSkeleton />
-        ) : isAuthenticated ? (
-          <UserMenu
-            fullName={profile.fullName}
-            avatarUrl={profile.avatarUrl}
-            role={role}
-            onSignOut={signOut}
-          />
-        ) : (
-          <>
-            <Link
-              to="/login"
-              className="text-sm font-semibold text-on-surface-variant hover:text-on-surface px-3 py-2 transition-colors"
+        <div className="flex items-center gap-2 md:gap-4">
+          {isLoading ? (
+            <AuthSlotSkeleton />
+          ) : isAuthenticated ? (
+            <UserMenu
+              fullName={profile.fullName}
+              avatarUrl={profile.avatarUrl}
+              role={role}
+              onSignOut={signOut}
+            />
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className="hidden md:inline-block text-sm font-semibold text-on-surface-variant hover:text-on-surface px-3 py-2 transition-colors"
+              >
+                Đăng nhập
+              </Link>
+              <Link
+                to="/register"
+                className="hidden sm:inline-block text-sm font-semibold bg-secondary text-on-secondary px-4 py-2 rounded-xl hover:opacity-90 transition-opacity shadow-sm shadow-secondary/20"
+              >
+                Đăng ký miễn phí
+              </Link>
+            </>
+          )}
+
+          {/* Hamburger — only on mobile, and only once the session is known so
+              the panel reflects the right nav. */}
+          {!isLoading && (
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              className="md:hidden flex items-center justify-center w-10 h-10 -mr-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors"
+              aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'}
+              aria-expanded={menuOpen}
             >
-              Đăng nhập
-            </Link>
-            <Link
-              to="/register"
-              className="text-sm font-semibold bg-secondary text-on-secondary px-4 py-2 rounded-xl hover:opacity-90 transition-opacity shadow-sm shadow-secondary/20"
-            >
-              Đăng ký miễn phí
-            </Link>
-          </>
-        )}
+              {menuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Mobile dropdown panel */}
+      {menuOpen && !isLoading && (
+        <nav className="md:hidden pb-3 pt-1 border-t border-outline-variant/30 flex flex-col">
+          {centerNav.map((item) => (
+            <Link
+              key={item.label}
+              to={item.href}
+              className="py-3 text-base font-medium text-on-surface-variant hover:text-on-surface transition-colors"
+            >
+              {item.label}
+            </Link>
+          ))}
+          {!isAuthenticated && (
+            <div className="mt-2 pt-3 border-t border-outline-variant/30 flex flex-col gap-2">
+              <Link
+                to="/login"
+                className="py-2.5 text-center text-sm font-semibold text-on-surface-variant hover:text-on-surface rounded-xl border border-outline-variant transition-colors"
+              >
+                Đăng nhập
+              </Link>
+              <Link
+                to="/register"
+                className="py-2.5 text-center text-sm font-semibold bg-secondary text-on-secondary rounded-xl hover:opacity-90 transition-opacity"
+              >
+                Đăng ký miễn phí
+              </Link>
+            </div>
+          )}
+        </nav>
+      )}
     </header>
   );
 }
