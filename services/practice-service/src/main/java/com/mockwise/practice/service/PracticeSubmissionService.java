@@ -1,6 +1,7 @@
 package com.mockwise.practice.service;
 
 import com.core.apiresponse.response.ApiResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mockwise.practice.client.questionbank.QuestionBankClient;
 import com.mockwise.practice.client.questionbank.dto.QbCodingDetail;
 import com.mockwise.practice.common.config.PracticeProperties;
@@ -32,7 +33,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -68,6 +71,7 @@ public class PracticeSubmissionService {
     PracticeProblemStatusRepository statusRepo;
     RunResultStore runCache;
     PracticeProperties properties;
+    ObjectMapper objectMapper;
 
     // ── Run / Submit ────────────────────────────────────────────────────────
 
@@ -208,7 +212,11 @@ public class PracticeSubmissionService {
         return false;
     }
 
-    /** Builds per-case rows (transient), suppressing I/O of hidden cases. */
+    /**
+     * Builds per-case rows (transient). The user's own stdout/stderr is stored
+     * for every case — exposure of hidden-case I/O is gated at read time
+     * ({@link #buildDetail}), where only a single failing case may be revealed.
+     */
     private List<PracticeSubmissionCase> buildCases(PracticeSubmission submission, SubmissionJudgedEvent event) {
         Set<String> hiddenIds = submission.getHiddenCaseIds() == null
                 ? Set.of()
@@ -230,8 +238,8 @@ public class PracticeSubmissionService {
             c.setRuntimeMs(r.runtimeMs());
             c.setMemoryKb(r.memoryKb());
             c.setHidden(hidden);
-            c.setStdout(hidden ? null : r.stdout());
-            c.setStderr(hidden ? null : r.stderr());
+            c.setStdout(r.stdout());
+            c.setStderr(r.stderr());
             cases.add(c);
         }
         return cases;
@@ -346,18 +354,89 @@ public class PracticeSubmissionService {
     }
 
     private SubmissionDetail buildDetail(PracticeSubmission s, List<PracticeSubmissionCase> caseRows) {
+        // Hidden-case I/O is never exposed in the full list — it leaks only via
+        // the single revealed failing case below.
         List<SubmissionCaseView> cases = caseRows.stream()
                 .map(c -> new SubmissionCaseView(
                         c.getOrderIndex(), c.getTestCaseId(), c.getStatus(),
                         c.getRuntimeMs(), c.getMemoryKb(), c.isHidden(),
-                        c.getStdout(), c.getStderr()))
+                        c.isHidden() ? null : c.getStdout(),
+                        c.isHidden() ? null : c.getStderr()))
                 .toList();
 
         return new SubmissionDetail(
                 s.getId(), s.getQuestionId(), s.getProblemTitle(), s.getLanguage(),
                 s.getMode(), s.getStatus(), s.getVerdict(), s.getPassedCases(), s.getTotalCases(),
                 s.getRuntimeMs(), s.getMemoryKb(), s.getSourceCode(),
-                s.getCreatedAt(), s.getFinishedAt(), cases);
+                s.getCreatedAt(), s.getFinishedAt(), cases,
+                buildRevealedCase(s, caseRows));
+    }
+
+    /**
+     * On a non-accepted SUBMIT, reveals the <em>first</em> failing case so the
+     * user can reproduce and fix it — input + expected (from question-bank) plus
+     * their own output. Returns null for RUN, still-running, accepted, or
+     * compile-error submissions (CE has no per-case input to show). The
+     * question-bank lookup happens only on failure, so the cost is bounded.
+     */
+    private RevealedCase buildRevealedCase(PracticeSubmission s, List<PracticeSubmissionCase> caseRows) {
+        if (s.getMode() != SubmissionMode.SUBMIT
+                || s.getStatus() != SubmissionStatus.DONE
+                || VERDICT_ACCEPTED.equalsIgnoreCase(s.getVerdict())) {
+            return null;
+        }
+
+        PracticeSubmissionCase failing = caseRows.stream()
+                .filter(c -> c.getTestCaseId() != null)
+                .filter(PracticeSubmissionService::isRevealable)
+                .min(Comparator.comparingInt(PracticeSubmissionCase::getOrderIndex))
+                .orElse(null);
+        if (failing == null) return null;
+
+        try {
+            QbCodingDetail detail = fetchDetail(s.getQuestionId());
+            QbCodingDetail.QbTestCase tc = detail.testCases() == null ? null
+                    : detail.testCases().stream()
+                            .filter(t -> failing.getTestCaseId().equals(t.id()))
+                            .findFirst().orElse(null);
+            if (tc == null) return null;
+            return new RevealedCase(
+                    failing.getOrderIndex(),
+                    toJson(tc.inputData()),
+                    expectedValue(tc.expectedOutput()),
+                    failing.getStdout(),
+                    failing.getStatus());
+        } catch (Exception e) {
+            log.warn("Could not reveal failing case for submission {}: {}", s.getId(), e.getMessage());
+            return null;
+        }
+    }
+
+    /** A case worth revealing: ran and failed on its merits (not AC, not a compile error). */
+    private static boolean isRevealable(PracticeSubmissionCase c) {
+        String st = c.getStatus() == null ? "" : c.getStatus().toUpperCase();
+        return !st.equals("AC") && !st.equals("CE") && !st.isEmpty();
+    }
+
+    /** Full JSON of the input map, e.g. {@code {"nums":[1,2,3]}}. */
+    private String toJson(Map<String, Object> map) {
+        if (map == null) return null;
+        try {
+            return objectMapper.writeValueAsString(map);
+        } catch (Exception e) {
+            return String.valueOf(map);
+        }
+    }
+
+    /** Expected output: the bare value for a single-field result, else the whole map. */
+    private String expectedValue(Map<String, Object> expected) {
+        if (expected == null) return null;
+        Object value = expected.size() == 1 ? expected.values().iterator().next() : expected;
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception e) {
+            return String.valueOf(value);
+        }
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────

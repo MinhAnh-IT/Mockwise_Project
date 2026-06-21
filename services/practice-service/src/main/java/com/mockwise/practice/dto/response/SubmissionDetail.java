@@ -22,5 +22,7 @@ public record SubmissionDetail(
         String sourceCode,
         LocalDateTime createdAt,
         LocalDateTime finishedAt,
-        List<SubmissionCaseView> cases
+        List<SubmissionCaseView> cases,
+        /** First failing hidden case, revealed only on a non-accepted SUBMIT; null otherwise. */
+        RevealedCase revealedCase
 ) {}

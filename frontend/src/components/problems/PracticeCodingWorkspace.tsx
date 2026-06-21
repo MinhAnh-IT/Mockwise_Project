@@ -30,6 +30,7 @@ import {
 import type {
   PracticeProblemDetail,
   ProblemStatus,
+  RevealedCase,
   SubmissionDetail,
 } from '@/types/practice';
 import useIsDesktop from '@/lib/useIsDesktop';
@@ -91,7 +92,13 @@ export default function PracticeCodingWorkspace({
   const [runResult, setRunResult] = useState<RunResultView | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   // Banner for the last SUBMIT verdict (run results show in the console).
-  const [verdict, setVerdict] = useState<{ verdict: string | null; passed: number; total: number } | null>(null);
+  const [verdict, setVerdict] = useState<{
+    verdict: string | null;
+    passed: number;
+    total: number;
+    revealedCase: RevealedCase | null;
+    compileError: string | null;
+  } | null>(null);
 
   const [leftPct, setLeftPct] = useState(44);
   const [consolePct, setConsolePct] = useState(40);
@@ -222,7 +229,17 @@ export default function PracticeCodingWorkspace({
       const { submissionId } = await submitProblem(problem.id, { language, code: codeByLang[language] });
       const done = await pollSubmission(submissionId);
       if (done) {
-        setVerdict({ verdict: done.verdict, passed: done.passedCases, total: done.totalCases });
+        const compileError =
+          done.verdict === 'CE'
+            ? done.cases?.find((c) => (c.status ?? '').toUpperCase() === 'CE')?.stderr ?? 'Lỗi biên dịch'
+            : null;
+        setVerdict({
+          verdict: done.verdict,
+          passed: done.passedCases,
+          total: done.totalCases,
+          revealedCase: done.revealedCase ?? null,
+          compileError,
+        });
         // Reflect the new standing in the header immediately. SOLVED is sticky —
         // a later non-AC submit never demotes an already-solved problem.
         setMyStatus((prev) =>
@@ -653,24 +670,85 @@ function VerdictBanner({
   verdict,
   dark,
 }: {
-  verdict: { verdict: string | null; passed: number; total: number };
+  verdict: {
+    verdict: string | null;
+    passed: number;
+    total: number;
+    revealedCase: RevealedCase | null;
+    compileError: string | null;
+  };
   dark: boolean;
 }) {
   const t = cwTokens(dark);
   const accepted = verdict.verdict === 'AC';
-  return (
-    <div className={`flex h-full flex-col items-center justify-center gap-2 ${t.panel}`}>
-      {accepted ? (
+  const label = verdict.verdict
+    ? VERDICT_LABEL[verdict.verdict] ?? verdict.verdict
+    : 'Không xác định';
+
+  // Accepted: celebrate and show the full pass count — the only time a count is shown.
+  if (accepted) {
+    return (
+      <div className={`flex h-full flex-col items-center justify-center gap-2 ${t.panel}`}>
         <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+        <p className="text-lg font-bold text-emerald-500">{label}</p>
+        <p className={`text-sm ${t.textBody}`}>
+          Vượt {verdict.passed}/{verdict.total} test case
+        </p>
+      </div>
+    );
+  }
+
+  // Failed: no pass count. Show the compile error, or a single revealed test case.
+  return (
+    <div className={`flex h-full flex-col gap-3 overflow-auto p-4 ${t.panel}`}>
+      <div className="flex items-center gap-2">
+        <XCircle className="h-6 w-6 shrink-0 text-rose-500" />
+        <p className="text-base font-bold text-rose-500">{label}</p>
+      </div>
+
+      {verdict.compileError ? (
+        <pre className={`whitespace-pre-wrap rounded-md p-3 text-xs ${t.codeBlock}`}>
+          {verdict.compileError}
+        </pre>
+      ) : verdict.revealedCase ? (
+        <div className={`flex flex-col gap-3 rounded-md border p-3 ${t.card}`}>
+          <p className={`text-xs font-semibold ${t.textMuted}`}>
+            Test case bị fail (ẩn) — sửa lại lời giải của bạn:
+          </p>
+          <RevealedField label="Input" value={verdict.revealedCase.input} t={t} />
+          <RevealedField label="Đáp án đúng" value={verdict.revealedCase.expected} t={t} />
+          <RevealedField
+            label="Output của bạn"
+            value={verdict.revealedCase.actualOutput ?? '(không có)'}
+            t={t}
+          />
+        </div>
       ) : (
-        <XCircle className="h-10 w-10 text-rose-500" />
+        <p className={`text-sm ${t.textBody}`}>
+          Bài làm chưa đúng. Hãy xem lại lời giải và thử lại.
+        </p>
       )}
-      <p className={`text-lg font-bold ${accepted ? 'text-emerald-500' : 'text-rose-500'}`}>
-        {verdict.verdict ? VERDICT_LABEL[verdict.verdict] ?? verdict.verdict : 'Không xác định'}
-      </p>
-      <p className={`text-sm ${t.textBody}`}>
-        Vượt {verdict.passed}/{verdict.total} test case
-      </p>
+    </div>
+  );
+}
+
+function RevealedField({
+  label,
+  value,
+  t,
+}: {
+  label: string;
+  value: string;
+  t: ReturnType<typeof cwTokens>;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className={`text-[11px] font-medium uppercase tracking-wide ${t.textMuted}`}>
+        {label}
+      </span>
+      <pre className={`whitespace-pre-wrap break-all rounded p-2 text-xs ${t.codeBlock}`}>
+        {value}
+      </pre>
     </div>
   );
 }
