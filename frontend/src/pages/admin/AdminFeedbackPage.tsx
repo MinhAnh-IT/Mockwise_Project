@@ -23,6 +23,7 @@ import {
   type ToastState,
 } from '@/components/admin/ui';
 import type { PageResult } from '@/types/profile';
+import { parseServerDate } from '@/lib/datetime';
 import {
   FEEDBACK_CATEGORY_LABEL,
   FEEDBACK_STATUS_LABEL,
@@ -58,7 +59,7 @@ const DATETIME_FMT = new Intl.DateTimeFormat('vi-VN', {
 });
 
 function fmtTime(iso: string | null): string {
-  return iso ? DATETIME_FMT.format(new Date(iso)) : '—';
+  return iso ? DATETIME_FMT.format(parseServerDate(iso)) : '—';
 }
 
 function Stars({ value }: { value: number }) {

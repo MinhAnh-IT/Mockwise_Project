@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import { getMonitoringOverview } from '@/api/adminMonitoring';
+import { parseServerDate } from '@/lib/datetime';
 import {
   AdminShell,
   Button,
@@ -212,7 +213,7 @@ export default function AdminMonitoringPage() {
 
           <p className="flex items-center gap-1.5 text-xs text-on-surface-variant">
             <Activity className="h-3.5 w-3.5" />
-            Cập nhật lúc {TIME_FMT.format(new Date(data.generatedAt))}
+            Cập nhật lúc {TIME_FMT.format(parseServerDate(data.generatedAt))}
             {refreshing && ' · đang làm mới…'}
           </p>
         </div>

@@ -14,6 +14,7 @@ import {
   Spinner,
 } from '@/components/admin/ui';
 import type { AuditLog, AuditLogPage } from '@/types/audit';
+import { parseServerDate } from '@/lib/datetime';
 
 const PAGE_SIZE = 30;
 
@@ -36,7 +37,7 @@ const CATEGORY_TONE: Record<string, 'emerald' | 'amber' | 'secondary' | 'neutral
 };
 
 function fmtTime(iso: string): string {
-  return DATETIME_FMT.format(new Date(iso));
+  return DATETIME_FMT.format(parseServerDate(iso));
 }
 
 /** datetime-local value (local, no tz) → ISO-8601 instant the backend can parse. */
