@@ -14,7 +14,6 @@ import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
 import AvatarUploader from '@/components/profile/AvatarUploader';
 import type {
-  Language,
   PositionLevel,
   PositionTrack,
   UserProfileUpdateRequest,
@@ -46,9 +45,8 @@ export default function EditProfilePage() {
   const [experience, setExperience] = useState(String(profile?.experience ?? 0));
   const [trackId, setTrackId] = useState(profile?.position.trackId ?? '');
   const [levelId, setLevelId] = useState(profile?.position.levelId ?? '');
-  const [preferredLanguage, setPreferredLanguage] = useState<Language>(
-    profile?.preferredLanguage ?? 'VI',
-  );
+  // Vietnamese-only platform: language is fixed to the profile's stored value
+  // (VI) and no longer user-editable, so it never appears in the dirty diff.
   const [yearsInCurrentRole, setYearsInCurrentRole] = useState(
     profile?.yearsInCurrentRole != null ? String(profile.yearsInCurrentRole) : '',
   );
@@ -114,10 +112,6 @@ export default function EditProfilePage() {
       diff.avatarObjectKey = pendingAvatarObjectKey;
     }
 
-    if (preferredLanguage !== (profile.preferredLanguage ?? 'VI')) {
-      diff.preferredLanguage = preferredLanguage;
-    }
-
     const yicrTrim = yearsInCurrentRole.trim();
     const yicrCurrent = profile.yearsInCurrentRole ?? null;
     if (yicrTrim === '') {
@@ -145,7 +139,6 @@ export default function EditProfilePage() {
     trackId,
     levelId,
     pendingAvatarObjectKey,
-    preferredLanguage,
     yearsInCurrentRole,
     techStackInput,
     industriesInput,
@@ -303,16 +296,6 @@ export default function EditProfilePage() {
                 />
               </Field>
 
-              <Field label="Ngôn ngữ ưu tiên" htmlFor="preferredLanguage">
-                <Select
-                  id="preferredLanguage"
-                  value={preferredLanguage}
-                  onChange={(e) => setPreferredLanguage(e.target.value as Language)}
-                >
-                  <option value="VI">Tiếng Việt</option>
-                  <option value="EN">English</option>
-                </Select>
-              </Field>
             </div>
 
             <Field

@@ -108,7 +108,12 @@ function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="shrink-0 border-t border-outline-variant p-3">
-        <div className="mb-1 flex items-center gap-3 px-2 py-2">
+        <Link
+          to="/admin/account"
+          onClick={onNavigate}
+          className="mb-1 flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-surface-container-low"
+          title="Chỉnh sửa tài khoản"
+        >
           <Avatar
             src={profile?.avatarUrl}
             fullName={profile?.fullName ?? 'Admin'}
@@ -120,7 +125,7 @@ function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
             </p>
             <p className="text-xs text-on-surface-variant">Quản trị viên</p>
           </div>
-        </div>
+        </Link>
         <button
           type="button"
           onClick={handleSignOut}
