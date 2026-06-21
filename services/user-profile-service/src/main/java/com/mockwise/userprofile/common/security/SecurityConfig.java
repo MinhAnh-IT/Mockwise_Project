@@ -22,7 +22,11 @@ public class SecurityConfig {
                         // Public GET endpoints for Track and Level selection (no auth required)
                         .requestMatchers(HttpMethod.GET, "/position-tracks/**", "/position-tracks").permitAll()
                         .requestMatchers(HttpMethod.GET, "/position-levels/**", "/position-levels").permitAll()
-                        
+
+                        // Public feedback submission — landing-page visitors may not be
+                        // logged in. userId is populated from gateway headers when present.
+                        .requestMatchers(HttpMethod.POST, "/feedbacks").permitAll()
+
                         // User Profile APIs
                         .requestMatchers(HttpMethod.POST, "/profiles/**").hasAuthority("ROLE_SERVICE")
                         .requestMatchers(HttpMethod.GET, "/profiles/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN", "ROLE_SERVICE")

@@ -381,6 +381,30 @@ export default function AdminDashboardPage() {
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
+
+                <div className="flex flex-col rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                      <MessagesSquare className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-on-surface">
+                        Ý kiến người dùng
+                      </p>
+                      <p className="mt-0.5 text-xs text-on-surface-variant">
+                        Góp ý, báo lỗi & đề xuất tính năng
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    className="mt-4 self-start"
+                    onClick={() => navigate('/admin/feedback')}
+                  >
+                    Xem góp ý
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 

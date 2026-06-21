@@ -55,6 +55,9 @@ public class AuthGatewayFilter implements GlobalFilter, Ordered {
             new PublicRoute(HttpMethod.POST, "/api/v1/iam/auth/forgot-password/confirm"),
             new PublicRoute(HttpMethod.GET,  "/api/v1/position-tracks/**"),
             new PublicRoute(HttpMethod.GET,  "/api/v1/position-levels/**"),
+            // User feedback submission — reachable from the landing page where the
+            // visitor may not be logged in. Reading/triaging feedback is admin-only.
+            new PublicRoute(HttpMethod.POST, "/api/v1/feedbacks"),
             new PublicRoute(HttpMethod.GET,  "/api/v1/iam/auth/health"),
             new PublicRoute(HttpMethod.POST, "/api/v1/judge/callback/**"),
             new PublicRoute(HttpMethod.PUT,  "/api/v1/judge/callback/**"),

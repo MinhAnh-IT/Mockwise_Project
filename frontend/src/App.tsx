@@ -38,6 +38,8 @@ import AdminInterviewsPage from '@/pages/admin/AdminInterviewsPage';
 import AdminMonitoringPage from '@/pages/admin/AdminMonitoringPage';
 import AdminJudgePage from '@/pages/admin/AdminJudgePage';
 import AdminAuditPage from '@/pages/admin/AdminAuditPage';
+import AdminFeedbackPage from '@/pages/admin/AdminFeedbackPage';
+import FeedbackWidget from '@/components/feedback/FeedbackWidget';
 
 export default function App() {
   return (
@@ -309,8 +311,17 @@ export default function App() {
               </AdminRoute>
             }
           />
+          <Route
+            path="/admin/feedback"
+            element={
+              <AdminRoute>
+                <AdminFeedbackPage />
+              </AdminRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <FeedbackWidget />
       </AuthProvider>
     </BrowserRouter>
   );
