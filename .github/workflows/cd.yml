@@ -494,15 +494,26 @@ jobs:
             docker compose -f docker/docker-compose.prod.yml --env-file .env \
               up -d --no-deps ${{ steps.services.outputs.list }}
 
-            # Validate, then hot-reload nginx so the freshly git-reset config
-            # AND new upstream container IPs both take effect (resolver cache can
-            # otherwise keep dead IPs after a recreate, causing 502).
-            # Use `compose exec` so this resolves by service name instead of a
-            # hardcoded container name, and DO surface failures: a silently-failed
-            # reload (the old `2>/dev/null || true`) means a config change that
-            # was deployed to disk but never actually applied.
-            docker compose -f docker/docker-compose.prod.yml --env-file .env exec -T nginx nginx -t
-            docker compose -f docker/docker-compose.prod.yml --env-file .env exec -T nginx nginx -s reload
+            # Apply nginx config changes.
+            # nginx.conf is bind-mounted as a SINGLE FILE; `git reset` swaps the
+            # file's inode, which a running container never picks up (only the
+            # conf.d/ *directory* mount goes live). A plain `nginx -s reload`
+            # therefore reloads stale top-level config and can fail (e.g. a new
+            # shared-memory zone referenced by conf.d but missing from the stale
+            # nginx.conf). So: validate the NEW files in a throwaway container
+            # first — if that fails we abort BEFORE touching the live nginx, so a
+            # bad config can't take the site down — then force-recreate nginx so
+            # both mounts re-bind to the current files (this also re-resolves
+            # upstream IPs, avoiding stale-IP 502s after a recreate).
+            docker run --rm \
+              -v /opt/mockwise/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+              -v /opt/mockwise/nginx/conf.d:/etc/nginx/conf.d:ro \
+              -v /opt/mockwise/api-spec:/etc/nginx/api-spec:ro \
+              -v /etc/letsencrypt:/etc/letsencrypt:ro \
+              -v /var/www/certbot:/var/www/certbot:ro \
+              nginx:1.25-alpine nginx -t
+            docker compose -f docker/docker-compose.prod.yml --env-file .env \
+              up -d --no-deps --force-recreate nginx
 
             docker image prune -f
             echo "Deploy completed: $(date)"
