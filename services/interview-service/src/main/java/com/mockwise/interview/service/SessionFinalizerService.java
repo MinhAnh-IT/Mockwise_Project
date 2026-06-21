@@ -90,16 +90,34 @@ public class SessionFinalizerService {
             return;
         }
 
+        long answeredCount = answerRepo.countBySessionIdAndStatusIn(sessionId,
+                List.of(AnswerStatus.SCORED, AnswerStatus.FAILED));
+
+        // A session that reached "no answer in flight" with zero terminal
+        // answers has nothing for the overall reviewer to grade. Requesting it
+        // anyway makes the AI OverallEvaluator fail on empty input, and the
+        // failed branch (SessionEvaluationConsumer#onFailed) deliberately
+        // leaves the session COMPLETED for manual replay — so it strands as
+        // "completed but no score" in admin forever. Cancel it outright
+        // instead; this is the same verdict SessionIdleReaper gives a 0-answer
+        // idle session, just for the planner-/finish-completed path too.
+        if (answeredCount == 0) {
+            s.setStatus(SessionStatus.CANCELLED);
+            if (s.getFinishedAt() == null) {
+                s.setFinishedAt(OffsetDateTime.now());
+            }
+            sessionRepo.save(s);
+            log.info("Session {} → CANCELLED (completed with no answers — skipped overall review)",
+                    s.getId());
+            return;
+        }
+
         // Stamp the real number of questions the candidate actually answered.
         // questionCount was seeded to the blueprint's questionBudget (a planning
         // ceiling) at /start, so the result/summary was showing the budget rather
-        // than what was answered. Every finalize path funnels through this gate,
-        // and the gate only fires once every answer is terminal, so this is the
-        // one correct moment to record it. SCORED and FAILED both count — the
-        // candidate submitted an answer either way; pinned-but-unanswered
-        // questions (ended early / time up) are excluded.
-        long answeredCount = answerRepo.countBySessionIdAndStatusIn(sessionId,
-                List.of(AnswerStatus.SCORED, AnswerStatus.FAILED));
+        // than what was answered. SCORED and FAILED both count — the candidate
+        // submitted an answer either way; pinned-but-unanswered questions (ended
+        // early / time up) are excluded.
         s.setQuestionCount((int) answeredCount);
 
         Map<String, Object> payload = buildPayload(s);
