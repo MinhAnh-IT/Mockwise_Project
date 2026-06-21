@@ -84,11 +84,22 @@ export type SubmissionCaseView = {
   stderr: string | null;
 };
 
+/** One failing hidden case, surfaced after a non-accepted SUBMIT so the user can fix it. */
+export type RevealedCase = {
+  orderIndex: number;
+  input: string;
+  expected: string;
+  actualOutput: string | null;
+  status: string;
+};
+
 export type SubmissionDetail = SubmissionSummary & {
   memoryKb: number | null;
   sourceCode: string;
   finishedAt: string | null;
   cases: SubmissionCaseView[];
+  /** Present only when a SUBMIT failed; null on accepted/run/compile-error. */
+  revealedCase: RevealedCase | null;
 };
 
 export type UserStats = {
