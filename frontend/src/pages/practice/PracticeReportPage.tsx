@@ -102,7 +102,12 @@ export default function PracticeReportPage() {
         const s = await getSession(sid);
         if (cancelled) return;
         setSession(s);
-        if (s.status === 'SCORED') return; // stop polling
+        // Terminal states — stop polling. SCORED has a report; CANCELLED never
+        // will (session ended with no answers to grade, so the backend skips
+        // the overall review). Polling on past CANCELLED just spun the
+        // "đang tổng hợp" placeholder until the attempt cap, then surfaced a
+        // misleading "scoring is slow" error.
+        if (s.status === 'SCORED' || s.status === 'CANCELLED') return;
         attemptsRef.current += 1;
         if (attemptsRef.current >= MAX_POLL_ATTEMPTS) {
           setError('Hệ thống chấm điểm đang chậm hơn dự kiến. Bạn có thể quay lại trang này sau.');
@@ -254,6 +259,33 @@ function ScoringPlaceholder({
       </div>
     );
   }
+  // CANCELLED is terminal with no report: the session was ended before any
+  // answer was submitted, so there is nothing to grade. Show a clear final
+  // message instead of an endless "đang tổng hợp" spinner.
+  if (status === 'CANCELLED') {
+    return (
+      <div className="bg-surface-container-lowest border border-outline-variant rounded-3xl p-10 md:p-14 text-center">
+        <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-on-surface-variant/10 text-on-surface-variant flex items-center justify-center">
+          <CalendarClock className="w-8 h-8" />
+        </div>
+        <h3 className="text-lg font-bold text-on-surface mb-2">
+          Phiên phỏng vấn đã kết thúc
+        </h3>
+        <p className="text-sm text-on-surface-variant max-w-md mx-auto leading-relaxed">
+          Bạn đã kết thúc phiên này trước khi trả lời câu hỏi nào, nên không có
+          báo cáo đánh giá. Hãy bắt đầu một phiên mới và hoàn thành ít nhất một
+          câu để nhận kết quả.
+        </p>
+        <Link
+          to="/practice"
+          className="inline-flex items-center gap-1.5 mt-5 px-5 py-2.5 rounded-xl bg-secondary text-on-secondary text-sm font-semibold hover:opacity-95 transition-opacity"
+        >
+          Bắt đầu phiên mới
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
+    );
+  }
   return (
     <div className="bg-surface-container-lowest border border-outline-variant rounded-3xl p-10 md:p-14 text-center relative overflow-hidden">
       <div className="absolute -right-12 -top-12 w-56 h-56 rounded-full bg-secondary/5 blur-3xl pointer-events-none" />
@@ -264,7 +296,7 @@ function ScoringPlaceholder({
           <Loader2 className="w-8 h-8 animate-spin" />
         </div>
         <h3 className="text-lg font-bold text-on-surface mb-2">
-          {status === 'COMPLETED' || status === 'CANCELLED'
+          {status === 'COMPLETED'
             ? 'Đang tổng hợp báo cáo…'
             : 'Đang chấm các câu trả lời…'}
         </h3>
