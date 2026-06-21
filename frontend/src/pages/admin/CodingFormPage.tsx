@@ -127,6 +127,11 @@ export default function CodingFormPage() {
   const location = useLocation();
   const mode: 'create' | 'edit' = id ? 'edit' : 'create';
 
+  // Return to the list with the tab/filters the user came from (passed as `from`).
+  const backTo =
+    '/admin/questions' +
+    ((location.state as { from?: string } | null)?.from ?? '');
+
   const [difficulty, setDifficulty] = useState<Difficulty | ''>('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -471,7 +476,7 @@ export default function CodingFormPage() {
         await createCoding(body);
         clearDraft(); // saved successfully — drop the autosaved draft
       }
-      navigate('/admin/questions', {
+      navigate(backTo, {
         state: {
           flash:
             mode === 'edit'
@@ -623,7 +628,7 @@ export default function CodingFormPage() {
     <AdminShell
       title={mode === 'edit' ? 'Sửa câu hỏi Lập trình' : 'Tạo câu hỏi Lập trình'}
       breadcrumb={[
-        { label: 'Ngân hàng câu hỏi', to: '/admin/questions' },
+        { label: 'Ngân hàng câu hỏi', to: backTo },
         { label: mode === 'edit' ? 'Sửa câu hỏi' : 'Tạo câu hỏi' },
       ]}
       actions={
@@ -646,7 +651,7 @@ export default function CodingFormPage() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => navigate('/admin/questions')}
+            onClick={() => navigate(backTo)}
           >
             <ArrowLeft className="h-4 w-4" />
             Quay lại
@@ -661,7 +666,7 @@ export default function CodingFormPage() {
       ) : loadError ? (
         <ErrorState
           message={loadError}
-          onRetry={() => navigate('/admin/questions')}
+          onRetry={() => navigate(backTo)}
         />
       ) : (
         <form onSubmit={onSubmit} className="space-y-6">
@@ -1034,7 +1039,7 @@ export default function CodingFormPage() {
           <div className="sticky bottom-0 z-10 -mx-1 flex justify-end gap-2 border-t border-outline-variant bg-surface-container-lowest/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-surface-container-lowest/80">
             <Button
               variant="ghost"
-              onClick={() => navigate('/admin/questions')}
+              onClick={() => navigate(backTo)}
             >
               Huỷ
             </Button>

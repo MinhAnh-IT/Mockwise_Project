@@ -262,7 +262,7 @@ export default function AdminDashboardPage() {
                         variant="ghost"
                         className="flex-1"
                         onClick={() =>
-                          navigate('/admin/questions', { state: { kind } })
+                          navigate(`/admin/questions?kind=${kind}`)
                         }
                       >
                         Quản lý

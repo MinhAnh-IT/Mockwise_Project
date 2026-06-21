@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Pencil, Plus, Star, Trash2 } from 'lucide-react';
 import { ApiError } from '@/api/client';
+import { useUrlState } from '@/lib/useUrlState';
 import {
   deleteBlueprint,
   listBlueprints,
@@ -52,12 +53,25 @@ const DATE_FMT = new Intl.DateTimeFormat('vi-VN', {
   minute: '2-digit',
 });
 
-const EMPTY_FILTERS: BlueprintFilters = {};
+// Filters persisted to the URL so they survive a refresh.
+const URL_DEFAULTS = { targetRole: '', level: '', interviewType: '', isDefault: '' };
 
 export default function BlueprintsPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [filters, setFilters] = useState<BlueprintFilters>(EMPTY_FILTERS);
+  const [urlState, setUrlState] = useUrlState(URL_DEFAULTS);
+  const filters: BlueprintFilters = useMemo(
+    () => ({
+      targetRole: (urlState.targetRole || undefined) as BlueprintRole | undefined,
+      level: (urlState.level || undefined) as Level | undefined,
+      interviewType: (urlState.interviewType || undefined) as
+        | InterviewType
+        | undefined,
+      isDefault:
+        urlState.isDefault === '' ? undefined : urlState.isDefault === 'true',
+    }),
+    [urlState.targetRole, urlState.level, urlState.interviewType, urlState.isDefault],
+  );
   const [items, setItems] = useState<Blueprint[]>([]);
   const [totalCount, setTotalCount] = useState<number | null>(null);
   const [page, setPage] = useState(0);
@@ -109,9 +123,13 @@ export default function BlueprintsPage() {
     if (flash && !flashShownRef.current) {
       flashShownRef.current = true;
       setToast({ kind: 'success', text: flash });
-      navigate(location.pathname, { replace: true });
+      // Strip the one-shot flash state but keep the query (filters).
+      navigate(
+        { pathname: location.pathname, search: location.search },
+        { replace: true },
+      );
     }
-  }, [location.state, location.pathname, navigate]);
+  }, [location.state, location.pathname, location.search, navigate]);
 
   const hasNext = totalCount !== null && items.length < totalCount;
 
@@ -134,10 +152,8 @@ export default function BlueprintsPage() {
   };
 
   const applyFilters = () => setReloadKey((k) => k + 1);
-  const clearFilters = () => {
-    setFilters(EMPTY_FILTERS);
-    setReloadKey((k) => k + 1);
-  };
+  const clearFilters = () =>
+    setUrlState({ targetRole: '', level: '', interviewType: '', isDefault: '' });
 
   const onSetDefault = async (b: Blueprint) => {
     setSettingDefault(b.id);
@@ -178,16 +194,13 @@ export default function BlueprintsPage() {
   };
 
   const goEdit = (b: Blueprint) =>
-    navigate(`/admin/blueprints/${b.id}/edit`, { state: { record: b } });
+    navigate(`/admin/blueprints/${b.id}/edit`, {
+      state: { record: b, from: location.search },
+    });
 
   // isDefault filter is a tri-state Select (all / only default / not default).
-  const isDefaultValue =
-    filters.isDefault === undefined ? '' : String(filters.isDefault);
-  const onIsDefaultChange = (raw: string) =>
-    setFilters((f) => ({
-      ...f,
-      isDefault: raw === '' ? undefined : raw === 'true',
-    }));
+  const isDefaultValue = urlState.isDefault;
+  const onIsDefaultChange = (raw: string) => setUrlState({ isDefault: raw });
 
   return (
     <AdminShell
@@ -198,7 +211,11 @@ export default function BlueprintsPage() {
         { label: 'Blueprint phỏng vấn' },
       ]}
       actions={
-        <Button onClick={() => navigate('/admin/blueprints/new')}>
+        <Button
+          onClick={() =>
+            navigate('/admin/blueprints/new', { state: { from: location.search } })
+          }
+        >
           <Plus className="h-4 w-4" />
           Tạo blueprint
         </Button>
@@ -210,21 +227,21 @@ export default function BlueprintsPage() {
       <div className="mb-6 grid grid-cols-1 gap-3 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 sm:grid-cols-2 lg:grid-cols-4">
         <EnumSelect<BlueprintRole>
           value={filters.targetRole as BlueprintRole | undefined}
-          onChange={(v) => setFilters((f) => ({ ...f, targetRole: v || undefined }))}
+          onChange={(v) => setUrlState({ targetRole: v || '' })}
           options={[...BLUEPRINT_ROLES]}
           labels={BLUEPRINT_ROLE_LABEL}
           placeholder="Mọi vị trí"
         />
         <EnumSelect<Level>
           value={filters.level as Level | undefined}
-          onChange={(v) => setFilters((f) => ({ ...f, level: v || undefined }))}
+          onChange={(v) => setUrlState({ level: v || '' })}
           options={LEVELS}
           labels={LEVEL_LABEL}
           placeholder="Mọi cấp"
         />
         <EnumSelect<InterviewType>
           value={filters.interviewType}
-          onChange={(v) => setFilters((f) => ({ ...f, interviewType: v || undefined }))}
+          onChange={(v) => setUrlState({ interviewType: v || '' })}
           options={INTERVIEW_TYPES}
           labels={INTERVIEW_TYPE_LABEL}
           placeholder="Mọi loại"

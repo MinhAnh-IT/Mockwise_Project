@@ -41,6 +41,11 @@ export default function BehavioralFormPage() {
   const location = useLocation();
   const mode: 'create' | 'edit' = id ? 'edit' : 'create';
 
+  // Return to the list with the tab/filters the user came from (passed as `from`).
+  const backTo =
+    '/admin/questions' +
+    ((location.state as { from?: string } | null)?.from ?? '');
+
   const [difficulty, setDifficulty] = useState<Difficulty | ''>('');
   const [competency, setCompetency] = useState<Competency | ''>('');
   const [text, setText] = useState('');
@@ -122,7 +127,7 @@ export default function BehavioralFormPage() {
     try {
       if (mode === 'edit' && id) await updateBehavioral(id, body);
       else await createBehavioral(body);
-      navigate('/admin/questions', {
+      navigate(backTo, {
         state: {
           flash:
             mode === 'edit'
@@ -146,11 +151,11 @@ export default function BehavioralFormPage() {
     <AdminShell
       title={mode === 'edit' ? 'Sửa câu hỏi Hành vi' : 'Tạo câu hỏi Hành vi'}
       breadcrumb={[
-        { label: 'Ngân hàng câu hỏi', to: '/admin/questions' },
+        { label: 'Ngân hàng câu hỏi', to: backTo },
         { label: mode === 'edit' ? 'Sửa câu hỏi' : 'Tạo câu hỏi' },
       ]}
       actions={
-        <Button variant="outline" onClick={() => navigate('/admin/questions')}>
+        <Button variant="outline" onClick={() => navigate(backTo)}>
           <ArrowLeft className="h-4 w-4" />
           Quay lại
         </Button>
@@ -163,7 +168,7 @@ export default function BehavioralFormPage() {
       ) : loadError ? (
         <ErrorState
           message={loadError}
-          onRetry={() => navigate('/admin/questions')}
+          onRetry={() => navigate(backTo)}
         />
       ) : (
         <form
@@ -234,7 +239,7 @@ export default function BehavioralFormPage() {
           <div className="flex justify-end gap-2 border-t border-outline-variant pt-5">
             <Button
               variant="ghost"
-              onClick={() => navigate('/admin/questions')}
+              onClick={() => navigate(backTo)}
             >
               Huỷ
             </Button>
