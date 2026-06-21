@@ -80,26 +80,32 @@ public class AdminSessionService {
 
         Page<InterviewSession> page = sessionRepo.findAll(spec, pageable);
 
-        // Real per-session question/answer counts for the page, batched into two
-        // grouped queries (no N+1). question_count on the entity is only exact
-        // for non-adaptive CODING; adaptive sessions add follow-ups, so the list
-        // shows actual pinned-question and submitted-answer counts instead.
+        // Real per-session answer + pinned-question counts for the page, batched
+        // into two grouped queries (no N+1).
         List<UUID> ids = page.getContent().stream().map(InterviewSession::getId).toList();
-        Map<UUID, Long> totalById = new HashMap<>();
+        Map<UUID, Long> pinnedById = new HashMap<>();
         Map<UUID, Long> answeredById = new HashMap<>();
         if (!ids.isEmpty()) {
             for (Object[] row : sessionQuestionRepo.countGroupedBySessionId(ids)) {
-                totalById.put((UUID) row[0], toLong(row[1]));
+                pinnedById.put((UUID) row[0], toLong(row[1]));
             }
             for (Object[] row : answerRepo.countGroupedBySessionId(ids)) {
                 answeredById.put((UUID) row[0], toLong(row[1]));
             }
         }
 
-        return page.map(s -> AdminSessionResponse.from(
-                s,
-                (int) toLong(answeredById.get(s.getId())),
-                (int) toLong(totalById.get(s.getId()))));
+        return page.map(s -> {
+            int answered = (int) toLong(answeredById.get(s.getId()));
+            // Denominator: the blueprint budget (question_count, set at /start)
+            // anchors the total so a candidate who stopped early still reads
+            // "answered / planned". Once follow-ups push the answered count past
+            // that budget, the budget is no longer the real ceiling, so fall back
+            // to the actual pinned-question count. For non-adaptive CODING the two
+            // are equal, so the displayed total is always the fixed plan size.
+            int budget = s.getQuestionCount();
+            int total = answered > budget ? (int) toLong(pinnedById.get(s.getId())) : budget;
+            return AdminSessionResponse.from(s, answered, total);
+        });
     }
 
     @Transactional(readOnly = true)
